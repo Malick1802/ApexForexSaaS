@@ -1,0 +1,219 @@
+currency_pairs:
+  crosses:
+  - correlated_assets:
+    - correlation: 0.6
+      symbol: CL=F
+    - correlation: -0.5
+      symbol: ^VIX
+    pip_type: jpy
+    symbol: CADJPY
+  - correlated_assets:
+    - correlation: -0.3
+      symbol: ^VIX
+    pip_type: jpy
+    symbol: CHFJPY
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: AUDJPY
+    pip_type: jpy
+    symbol: NZDJPY
+  - correlated_assets:
+    - correlation: 0.55
+      symbol: CL=F
+    pip_type: standard
+    symbol: CADCHF
+  - correlated_assets:
+    - correlation: -0.4
+      symbol: CL=F
+    pip_type: standard
+    symbol: NZDCAD
+  - correlated_assets:
+    - correlation: 0.75
+      symbol: AUDCHF
+    pip_type: standard
+    symbol: NZDCHF
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: EURAUD
+    pip_type: standard
+    symbol: EURNZD
+  - correlated_assets:
+    - correlation: 0.75
+      symbol: GBPAUD
+    pip_type: standard
+    symbol: GBPNZD
+  - correlated_assets:
+    - correlation: 0.5
+      symbol: GC=F
+    - correlation: -0.45
+      symbol: ^VIX
+    pip_type: standard
+    symbol: AUDCHF
+  - correlated_assets:
+    - correlation: -0.6
+      symbol: USDSGD
+    pip_type: standard
+    symbol: EURSGD
+  - correlated_assets:
+    - correlation: 0.7
+      symbol: DX-Y.NYB
+    pip_type: standard
+    symbol: USDSGD
+  - correlated_assets:
+    - correlation: 0.95
+      symbol: DX-Y.NYB
+    pip_type: standard
+    symbol: USDHKD
+  majors:
+  - correlated_assets:
+    - correlation: -0.95
+      symbol: DX-Y.NYB
+    - correlation: 0.6
+      symbol: GC=F
+    pip_type: standard
+    symbol: EURUSD
+  - correlated_assets:
+    - correlation: -0.85
+      symbol: DX-Y.NYB
+    - correlation: -0.7
+      symbol: EURGBP
+    pip_type: standard
+    symbol: GBPUSD
+  - correlated_assets:
+    - correlation: 0.75
+      symbol: ^TNX
+    - correlation: -0.5
+      symbol: ^VIX
+    pip_type: jpy
+    symbol: USDJPY
+  - correlated_assets:
+    - correlation: -0.55
+      symbol: GC=F
+    - correlation: -0.9
+      symbol: EURUSD
+    pip_type: standard
+    symbol: USDCHF
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: GC=F
+    - correlation: 0.65
+      symbol: HG=F
+    pip_type: standard
+    symbol: AUDUSD
+  - correlated_assets:
+    - correlation: -0.75
+      symbol: CL=F
+    - correlation: 0.6
+      symbol: DX-Y.NYB
+    pip_type: standard
+    symbol: USDCAD
+  - correlated_assets:
+    - correlation: 0.85
+      symbol: AUDUSD
+    - correlation: 0.55
+      symbol: GDX
+    pip_type: standard
+    symbol: NZDUSD
+  minors:
+  - correlated_assets:
+    - correlation: -0.7
+      symbol: GBPUSD
+    pip_type: standard
+    symbol: EURGBP
+  - correlated_assets:
+    - correlation: -0.5
+      symbol: GC=F
+    pip_type: standard
+    symbol: EURAUD
+  - correlated_assets:
+    - correlation: 0.45
+      symbol: CL=F
+    pip_type: standard
+    symbol: EURCAD
+  - correlated_assets:
+    - correlation: -0.4
+      symbol: ^VIX
+    pip_type: standard
+    symbol: EURCHF
+  - correlated_assets:
+    - correlation: -0.55
+      symbol: ^VIX
+    - correlation: 0.5
+      symbol: ES=F
+    pip_type: jpy
+    symbol: EURJPY
+  - correlated_assets:
+    - correlation: -0.45
+      symbol: GC=F
+    pip_type: standard
+    symbol: GBPAUD
+  - correlated_assets:
+    - correlation: 0.4
+      symbol: CL=F
+    pip_type: standard
+    symbol: GBPCAD
+  - correlated_assets:
+    - correlation: -0.35
+      symbol: ^VIX
+    pip_type: standard
+    symbol: GBPCHF
+  - correlated_assets:
+    - correlation: -0.6
+      symbol: ^VIX
+    - correlation: 0.45
+      symbol: ^N225
+    pip_type: jpy
+    symbol: GBPJPY
+  - correlated_assets:
+    - correlation: 0.5
+      symbol: CL=F
+    - correlation: 0.55
+      symbol: GC=F
+    pip_type: standard
+    symbol: AUDCAD
+  - correlated_assets:
+    - correlation: -0.65
+      symbol: ^VIX
+    - correlation: 0.55
+      symbol: ES=F
+    pip_type: jpy
+    symbol: AUDJPY
+  - correlated_assets:
+    - correlation: -0.3
+      symbol: GDT
+    pip_type: standard
+    symbol: AUDNZD
+data:
+  cache:
+    directory: data_cache
+    enabled: true
+    expiry_hours: 24
+  default_history_days: 1825
+  timeframes:
+  - 1h
+  - 4h
+  - 1d
+data_provider:
+  active: twelvedata
+  twelvedata:
+    api_key: 91d80548bd2a4c7689b21f07043cfaa5
+    base_url: https://api.twelvedata.com
+    rate_limit_delay: 1.0
+    retry_count: 5
+    timeout: 30
+  yfinance:
+    rate_limit_delay: 0.5
+    suffix: =X
+notifications:
+  telegram:
+    bot_token: 8562699506:AAGahdqN_owCNdK9aUpxJhTLKXpXVz9QhGs
+    chat_id: '6034739351'
+    enabled: true
+    alert_threshold: 0.75  # Notifies Telegram only on signals > 75% confidence
+trading:
+  pip_values:
+    jpy: 0.01
+    standard: 0.0001
+  risk_reward_ratio: 2.0
+  stop_loss_pips: 40
+  take_profit_pips: 50

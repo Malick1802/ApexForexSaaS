@@ -1,0 +1,88 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Testing
+.tox/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# TensorFlow / ML
+*.h5
+*.keras
+*.pkl
+saved_models/
+checkpoints/
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Databases
+*.db
+
+# Logs
+*.log
+logs/
+
+# Project Specific
+data_cache/
+models/
+!models/__init__.py
+debug_*.txt
+verify_*.txt
+*.json
+db_status*.txt
+internal_log.txt
+*.bak
+*.tmp
+node_modules/
+.npm/

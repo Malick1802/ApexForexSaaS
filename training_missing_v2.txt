@@ -1,0 +1,125 @@
+2026-02-05 12:58:32,299 - INFO - Targeting 31 pairs total.
+2026-02-05 12:58:32,309 - INFO - [SKIP] AUDCAD BUY already certified.
+2026-02-05 12:58:32,310 - INFO - [SKIP] AUDCAD SELL already certified.
+2026-02-05 12:58:32,310 - INFO - [START] Launching training for AUDCHF BUY...
+2026-02-05 13:06:05,983 - INFO - [DONE] Completed AUDCHF BUY
+2026-02-05 13:06:05,987 - INFO - [START] Launching training for AUDCHF SELL...
+2026-02-05 13:21:13,253 - INFO - [DONE] Completed AUDCHF SELL
+2026-02-05 13:21:13,277 - INFO - [SKIP] AUDJPY BUY already certified.
+2026-02-05 13:21:13,290 - INFO - [SKIP] AUDJPY SELL already certified.
+2026-02-05 13:21:13,304 - INFO - [SKIP] AUDNZD BUY already certified.
+2026-02-05 13:21:13,317 - INFO - [SKIP] AUDNZD SELL already certified.
+2026-02-05 13:21:13,332 - INFO - [SKIP] AUDUSD BUY already certified.
+2026-02-05 13:21:13,348 - INFO - [SKIP] AUDUSD SELL already certified.
+2026-02-05 13:21:13,360 - INFO - [SKIP] CADCHF BUY already certified.
+2026-02-05 13:21:13,371 - INFO - [SKIP] CADCHF SELL already certified.
+2026-02-05 13:21:13,385 - INFO - [SKIP] CADJPY BUY already certified.
+2026-02-05 13:21:13,397 - INFO - [SKIP] CADJPY SELL already certified.
+2026-02-05 13:21:13,410 - INFO - [SKIP] CHFJPY BUY already certified.
+2026-02-05 13:21:13,421 - INFO - [SKIP] CHFJPY SELL already certified.
+2026-02-05 13:21:13,432 - INFO - [SKIP] EURAUD BUY already certified.
+2026-02-05 13:21:13,446 - INFO - [SKIP] EURAUD SELL already certified.
+2026-02-05 13:21:13,461 - INFO - [SKIP] EURCAD BUY already certified.
+2026-02-05 13:21:13,474 - INFO - [SKIP] EURCAD SELL already certified.
+2026-02-05 13:21:13,486 - INFO - [SKIP] EURCHF BUY already certified.
+2026-02-05 13:21:13,502 - INFO - [SKIP] EURCHF SELL already certified.
+2026-02-05 13:21:13,515 - INFO - [SKIP] EURGBP BUY already certified.
+2026-02-05 13:21:13,529 - INFO - [SKIP] EURGBP SELL already certified.
+2026-02-05 13:21:13,530 - INFO - [START] Launching training for EURJPY BUY...
+2026-02-05 13:21:35,229 - ERROR - [FAIL] Failed EURJPY BUY
+2026-02-05 13:21:35,229 - ERROR - 2026-02-05 13:21:17.834477: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-05 13:21:22.124283: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+INFO:data_pipeline.engine:Loaded config from C:\Users\artem\Downloads\ApexForexSaaS\config.yaml
+INFO:data_pipeline.engine:DataEngine initialized with provider: yfinance
+INFO:__main__:Starting Specialist Factory for EURJPY (BUY)...
+WARNING:data_pipeline.providers.yfinance_provider:Requested 1095 days for 1h but capped at 729 due to yfinance limitations.
+INFO:data_pipeline.providers.yfinance_provider:Fetching EURJPY (EURJPY=X) - 1h from 2024-02-07 13:21:25.439235 to 2026-02-05 13:21:25.439235
+INFO:data_pipeline.providers.yfinance_provider:Fetched 12340 rows for EURJPY
+INFO:data_pipeline.engine:Cached EURJPY to C:\Users\artem\Downloads\ApexForexSaaS\data_cache\EURJPY_1h.parquet
+INFO:data_pipeline.labeling:Labeling with Dynamic 1:2 R:R. Min SL=25 pips, TP/SL Ratio=2.0, Max Hold=120
+INFO:data_pipeline.labeling:Dynamic Label Distribution: {1: 4289, 0: 4257, 2: 3794}
+INFO:data_pipeline.features:Extracted 20 features
+WARNING:data_pipeline.providers.yfinance_provider:Requested 1095 days for 1h but capped at 729 due to yfinance limitations.
+INFO:data_pipeline.providers.yfinance_provider:Fetching ^VIX (^VIX) - 1h from 2024-02-07 13:21:33.167596 to 2026-02-05 13:21:33.167596
+INFO:data_pipeline.providers.yfinance_provider:Fetched 3483 rows for ^VIX
+INFO:data_pipeline.engine:Cached ^VIX to C:\Users\artem\Downloads\ApexForexSaaS\data_cache\^VIX_1h.parquet
+INFO:data_pipeline.features:Added corr features
+INFO:__main__:Positive Rate: 34.76%
+WARNING:__main__:Found NaNs in features:
+WARNING:__main__:close_ret_1             1
+close_ret_5             5
+close_ret_10           10
+rsi                     1
+atr_norm               13
+adx                    13
+bb_position            19
+bb_width_norm          19
+macd_norm              25
+macd_signal_norm       33
+macd_hist_norm         33
+corr_ret            12340
+corr_ret_5          12340
+corr_rsi            12340
+dtype: int64
+Traceback (most recent call last):
+  File "C:\Users\artem\Downloads\ApexForexSaaS\models\specialist_factory.py", line 293, in <module>
+    factory.train_specialist(pair, action)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\artem\Downloads\ApexForexSaaS\models\specialist_factory.py", line 157, in train_specialist
+    X, y = self.feature_engineer.create_sequences(features, y_binary, sequence_length=60)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\artem\Downloads\ApexForexSaaS\data_pipeline\features.py", line 276, in create_sequences
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: Not enough data (0 rows) for sequence_length=60
+
+2026-02-05 13:21:35,245 - INFO - [SKIP] EURJPY SELL already certified.
+2026-02-05 13:21:35,246 - INFO - [START] Launching training for EURNZD BUY...
+2026-02-05 14:21:07,487 - INFO - [DONE] Completed EURNZD BUY
+2026-02-05 14:21:07,493 - INFO - [START] Launching training for EURNZD SELL...
+2026-02-05 14:35:28,008 - INFO - [DONE] Completed EURNZD SELL
+2026-02-05 14:35:28,013 - INFO - [START] Launching training for EURSGD BUY...
+2026-02-05 14:58:06,137 - INFO - [DONE] Completed EURSGD BUY
+2026-02-05 14:58:06,141 - INFO - [START] Launching training for EURSGD SELL...
+2026-02-05 15:33:08,258 - INFO - [DONE] Completed EURSGD SELL
+2026-02-05 15:33:08,269 - INFO - [SKIP] EURUSD BUY already certified.
+2026-02-05 15:33:08,270 - INFO - [SKIP] EURUSD SELL already certified.
+2026-02-05 15:33:08,272 - INFO - [SKIP] GBPAUD BUY already certified.
+2026-02-05 15:33:08,273 - INFO - [START] Launching training for GBPAUD SELL...
+2026-02-05 16:13:45,645 - INFO - [DONE] Completed GBPAUD SELL
+2026-02-05 16:13:45,654 - INFO - [SKIP] GBPCAD BUY already certified.
+2026-02-05 16:13:45,656 - INFO - [SKIP] GBPCAD SELL already certified.
+2026-02-05 16:13:45,657 - INFO - [SKIP] GBPCHF BUY already certified.
+2026-02-05 16:13:45,658 - INFO - [SKIP] GBPCHF SELL already certified.
+2026-02-05 16:13:45,660 - INFO - [SKIP] GBPJPY BUY already certified.
+2026-02-05 16:13:45,662 - INFO - [SKIP] GBPJPY SELL already certified.
+2026-02-05 16:13:45,664 - INFO - [SKIP] GBPNZD BUY already certified.
+2026-02-05 16:13:45,665 - INFO - [SKIP] GBPNZD SELL already certified.
+2026-02-05 16:13:45,667 - INFO - [SKIP] GBPUSD BUY already certified.
+2026-02-05 16:13:45,667 - INFO - [SKIP] GBPUSD SELL already certified.
+2026-02-05 16:13:45,669 - INFO - [SKIP] NZDCAD BUY already certified.
+2026-02-05 16:13:45,669 - INFO - [START] Launching training for NZDCAD SELL...
+2026-02-05 16:48:43,334 - INFO - [DONE] Completed NZDCAD SELL
+2026-02-05 16:48:43,337 - INFO - [START] Launching training for NZDCHF BUY...
+2026-02-05 17:00:27,289 - INFO - [DONE] Completed NZDCHF BUY
+2026-02-05 17:00:27,293 - INFO - [START] Launching training for NZDCHF SELL...
+2026-02-05 18:03:18,635 - INFO - [DONE] Completed NZDCHF SELL
+2026-02-05 18:03:18,665 - INFO - [SKIP] NZDJPY BUY already certified.
+2026-02-05 18:03:18,681 - INFO - [SKIP] NZDJPY SELL already certified.
+2026-02-05 18:03:18,694 - INFO - [SKIP] NZDUSD BUY already certified.
+2026-02-05 18:03:18,708 - INFO - [SKIP] NZDUSD SELL already certified.
+2026-02-05 18:03:18,720 - INFO - [SKIP] USDCAD BUY already certified.
+2026-02-05 18:03:18,732 - INFO - [SKIP] USDCAD SELL already certified.
+2026-02-05 18:03:18,745 - INFO - [SKIP] USDCHF BUY already certified.
+2026-02-05 18:03:18,757 - INFO - [SKIP] USDCHF SELL already certified.
+2026-02-05 18:03:18,758 - INFO - [START] Launching training for USDHKD BUY...
+2026-02-05 18:12:12,523 - INFO - [DONE] Completed USDHKD BUY
+2026-02-05 18:12:12,525 - INFO - [START] Launching training for USDHKD SELL...
+2026-02-05 18:20:11,922 - INFO - [DONE] Completed USDHKD SELL
+2026-02-05 18:20:11,953 - INFO - [SKIP] USDJPY BUY already certified.
+2026-02-05 18:20:11,988 - INFO - [SKIP] USDJPY SELL already certified.
+2026-02-05 18:20:11,998 - INFO - [START] Launching training for USDSGD BUY...
+2026-02-05 18:36:44,090 - INFO - [DONE] Completed USDSGD BUY
+2026-02-05 18:36:44,093 - INFO - [START] Launching training for USDSGD SELL...
+2026-02-05 18:51:33,067 - INFO - [DONE] Completed USDSGD SELL
