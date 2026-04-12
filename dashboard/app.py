@@ -653,7 +653,7 @@ def show_trading_terminal():
                 # ── 2. Performance Status Overlay ─────────────────────────
                 _raw_tier = result.get('winning_tier', st.session_state.get('accuracy_target', '60%'))
                 # Normalize: extract the first valid tier number (guards against '70%70%70%...' corruption)
-                import re as _re
+                import _re
                 _tier_match = _re.search(r'(\d+)', str(_raw_tier))
                 _tier_num = int(_tier_match.group(1)) if _tier_match else 60
                 # Clamp to nearest valid tier
@@ -1095,7 +1095,7 @@ else:
     pg_control = st.Page(show_control_panel, title="Control Panel", icon="⚙️", url_path="settings")
     
     # New Global Fleet Monitor
-    path_fleet = os.path.join(BASE_DIR, "pages", "4_📊_Fleet_Status.py")
+    path_fleet = os.path.join(BASE_DIR, "pages", "4_Fleet_Status.py")
     pg_fleet = st.Page(path_fleet, title="Fleet Status", icon="📊", url_path="fleet")
 
     # External Pages (mapped from existing files)
