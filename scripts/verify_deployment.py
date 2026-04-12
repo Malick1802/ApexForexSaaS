@@ -41,11 +41,20 @@ def check_models():
     return True
 
 def check_mt5():
-    """Verify MetaTrader 5 connectivity via mt5linux bridge."""
+    """Verify MetaTrader 5 connectivity (Native on Windows, Bridge on Linux)."""
+    import platform
+    is_windows = platform.system() == "Windows"
+    
     try:
-        from mt5linux import MetaTrader5 as mt5
-        # For mt5linux, we need to instantiate the object
-        conn = mt5()
+        if is_windows:
+            import MetaTrader5 as mt5
+            conn = mt5 # Use module directly on Windows
+            logger.info("🖥️ Checking native Windows MT5 connection...")
+        else:
+            from mt5linux import MetaTrader5 as mt5
+            conn = mt5() # Instantiate for Bridge
+            logger.info("🌉 Checking Linux/Wine Bridge connection...")
+            
         if not conn.initialize():
             logger.warning("⚠️ MT5 Initialize failed. Ensure the MT5 Terminal is OPEN and logged in.")
             return False
@@ -60,7 +69,8 @@ def check_mt5():
         conn.shutdown()
         return True
     except ImportError:
-        logger.error("❌ mt5linux package not installed. Run scripts/azure_setup.ps1")
+        pkg = "MetaTrader5" if is_windows else "mt5linux"
+        logger.error(f"❌ {pkg} package not installed. Run scripts/azure_setup.ps1")
         return False
     except Exception as e:
         logger.error(f"❌ MT5 Check Error: {e}")

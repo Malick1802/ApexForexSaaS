@@ -24,7 +24,8 @@ plotly>=5.18.0
 matplotlib>=3.8.0
 
 # Telegram Bot Integration
-# MetaTrader 5 (Linux/Wine Bridge)
+# MetaTrader 5 (Native Windows and Linux/Wine Bridge)
+MetaTrader5>=5.0.45
 mt5linux>=0.1.7
 
 # =============================================================================
