@@ -8,25 +8,25 @@ Write-Host "==================================================" -ForegroundColor
 # 1. Check Python
 $pythonCheck = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCheck) {
-    Write-Host "❌ Python not found. Please install Python 3.10+ and Add to PATH." -ForegroundColor Red
+    Write-Host "Python not found. Please install Python 3.10+ and Add to PATH." -ForegroundColor Red
     exit
 }
-Write-Host "✅ Python detected: $(python --version)" -ForegroundColor Green
+Write-Host "Python detected: $(python --version)" -ForegroundColor Green
 
 # 2. Setup Virtual Environment
 if (-not (Test-Path "venv")) {
-    Write-Host "📦 Creating virtual environment..." -ForegroundColor Yellow
+    Write-Host "Creating virtual environment..." -ForegroundColor Yellow
     python -m venv venv
 } else {
-    Write-Host "✅ Virtual environment already exists." -ForegroundColor Green
+    Write-Host "Virtual environment already exists." -ForegroundColor Green
 }
 
 # 3. Install Dependencies
-Write-Host "📥 Installing/Updating dependencies... (This may take a few minutes)" -ForegroundColor Yellow
+Write-Host "Installing dependencies... (This may take a few minutes)" -ForegroundColor Yellow
 .\venv\Scripts\pip install -r requirements.txt
 
 # 4. Create local directories if missing
-Write-Host "📁 Creating system directories..." -ForegroundColor Yellow
+Write-Host "Creating system directories..." -ForegroundColor Yellow
 $dirs = @("logs", "models", "data_cache", "data")
 foreach ($dir in $dirs) {
     if (-not (Test-Path $dir)) {
@@ -35,7 +35,7 @@ foreach ($dir in $dirs) {
     }
 }
 
-Write-Host "`n==================================================" -ForegroundColor Cyan
+Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "   SETUP COMPLETE - NEXT STEPS:" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "1. MANUALLY COPY your '.env' file to this folder." -ForegroundColor Yellow
