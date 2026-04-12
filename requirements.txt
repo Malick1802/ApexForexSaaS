@@ -3,7 +3,6 @@
 # =============================================================================
 
 # Machine Learning & Deep Learning
-# Machine Learning & Deep Learning
 tensorflow>=2.15.0
 scikit-learn>=1.3.0
 
@@ -24,7 +23,8 @@ plotly>=5.18.0
 matplotlib>=3.8.0
 
 # Telegram Bot Integration
-python-telegram-bot>=20.7
+# MetaTrader 5 (Linux/Wine Bridge)
+mt5linux>=0.1.7
 
 # =============================================================================
 # Core Data Processing (commonly needed)
