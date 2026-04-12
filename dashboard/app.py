@@ -1,15 +1,22 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+# Ensure the dashboard directory and project root are in the path for imports
 import os
 import sys
 import time
 import logging
 from datetime import datetime
 from datetime import timedelta
+from pathlib import Path
+import streamlit as st
+import pandas as pd
+import numpy as np
 
-# Ensure the dashboard directory is in the path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+_this_dir = Path(__file__).resolve().parent
+if str(_this_dir) not in sys.path:
+    sys.path.insert(0, str(_this_dir))
+
+_root_dir = _this_dir.parent
+if str(_root_dir) not in sys.path:
+    sys.path.insert(0, str(_root_dir))
 
 # Shared design system
 from theme import (
@@ -1063,7 +1070,10 @@ if st.query_params.get("nav") == "true":
     st.session_state['authenticated'] = True
 
 # Import Landing Page
-from landing import show_landing
+try:
+    from landing import show_landing
+except ImportError:
+    from dashboard.landing import show_landing
 
 if not st.session_state['authenticated']:
     # LANDING PAGE MODE
