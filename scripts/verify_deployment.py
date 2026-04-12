@@ -41,24 +41,26 @@ def check_models():
     return True
 
 def check_mt5():
-    """Verify MetaTrader 5 connectivity."""
+    """Verify MetaTrader 5 connectivity via mt5linux bridge."""
     try:
-        import MetaTrader5 as mt5
-        if not mt5.initialize():
+        from mt5linux import MetaTrader5 as mt5
+        # For mt5linux, we need to instantiate the object
+        conn = mt5()
+        if not conn.initialize():
             logger.warning("⚠️ MT5 Initialize failed. Ensure the MT5 Terminal is OPEN and logged in.")
             return False
         
-        acc = mt5.account_info()
+        acc = conn.account_info()
         if not acc:
             logger.warning("⚠️ MT5 Connected but no account login found. Check MT5 Terminal.")
-            mt5.shutdown()
+            conn.shutdown()
             return False
         
         logger.info(f"✅ MT5 Connected: {acc.server} (Account #{acc.login})")
-        mt5.shutdown()
+        conn.shutdown()
         return True
     except ImportError:
-        logger.error("❌ MetaTrader5 package not installed. Run scripts/azure_setup.ps1")
+        logger.error("❌ mt5linux package not installed. Run scripts/azure_setup.ps1")
         return False
     except Exception as e:
         logger.error(f"❌ MT5 Check Error: {e}")
