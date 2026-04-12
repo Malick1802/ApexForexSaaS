@@ -39,7 +39,7 @@ executive = start_process(
 
 # 4. Start Dashboard
 dashboard = start_process(
-    [str(VENV_PYTHON), "-m", "streamlit", "run", "dashboard/app.py", "--server.port", "8505"],
+    [str(VENV_PYTHON), "-m", "streamlit", "run", "dashboard/app.py", "--server.port", "8505", "--server.address", "0.0.0.0"],
     "logs/dashboard_stdout.log"
 )
 

@@ -19,7 +19,7 @@ subprocess.Popen([
 # Launch Dashboard
 subprocess.Popen([
     "powershell", "-Command",
-    "Start-Process 'venv\\Scripts\\python.exe' -ArgumentList '-m streamlit run dashboard/app.py --server.port 8505' -RedirectStandardOutput 'logs\\dashboard_stdout.log' -RedirectStandardError 'logs\\executive_stderr.log' -WindowStyle Hidden"
+    "Start-Process 'venv\\Scripts\\python.exe' -ArgumentList '-m streamlit run dashboard/app.py --server.port 8505 --server.address 0.0.0.0' -RedirectStandardOutput 'logs\\dashboard_stdout.log' -RedirectStandardError 'logs\\executive_stderr.log' -WindowStyle Hidden"
 ], env=env)
 
 print("All processes launched in fully detached background mode.")
