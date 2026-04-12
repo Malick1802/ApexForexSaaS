@@ -29,8 +29,8 @@ def main():
     parser.add_argument(
         '--confidence',
         type=float,
-        default=0.85,
-        help='Minimum confidence threshold for signals (default: 0.85 = 85%%)'
+        default=0.75,
+        help='Minimum confidence threshold for signals (default: 0.75 = 75%)'
     )
     
     parser.add_argument(
@@ -62,7 +62,7 @@ def main():
     
     # Initialize engine
     engine = ExecutiveEngine(
-        confidence_threshold=args.confidence,
+        target_win_rate=f"{int(args.confidence * 100)}%",
         scan_interval_minutes=args.interval
     )
     

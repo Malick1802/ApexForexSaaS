@@ -18,18 +18,11 @@ for symbol in os.listdir(MODEL_DIR):
                 data = json.load(f)
                 
             # Extract key metrics
-            # Some metrics might be under 'folds' or averaged
-            # Assuming the JSON has top-level average or we average the folds
-            
-            # If it's the structure from EnhancedPairTrainer, it might vary.
-            # Let's check typical keys.
-            
             win_rate = data.get('win_rate', 0.0)
             filtered_rate = data.get('filtered_win_rate', 0.0)
             
             # If 0, maybe it's a list of folds?
             if win_rate == 0 and isinstance(data, list):
-                # Valid logic if data is list of fold metrics
                 df_folds = pd.DataFrame(data)
                 win_rate = df_folds['win_rate'].mean()
                 filtered_rate = df_folds['filtered_win_rate'].mean()
@@ -47,7 +40,6 @@ for symbol in os.listdir(MODEL_DIR):
 
 if results:
     df = pd.DataFrame(results)
-    # Sort by Filtered Win Rate descending
     df = df.sort_values("Filtered Win Rate", ascending=False)
     print(df.to_markdown(index=False))
 else:
