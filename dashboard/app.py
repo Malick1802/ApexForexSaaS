@@ -1,22 +1,25 @@
-# Ensure the dashboard directory and project root are in the path for imports
+# ── SYSTEM PATH INJECTION (CRITICAL FOR AZURE/WINDOWS) ──
 import os
 import sys
+from pathlib import Path
+
+# Get the absolute path of the directory containing this file (dashboard/)
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
+
+# Get the absolute path of the project root
+_ROOT_DIR = os.path.dirname(_THIS_DIR)
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
+import streamlit as st
+import pandas as pd
+import numpy as np
 import time
 import logging
 from datetime import datetime
 from datetime import timedelta
-from pathlib import Path
-import streamlit as st
-import pandas as pd
-import numpy as np
-
-_this_dir = Path(__file__).resolve().parent
-if str(_this_dir) not in sys.path:
-    sys.path.insert(0, str(_this_dir))
-
-_root_dir = _this_dir.parent
-if str(_root_dir) not in sys.path:
-    sys.path.insert(0, str(_root_dir))
 
 # Shared design system
 from theme import (
@@ -1070,10 +1073,7 @@ if st.query_params.get("nav") == "true":
     st.session_state['authenticated'] = True
 
 # Import Landing Page
-try:
-    from landing import show_landing
-except ImportError:
-    from dashboard.landing import show_landing
+from landing import show_landing
 
 if not st.session_state['authenticated']:
     # LANDING PAGE MODE
