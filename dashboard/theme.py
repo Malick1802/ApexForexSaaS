@@ -12,36 +12,50 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-DB_PATH = str(PROJECT_ROOT / "signals.db")
+# Try dashboard/ folder first, then project root (Flexible pathing for Azure)
+local_db = Path(__file__).resolve().parent / "signals.db"
+root_db = PROJECT_ROOT / "signals.db"
+DB_PATH = str(local_db if local_db.exists() else root_db)
 
 
 def init_page(title: str, icon: str = "⚡"):
-    """Shared page initializer — call FIRST in every page."""
-    st.set_page_config(
-        page_title=f"{title} · ApexForex",
-        page_icon=icon,
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
+    """Shared page initializer — call SECOND in every page after navigation."""
+    # Removed st.set_page_config because it is handled by the main app/navigation
     inject_css()
 
 
 def get_db():
-    """Get properly-pathed SignalDatabase instance."""
+    """Get properly-pathed SignalDatabase instance with forced reload."""
+    import importlib
+    import core.database
+    importlib.reload(core.database)
     from core.database import SignalDatabase
     return SignalDatabase(db_path=DB_PATH)
 
 
 def get_engine():
     """Get DataEngine instance (cached)."""
-    from data_pipeline import DataEngine
-    return DataEngine()
+    try:
+        from data_pipeline import DataEngine
+        return DataEngine()
+    except Exception as e:
+        st.error(f"⚠️ DataEngine Initialization Error: {e}")
+        from data_pipeline import DataEngine
+        # Fallback to yfinance if initialization fails
+        return DataEngine(provider_name="yfinance")
 
 
+@st.cache_resource
 def get_inference():
     """Get InferenceEngine instance (cached)."""
-    from core.inference import InferenceEngine
-    return InferenceEngine()
+    try:
+        from core.inference import InferenceEngine
+        engine = InferenceEngine()
+        return engine
+    except Exception as e:
+        st.error(f"⚠️ InferenceEngine Initialization Error: {e}")
+        # Return a shell or another fallback if possible, but minimal for now
+        raise e
 
 
 # =============================================================================
@@ -88,6 +102,23 @@ def inject_css():
         --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.15);
         --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Suppress rerun blink (keep content clear during fragment updates) ── */
+    [data-stale="true"],
+    .stale-element,
+    .element-container[data-stale="true"] {
+        opacity: 1 !important;
+        transition: none !important;
+    }
+    /* Hide the running/status indicator bar */
+    div[data-testid="stStatusWidget"],
+    div[data-testid="stDecoration"] {
+        display: none !important;
+    }
+    /* Prevent any overlay dimming during reruns */
+    .stApp > div[data-testid="stAppViewBlockContainer"] {
+        opacity: 1 !important;
     }
 
     /* ── Global ────────────────────────────────────── */
@@ -416,28 +447,35 @@ def inject_css():
 # SHARED COMPONENTS
 # =============================================================================
 
-def kpi_card(label, value, delta="", accent=""):
+def kpi_card(label, value, delta="", accent="", link_url=""):
     """Generate glassmorphic KPI card HTML."""
     css = f"kpi-card {accent}" if accent else "kpi-card"
-    return f"""
-    <div class="{css}">
-        <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{value}</div>
-        <div class="kpi-delta">{delta}</div>
-    </div>
-    """
+    
+    card_html = (
+        f'<div class="{css}">'
+        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-value">{value}</div>'
+        f'<div class="kpi-delta">{delta}</div>'
+        f'</div>'
+    )
+    
+    if link_url:
+        return f'<a href="{link_url}" target="_self" style="text-decoration: none; color: inherit; display: block;">{card_html}</a>'
+    
+    return card_html
 
 
 def hero_banner(title, subtitle, show_status=False):
     """Generate hero banner HTML."""
-    status_html = """<div class="hero-status"><div class="status-dot"></div> All Systems Operational</div>""" if show_status else ""
-    st.markdown(f"""
-    <div class="hero-banner">
-        <div class="hero-title">{title}</div>
-        <div class="hero-subtitle">{subtitle}</div>
-        {status_html}
-    </div>
-    """, unsafe_allow_html=True)
+    status_html = '<div class="hero-status"><div class="status-dot"></div> All Systems Operational</div>' if show_status else ""
+    st.markdown(
+        f'<div class="hero-banner">'
+        f'<div class="hero-title">{title}</div>'
+        f'<div class="hero-subtitle">{subtitle}</div>'
+        f'{status_html}'
+        f'</div>', 
+        unsafe_allow_html=True
+    )
 
 
 def sidebar_logo():

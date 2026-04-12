@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd
+import pd
 import numpy as np
 import os
 import sys
@@ -28,10 +28,11 @@ try:
 except ImportError:
     PLOTLY_AVAILABLE = False
 
-# ── Page Config ────────────────────────────────────────────
+# ── Page Config (Main Entry) ────────────────────────────────
 st.set_page_config(
     page_title="ApexForex · AI Trading Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+inject_css()
