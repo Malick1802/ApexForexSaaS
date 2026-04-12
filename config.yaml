@@ -1,30 +1,13 @@
 currency_pairs:
   crosses:
   - correlated_assets:
-    - correlation: 0.6
-      symbol: CL=F
-    - correlation: -0.5
-      symbol: ^VIX
-    pip_type: jpy
-    symbol: CADJPY
-  - correlated_assets:
-    - correlation: -0.3
-      symbol: ^VIX
-    pip_type: jpy
-    symbol: CHFJPY
-  - correlated_assets:
-    - correlation: 0.8
-      symbol: AUDJPY
-    pip_type: jpy
-    symbol: NZDJPY
-  - correlated_assets:
     - correlation: 0.55
-      symbol: CL=F
+      symbol: CrudeOIL
     pip_type: standard
     symbol: CADCHF
   - correlated_assets:
     - correlation: -0.4
-      symbol: CL=F
+      symbol: CrudeOIL
     pip_type: standard
     symbol: NZDCAD
   - correlated_assets:
@@ -44,74 +27,52 @@ currency_pairs:
     symbol: GBPNZD
   - correlated_assets:
     - correlation: 0.5
-      symbol: GC=F
+      symbol: GOLD
     - correlation: -0.45
-      symbol: ^VIX
+      symbol: VIX
     pip_type: standard
     symbol: AUDCHF
-  - correlated_assets:
-    - correlation: -0.6
-      symbol: USDSGD
-    pip_type: standard
-    symbol: EURSGD
-  - correlated_assets:
-    - correlation: 0.7
-      symbol: DX-Y.NYB
-    pip_type: standard
-    symbol: USDSGD
-  - correlated_assets:
-    - correlation: 0.95
-      symbol: DX-Y.NYB
-    pip_type: standard
-    symbol: USDHKD
   majors:
   - correlated_assets:
     - correlation: -0.95
-      symbol: DX-Y.NYB
+      symbol: DOLLAR_INDX
     - correlation: 0.6
-      symbol: GC=F
+      symbol: GOLD
     pip_type: standard
     symbol: EURUSD
   - correlated_assets:
     - correlation: -0.85
-      symbol: DX-Y.NYB
+      symbol: DOLLAR_INDX
     - correlation: -0.7
       symbol: EURGBP
     pip_type: standard
     symbol: GBPUSD
   - correlated_assets:
-    - correlation: 0.75
-      symbol: ^TNX
-    - correlation: -0.5
-      symbol: ^VIX
-    pip_type: jpy
-    symbol: USDJPY
-  - correlated_assets:
     - correlation: -0.55
-      symbol: GC=F
+      symbol: GOLD
     - correlation: -0.9
       symbol: EURUSD
     pip_type: standard
     symbol: USDCHF
   - correlated_assets:
     - correlation: 0.8
-      symbol: GC=F
+      symbol: GOLD
     - correlation: 0.65
-      symbol: HG=F
+      symbol: COPPER
     pip_type: standard
     symbol: AUDUSD
   - correlated_assets:
     - correlation: -0.75
-      symbol: CL=F
+      symbol: CrudeOIL
     - correlation: 0.6
-      symbol: DX-Y.NYB
+      symbol: DOLLAR_INDX
     pip_type: standard
     symbol: USDCAD
   - correlated_assets:
     - correlation: 0.85
       symbol: AUDUSD
     - correlation: 0.55
-      symbol: GDX
+      symbol: #GDX
     pip_type: standard
     symbol: NZDUSD
   minors:
@@ -122,79 +83,108 @@ currency_pairs:
     symbol: EURGBP
   - correlated_assets:
     - correlation: -0.5
-      symbol: GC=F
+      symbol: GOLD
     pip_type: standard
     symbol: EURAUD
   - correlated_assets:
     - correlation: 0.45
-      symbol: CL=F
+      symbol: CrudeOIL
     pip_type: standard
     symbol: EURCAD
   - correlated_assets:
     - correlation: -0.4
-      symbol: ^VIX
+      symbol: VIX
     pip_type: standard
     symbol: EURCHF
   - correlated_assets:
-    - correlation: -0.55
-      symbol: ^VIX
-    - correlation: 0.5
-      symbol: ES=F
-    pip_type: jpy
-    symbol: EURJPY
-  - correlated_assets:
     - correlation: -0.45
-      symbol: GC=F
+      symbol: GOLD
     pip_type: standard
     symbol: GBPAUD
   - correlated_assets:
     - correlation: 0.4
-      symbol: CL=F
+      symbol: CrudeOIL
     pip_type: standard
     symbol: GBPCAD
   - correlated_assets:
     - correlation: -0.35
-      symbol: ^VIX
+      symbol: VIX
     pip_type: standard
     symbol: GBPCHF
   - correlated_assets:
-    - correlation: -0.6
-      symbol: ^VIX
-    - correlation: 0.45
-      symbol: ^N225
-    pip_type: jpy
-    symbol: GBPJPY
-  - correlated_assets:
     - correlation: 0.5
-      symbol: CL=F
+      symbol: CrudeOIL
     - correlation: 0.55
-      symbol: GC=F
+      symbol: GOLD
     pip_type: standard
     symbol: AUDCAD
-  - correlated_assets:
-    - correlation: -0.65
-      symbol: ^VIX
-    - correlation: 0.55
-      symbol: ES=F
-    pip_type: jpy
-    symbol: AUDJPY
   - correlated_assets:
     - correlation: -0.3
       symbol: GDT
     pip_type: standard
     symbol: AUDNZD
+  - correlated_assets:
+    - correlation: 0.85
+      symbol: NIKKEI225
+    pip_type: jpy
+    symbol: USDJPY
+  - correlated_assets:
+    - correlation: -0.6
+      symbol: USDJPY
+    pip_type: jpy
+    symbol: EURJPY
+  - correlated_assets:
+    - correlation: -0.5
+      symbol: USDJPY
+    pip_type: jpy
+    symbol: GBPJPY
+  - correlated_assets:
+    - correlation: 0.7
+      symbol: GOLD
+    pip_type: jpy
+    symbol: AUDJPY
+  - correlated_assets:
+    - correlation: 0.6
+      symbol: CrudeOIL
+    pip_type: jpy
+    symbol: CADJPY
+  - correlated_assets:
+    - correlation: -0.3
+      symbol: VIX
+    pip_type: jpy
+    symbol: CHFJPY
+  - correlated_assets:
+    - correlation: 0.55
+      symbol: AUDJPY
+    pip_type: jpy
+    symbol: NZDJPY
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: AUDUSD
+    pip_type: standard
+    symbol: GOLD
+  - correlated_assets:
+    - correlation: 0.6
+      symbol: USDCAD
+    pip_type: standard
+    symbol: CrudeOIL
+  - correlated_assets:
+    - correlation: 0.4
+      symbol: USDJPY
+    pip_type: standard
+    symbol: USDSGD
 data:
   cache:
     directory: data_cache
     enabled: true
-    expiry_hours: 24
+    expiry_hours: 1
   default_history_days: 1825
   timeframes:
   - 1h
   - 4h
   - 1d
 data_provider:
-  active: twelvedata
+  active: mt5
   twelvedata:
     api_key: 91d80548bd2a4c7689b21f07043cfaa5
     base_url: https://api.twelvedata.com
@@ -204,16 +194,35 @@ data_provider:
   yfinance:
     rate_limit_delay: 0.5
     suffix: =X
+mt5:
+  enabled: true
+  host: "127.0.0.1"    # Bridge address (Default)
+  port: 18812          # Bridge port (Default)
+  login: 0             # YOUR_MT5_LOGIN
+  password: ""         # YOUR_MT5_PASSWORD
+  server: ""           # YOUR_MT5_SERVER
+  max_open_trades: 5   # 0 = unlimited
+  risk_type: 'percent'
+  risk_value: 0.5
+  max_trade_leverage: 30  # Hard limit for GetLeveraged.com compliance
 notifications:
   telegram:
     bot_token: 8562699506:AAGahdqN_owCNdK9aUpxJhTLKXpXVz9QhGs
     chat_id: '6034739351'
     enabled: true
-    alert_threshold: 0.75  # Notifies Telegram only on signals > 75% confidence
+    notify_shadow_trades: true
+    alert_threshold: 0.60
 trading:
+  execute_trades: true
   pip_values:
     jpy: 0.01
     standard: 0.0001
-  risk_reward_ratio: 2.0
-  stop_loss_pips: 40
-  take_profit_pips: 50
+  risk_reward_ratio: 1.5
+  stop_loss_pips: 25       # Minimum floor for Forex Majors/Crosses
+  gold_min_sl_pips: 100   # Strategic floor ($1.00) to prevent over-leveraging on Gold
+  take_profit_pips: 37     # Dynamic: always 1.5x SL (this value is a fallback only)
+
+safety:
+  max_daily_drawdown_pct: 2.0  # Stop trading for the day if hits
+  close_friday_hour_est: 16    # Close all trades on Friday (EST)
+  enabled: true

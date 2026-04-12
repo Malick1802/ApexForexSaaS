@@ -84,5 +84,9 @@ db_status*.txt
 internal_log.txt
 *.bak
 *.tmp
+core.zip
+start_fleet_output.txt
+datetime
+=
 node_modules/
 .npm/
