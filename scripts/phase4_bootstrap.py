@@ -24,7 +24,7 @@ logger = logging.getLogger("Phase4Bootstrap")
 
 from data_pipeline.engine import DataEngine
 from core.gmm_regime_detector import GMMRegimeDetector
-from core.core.calibration import FleetCalibrationManager
+from core.calibration import FleetCalibrationManager
 
 
 def step1_train_gmm():
