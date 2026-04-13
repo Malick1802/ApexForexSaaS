@@ -1,7 +1,7 @@
 import sys
 import logging
 sys.path.insert(0, '.')
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 # Disable extra logging for clean output
 logging.getLogger("data_pipeline.engine").setLevel(logging.WARNING)
