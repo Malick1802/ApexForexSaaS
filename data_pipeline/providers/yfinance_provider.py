@@ -140,9 +140,9 @@ class YFinanceProvider(DataProviderBase):
         yf_symbol = self._to_yf_symbol(symbol)
         yf_interval = self.INTERVAL_MAP.get(interval, interval)
         
-        if end is None:
-            end = datetime.now()
-            
+        # Determine reference end date for calculations (not necessarily for API call)
+        calc_end = end if end is not None else datetime.now()
+        
         if start is None and days is not None:
             # Clamp days based on interval limitations
             if interval in ["1h", "60m", "90m"]:
@@ -154,7 +154,7 @@ class YFinanceProvider(DataProviderBase):
             else:
                 days_to_fetch = days
                 
-            start = end - timedelta(days=days_to_fetch)
+            start = calc_end - timedelta(days=days_to_fetch)
             
             if days_to_fetch < days:
                 logger.warning(
@@ -162,9 +162,9 @@ class YFinanceProvider(DataProviderBase):
                      "due to yfinance limitations."
                 )
         elif start is None:
-            start = end - timedelta(days=365)  # Default 1 year
+            start = calc_end - timedelta(days=365)  # Default 1 year
             
-        logger.info(f"Fetching {symbol} ({yf_symbol}) - {interval} from {start} to {end}")
+        logger.info(f"Fetching {symbol} ({yf_symbol}) - {interval} from {start} to {end or 'NOW'}")
         
         # Apply rate limiting
         self._rate_limit()
@@ -187,9 +187,10 @@ class YFinanceProvider(DataProviderBase):
             # Normalize to standard format
             df = self.normalize_dataframe(df)
             
-            # Ensure index is timezone-naive for consistency
+            # Ensure index is timezone-naive (UTC) for consistency
             if df.index.tz is not None:
-                df.index = df.index.tz_localize(None)
+                # Convert to UTC first, THEN strip tz info
+                df.index = df.index.tz_convert('UTC').tz_localize(None)
                 
             logger.info(f"Fetched {len(df)} rows for {symbol}")
             return df
