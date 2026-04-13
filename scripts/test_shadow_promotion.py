@@ -9,7 +9,7 @@ import numpy as np
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('ShadowTest')
