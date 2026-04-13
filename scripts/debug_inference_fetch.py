@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from data_pipeline import DataEngine
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 def debug_fetch():
     print(f"--- DIAGNOSTIC FETCH FOR EURUSD ---")
