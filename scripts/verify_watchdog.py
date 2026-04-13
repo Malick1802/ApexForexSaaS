@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.executive import ExecutiveEngine
+from core.core.executive import ExecutiveEngine
 import logging
 
 logging.basicConfig(level=logging.INFO)
