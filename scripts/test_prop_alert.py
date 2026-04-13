@@ -5,13 +5,13 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.core.notifications import NotificationManager
+from core.notifications import NotificationManager
 
 def test_prop_precision_alert():
     print("🚀 Initializing Prop-Grade Mock Alert (0.5% Risk)...")
     
     # Connect to MT5 for real-time diagnostic
-    from core.core.mt5_connector import get_mt5
+    from core.mt5_connector import get_mt5
     _mt5 = get_mt5()
     if not _mt5:
         print("❌ MT5 Bridge failed. Falling back to static mock.")
