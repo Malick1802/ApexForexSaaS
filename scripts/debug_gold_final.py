@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 def debug_gold():
     print("--- 🔍 Debugging Gold Signal Resolution ---")
