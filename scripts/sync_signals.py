@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.core.database import SignalDatabase
+from core.database import SignalDatabase
 from data_pipeline import DataEngine
 
 def sync_active():
