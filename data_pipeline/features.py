@@ -9,9 +9,16 @@ Extracts technical indicators and prepares data for sequence-based models.
 
 import numpy as np
 import pandas as pd
-import pandas_ta as ta
 from typing import List, Optional, Tuple
 import logging
+
+try:
+    import pandas_ta as ta
+    _PANDAS_TA_AVAILABLE = True
+except ImportError:
+    ta = None
+    _PANDAS_TA_AVAILABLE = False
+
 
 
 logger = logging.getLogger(__name__)
@@ -70,7 +77,14 @@ class FeatureEngineer:
         for col in required_cols:
             if col not in df.columns:
                 raise ValueError(f"Missing required column: {col}")
-        
+
+        # Ensure pandas_ta is installed before attempting to use ta methods
+        if not _PANDAS_TA_AVAILABLE:
+            raise ImportError(
+                "pandas_ta is required for feature generation. Please install it with:\n"
+                "venv\\Scripts\\pip install pandas-ta"
+            )
+
         # ---------------------------------------------------------------------
         # Price-based features (normalized by close)
         # ---------------------------------------------------------------------
@@ -175,8 +189,8 @@ class FeatureEngineer:
             logger.warning("No correlated asset data provided")
             return features
         
-        # Align indices
-        corr_aligned = corr_df.reindex(features.index)
+        # Align indices (Fill missing with forward fill then backfill to minimize NaNs)
+        corr_aligned = corr_df.reindex(features.index).ffill().bfill()
         
         # Calculate returns
         features[f'{asset_name}_ret'] = np.log(
@@ -215,32 +229,47 @@ class FeatureEngineer:
             - X: shape (samples, sequence_length, num_features)
             - y: shape (samples,)
         """
-        # Drop NaN rows
-        combined = features.copy()
-        combined['label'] = labels
-        combined = combined.dropna()
-        
-        if len(combined) < sequence_length + 1:
-            raise ValueError(
-                f"Not enough data ({len(combined)} rows) for "
-                f"sequence_length={sequence_length}"
-            )
-        
-        feature_cols = [c for c in combined.columns if c != 'label']
-        feature_data = combined[feature_cols].values
-        label_data = combined['label'].values
+        # If features are already a numpy array (pre-scaled), use directly
+        if isinstance(features, np.ndarray):
+            feature_data = features
+            label_data = labels
+        else:
+            combined = features.copy()
+            combined['label'] = labels
+            combined = combined.dropna()
+            
+            if len(combined) < sequence_length + 1:
+                logger.warning(
+                    f"Not enough data ({len(combined)} rows) for "
+                    f"sequence_length={sequence_length}. Skipping."
+                )
+                return np.array([]), np.array([])
+            
+            feature_cols = [c for c in combined.columns if c != 'label']
+            feature_data = combined[feature_cols].values
+            label_data = combined['label'].values
         
         X, y = [], []
         
-        for i in range(sequence_length, len(combined)):
-            X.append(feature_data[i - sequence_length:i])
+        for i in range(sequence_length, len(feature_data)):
+            # Fix: Include the current row 'i' in the sequence features
+            # Old: feature_data[i - sequence_length : i] -> Excluded i
+            # New: feature_data[i - sequence_length + 1 : i + 1] -> Includes i
+            X.append(feature_data[i - sequence_length + 1 : i + 1])
             y.append(label_data[i])
         
-        X = np.array(X)
-        y = np.array(y)
-        
-        logger.info(f"Created sequences: X={X.shape}, y={y.shape}")
-        return X, y
+        if len(X) == 0:
+            logger.warning(f"No sequences created for {len(feature_data)} rows of data.")
+            return np.array([]), np.array([])
+            
+        try:
+            X = np.array(X, dtype=np.float32)
+            y = np.array(y, dtype=np.float32)
+            logger.info(f"Created sequences: X={X.shape}, y={y.shape}")
+            return X, y
+        except Exception as e:
+            logger.error(f"Failed to convert sequences to numpy: {e}")
+            return np.array([]), np.array([])
     
     def get_feature_names(self) -> List[str]:
         """Get list of feature names for documentation."""
