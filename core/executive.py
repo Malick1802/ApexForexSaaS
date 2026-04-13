@@ -102,6 +102,11 @@ class ExecutiveEngine:
         self.db = SignalDatabase()
         self.notifier = NotificationManager()
         
+        # MT5 Trade Engine
+        from core.mt5_connector import get_mt5
+        self.mt5 = get_mt5()
+        self.risk_pct = 0.005 # GetLeveraged.com compliance: 0.5% risk per trade
+        
         # Recent signals tracker (deduplication)
         self._recent_signals: Dict[str, datetime] = {}
         self._cooldown_minutes = 20  # Reduced for dynamic trading (User requested)
@@ -126,6 +131,115 @@ class ExecutiveEngine:
                 logger.info("✅ Daily Bayesian Matrix Update Complete (Rolling 14-day window maintained).")
             except Exception as e:
                 logger.error(f"❌ Matrix Update Failed: {e}", exc_info=True)
+
+    def _calculate_lot_size(self, symbol: str, sl_pips: float) -> float:
+        """
+        Calculate lot size for 0.5% dynamic account risk.
+        Logic: Lots = (Balance * 0.005) / (SL_Pips * Pip_Value_per_Lot)
+        """
+        try:
+            if not self.mt5:
+                return 0.01
+                
+            account = self.mt5.account_info()
+            if not account:
+                return 0.01
+                
+            balance = account.balance
+            risk_usd = balance * self.risk_pct # 0.5%
+            
+            # Get pip value from DataEngine
+            pip_value = self.inference_engine.data_engine.get_pip_value(symbol)
+            
+            # For most pairs, 1 standard lot = 100,000 units.
+            # Pip value returned by DataEngine is 0.0001 or 0.01.
+            # Standard calculation: Risk / (SL_distance * Pip_value_for_one_lot)
+            # A 1.0 unit change in EURUSD (e.g. 1.05 -> 1.06) is 100 pips.
+            # Pip_Value_per_Lot for MT5 is usually in Account Currency.
+            
+            symbol_info = self.mt5.symbol_info(symbol)
+            if not symbol_info:
+                return 0.01
+                
+            # Use MT5's trade_tick_value (value of 1 pip for 1 lot in balance currency)
+            # Note: tick_value is for 1 lot per tick.
+            tick_size = symbol_info.trade_tick_size
+            tick_value = symbol_info.trade_tick_value
+            
+            # SL distance in price units
+            sl_dist_price = sl_pips * pip_value
+            
+            if sl_dist_price <= 0:
+                return 0.01
+                
+            # Lots = Risk_USD / (Loss_per_lot)
+            # Loss_per_lot = (sl_dist_price / tick_size) * tick_value
+            loss_per_lot = (sl_dist_price / tick_size) * tick_value
+            
+            lots = risk_usd / loss_per_lot
+            
+            # Normalize to broker constraints
+            lots = round(lots, 2)
+            lots = max(lots, symbol_info.volume_min)
+            lots = min(lots, symbol_info.volume_max)
+            
+            logger.info(f"📊 Risk Calc [{symbol}]: Bal=${balance:.2f}, Risk=${risk_usd:.2f}, SL={sl_pips}p, Result={lots} lots")
+            return lots
+            
+        except Exception as e:
+            logger.error(f"Failed lot calculation for {symbol}: {e}")
+            return 0.01
+
+    def place_mt5_trade(self, signal: Dict[str, Any]):
+        """Place a live trade on MT5 terminal."""
+        try:
+            if not self.mt5:
+                logger.error("MT5 not connected. Cannot place trade.")
+                return False
+                
+            if not self.config.get('trading', {}).get('execute_trades', True):
+                logger.info("Trading Disabled in config. Skipping MT5 execution.")
+                return False
+
+            symbol = signal['symbol']
+            action = signal['signal']
+            price = signal['price_at_signal']
+            sl = signal['sl_price']
+            tp = signal['tp_price']
+            
+            # Calculate dynamic lots (0.5% risk)
+            sl_pips = abs(price - sl) / self.inference_engine.data_engine.get_pip_value(symbol)
+            lots = self._calculate_lot_size(symbol, sl_pips)
+            
+            # MT5 Order Type
+            order_type = self.mt5.ORDER_TYPE_BUY if action == "BUY" else self.mt5.ORDER_TYPE_SELL
+            
+            request = {
+                "action": self.mt5.TRADE_ACTION_DEAL,
+                "symbol": symbol,
+                "volume": lots,
+                "type": order_type,
+                "price": price,
+                "sl": sl,
+                "tp": tp,
+                "magic": 202404,  # APEX Magic Number
+                "comment": f"APEX {signal.get('confidence_tier')}%",
+                "type_time": self.mt5.ORDER_TIME_GTC,
+                "type_filling": self.mt5.ORDER_FILLING_IOC,
+            }
+
+            # Send order
+            result = self.mt5.order_send(request)
+            if result.retcode != self.mt5.TRADE_RETCODE_DONE:
+                logger.error(f"❌ MT5 ORDER FAILED: {result.comment} (Code: {result.retcode})")
+                return False
+                
+            logger.info(f"🚀 LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Critical error in MT5 execution: {e}")
+            return False
 
     def _is_duplicate_signal(self, symbol: str, last_candle_time: pd.Timestamp) -> bool:
         """
@@ -225,6 +339,10 @@ class ExecutiveEngine:
                         f"{log_icon} NEW CERTIFIED SIGNAL: {symbol} {signal} @ {result['price_at_signal']:.5f} "
                         f"(Conf: {result['confidence']:.1%})"
                     )
+                    
+                    # 🚀 LIVE TRADE EXECUTION
+                    if self.place_mt5_trade(result):
+                        result['is_live'] = True
                     
                     # Send Telegram alert
                     self.notifier.send_signal_alert(result)

@@ -39,7 +39,6 @@ from .database import SignalDatabase
 from .performance_gate import get_performance_gate
 # from core.bayesian_engine import get_bayesian_engine
 from .regime_detector import get_detector
-from .gmm_regime_detector import get_gmm_detector
 from .calibration import get_calibration_manager
 from .notifications import NotificationManager
 from .mt5_connector import get_mt5
@@ -131,16 +130,18 @@ class InferenceEngine:
         self.notifier = NotificationManager()
         self.global_engineer = GlobalFeatureEngineer()
         self.db = SignalDatabase()
+        self._regime_detector = get_detector()
         
-        # ── Intelligence Suite (Phase 4) ──────────────────────────────────────────
-        # Fallback to rule-based if GMM not trained
-        try:
-            self._regime_detector = get_gmm_detector()
-            logger.info("🧠 Phase 4: GMM Regime Detector Active.")
-        except:
-            self._regime_detector = get_detector()
-            logger.warning("⚠️ Phase 4: GMM not found. Falling back to Rule-Based Regime detection.")
-            
+        # Cache for loaded models (LRU Implementation)
+        self._model_cache = OrderedDict()
+        self._max_cached_models = 10 
+        self._global_data_cache = None
+        self._last_global_update = None
+        
+        self._recent_signals: Dict[str, datetime] = {}
+        self._signal_cooldown_minutes = 240  # 4-hour cooldown: don't repeat same pair within 4 hours
+        
+        # ── Calibration & Performance Gates ───────────────────────────────────────
         self.calibrator = get_calibration_manager()
         self.perf_gate = get_performance_gate()
 
@@ -754,15 +755,6 @@ class InferenceEngine:
         Generate prediction for a specific accuracy tier (Model Isolation Mode).
         Exposes trade volume for the selected model.
         """
-        # ── 1. Determine Target Tier (MOVED TO TOP TO PREVENT NAMEERROR) ──
-        target_int = 60
-        if win_rate:
-            if win_rate == "Apex": target_int = 95
-            elif win_rate == "Expert": target_int = 90
-            else: 
-                try: target_int = int(win_rate.replace('%', ''))
-                except: target_int = 60
-
         try:
             # ── 0. SIGNAL LOCKING CHECK (STRICT) ──────────────────────────
             # Rule: If a symbol is already ACTIVE (Live or Shadow), we LOCK it.
@@ -790,11 +782,20 @@ class InferenceEngine:
                         'sl_price': float(lock.get('sl_price', 0.0)),
                         'tp_pips': int(lock.get('tp_pips', 0)),
                         'sl_pips': int(lock.get('sl_pips', 0)),
-                        'winning_tier': lock.get('winning_tier', f"{target_int}%"),
+                        'winning_tier': lock.get('winning_tier', f"{target_int}%" if 'target_int' in locals() else "60%"),
                         'model_trades': lock.get('model_trades', 0),
                         'regime': lock.get('regime', 'Trending'),
                         'is_locked': True
                     }
+
+            # 1. Determine Target Tier
+            target_int = 60
+            if win_rate:
+                if win_rate == "Apex": target_int = 95
+                elif win_rate == "Expert": target_int = 90
+                else: 
+                    try: target_int = int(win_rate.replace('%', ''))
+                    except: target_int = 60
             
             logger.info(f"[PREDICT] PREDICTION REQUEST: {symbol} @ {target_int}% (Input: {win_rate})")
             
@@ -836,11 +837,6 @@ class InferenceEngine:
                 logger.warning(f"No model (Foundation or Specialist) found for {symbol} at {target_int}% tier.")
                 return None
             
-            # ── Phase 4 Intelligence Integration (Regime-Aware Preds) ───────────
-            # Use GMM/Rule Detector to determine the dynamic hurdle for this market state
-            regime_val = regime_result.regime if regime_result else MarketRegime.RANGING
-            dynamic_hurdle = dynamic_threshold # Inherited from Gate 1
-            
             # Signal Generation
             # If Global Intelligence was added, 'features' already contains it.
             # Only use base_features as a backup for legacy models.
@@ -849,88 +845,31 @@ class InferenceEngine:
             
             scaler = models['scaler']
             expected_features = scaler.n_features_in_
+            current_features = len(features.columns)
             
-            # ── 3. Feature Alignment Layer ──────────────────────────────────────────
-            if models.get('model_type') in ['foundation_tft', 'expert_adapted'] or expected_features >= 30:
-                # The Phase 2+ Foundation Brain expects these 34 features in this exact order.
-                # Names derived from models/foundation/config.json
-                f_cols = [
-                    'open_norm', 'high_norm', 'low_norm', 'hl_range', 'oc_range',
-                    'close_ret_1', 'close_ret_5', 'close_ret_10', 'rsi', 'atr_norm',
-                    'bb_position', 'bb_width_norm', 'macd_norm', 'macd_signal_norm',
-                    'macd_hist_norm', 'volume_rel', 'volume_ret', 'hour_sin', 'hour_cos',
-                    'dow_sin', 'dow_cos', 'USD_strength', 'EUR_strength', 'GBP_strength',
-                    'JPY_strength', 'AUD_strength', 'CAD_strength', 'CHF_strength',
-                    'NZD_strength', 'dxy_proxy', 'dxy_ret', 'gold_ret', 'vix_proxy',
-                    'yield_curve_slope'
-                ]
-                
-                # ── Map pipeline features to expected naming convention ───────────
-                mapping = {
-                    'atr': 'atr_norm',
-                    'bb_width': 'bb_width_norm',
-                    'macd': 'macd_norm',
-                    'macd_signal': 'macd_signal_norm',
-                    'macd_hist': 'macd_hist_norm',
-                    'volume_norm': 'volume_rel'
-                }
-                for src, dst in mapping.items():
-                    if src in features.columns:
-                        features[dst] = features[src]
-                
-                # ── Close Return Parity (Model expects Pct Change) ────────────────
-                for i in [1, 5, 10]:
-                    features[f'close_ret_{i}'] = df['close'].pct_change(i).fillna(0)
-                
-                # ── Calculate Time Features (Cyclical) ─────────────────────────────
-                ts = features.index
-                features['hour_sin'] = np.sin(2 * np.pi * ts.hour / 24.0)
-                features['hour_cos'] = np.cos(2 * np.pi * ts.hour / 24.0)
-                features['dow_sin'] = np.sin(2 * np.pi * ts.weekday / 7.0)
-                features['dow_cos'] = np.cos(2 * np.pi * ts.weekday / 7.0)
-                
-                # ── Fallback Vol Ret ───────────────────────────────────────────────
-                if 'volume_ret' not in features.columns:
-                    features['volume_ret'] = features['volume_rel'].pct_change().fillna(0)
-                
-                # ── Ensure exact selection and order ───────────────────────────────
-                final_f = []
-                for c in f_cols:
-                    if c not in features.columns:
-                        features[c] = 0.0 # Zero-fill missing context
-                    final_f.append(c)
-                
-                features = features[final_f]
-                # Last resort truncation to match scaler exactly if brain v3 vs v4 mismatch
-                if len(features.columns) != expected_features:
-                    features = features.iloc[:, :expected_features]
-                
-                logger.debug(f"Aligned {symbol} to Intelligence Matrix ({len(features.columns)} cols)")
-
-            elif expected_features == 22:
-                # Legacy Specialist Padding
-                available = features.columns.tolist()
-                if len(available) < 22:
-                    for i in range(22 - len(available)):
-                        features[f'pad_{i}'] = 0.0
-                features = features.iloc[:, :22]
+            # Feature Adaptation (Skip for Foundation Models as they use the 32-column Global Matrix)
+            if models.get('model_type') in ['foundation_tft', 'expert_adapted']:
+                pass # Already aligned to 32 features by global_engineer.add_global_features
+            elif expected_features == 22 and current_features == 19:
+                for i in range(3): features[f'pad_{i}'] = 0.0
+            elif expected_features >= 25:
+                correlated = self._get_correlated_assets(symbol)
+                for asset in correlated:
+                    try:
+                        asset_df = self.data_engine.fetch(asset['symbol'], interval="1h", days=14)
+                        if asset_df is not None:
+                            features = self.feature_engineer.add_correlated_asset(features, asset_df, asset_name=asset['symbol'])
+                    except: pass
+                current_features = len(features.columns)
+                if current_features < expected_features:
+                    for i in range(expected_features - current_features): features[f'pad_rem_{i}'] = 0.0
+            elif expected_features == 20 and current_features == 19:
+                features['pad_0'] = 0.0
+            elif current_features < expected_features:
+                for i in range(expected_features - current_features): features[f'pad_gen_{i}'] = 0.0
             
-            # --- 4. SIGNAL GENERATION ---
-            # DB Lock Recognition & Force Unlock (Total Fix Migration)
-            active_signals = self.db.get_active_signals(symbol=symbol)
-            if active_signals:
-                for sig in active_signals:
-                    # If signal is > 4 hours old and still 'ACTIVE', it's likely a stale migration artifact.
-                    # We 'Force Unlock' by ignoring it here, allowing new analysis.
-                    sig_ts = pd.to_datetime(sig['timestamp'])
-                    if sig_ts.tzinfo is None: sig_ts = sig_ts.tz_localize('UTC')
-                    age = (pd.Timestamp.now(tz='UTC') - sig_ts).total_seconds() / 3600.0
-                    
-                    if age > 4.0:
-                        logger.warning(f"🔓 {symbol}: Ignoring stale signal ID {sig['id']} (Age: {age:.1f}h). Force Unlocked.")
-                    else:
-                        logger.info(f"🔒 {symbol}: Active Signal detected (ID: {sig['id']}). Locking system state.")
-                        return None
+            # Final sanity check: ensure column order matches scaler expectation for non-TFT
+            # (TFT handles this via the fixed 32-column matrix)
             current_features = len(features.columns)
             if models.get('model_type') in ['binary', 'expert']:
                 # For binary/expert, check buy_model
@@ -1056,13 +995,13 @@ class InferenceEngine:
                 logger.info(f"🤫 {symbol}: {applicable_tier}% Tier is BENCHED. Authorizing SHADOW certification trade.")
                 is_authorized = True
                 is_hidden = 1 # Hide from UI/Telegram
-            elif final_confidence >= max(static_hurdle, dynamic_threshold):
-                # If hit either the user's hurdle OR the institutional regime hurdle
-                logger.info(f"⚠️ {symbol}: Tier {applicable_tier}% not certified. Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}).")
+            elif final_confidence >= static_hurdle:
+                # If hit the high safety hurdle, we allow it but maybe hide if not certified
+                logger.info(f"⚠️ {symbol}: Tier {applicable_tier}% not certified. Hit standard hurdle ({static_hurdle:.1%}).")
                 is_authorized = True
                 is_hidden = 0 if is_tier_proven else 1 # Only show high-hurdle if proven
             else:
-                logger.info(f"⛔ {symbol}: {final_confidence:.1%} < Threshold {max(static_hurdle, dynamic_threshold):.1%}. Signal={signal} Benched (Waiting).")
+                logger.info(f"⛔ {symbol}: {final_confidence:.1%} < Hurdle {static_hurdle:.1%}. Signal={signal} Benched (Waiting).")
                 is_authorized = False
                 is_hidden = 1
 
@@ -1101,8 +1040,7 @@ class InferenceEngine:
             if target_signal in ("BUY", "SELL"):
                 # Pip size: 0.01 for Gold, 0.01 for JPY, 0.0001 for others
                 pip_size = 0.01 if ('XAU' in symbol or 'GOLD' in symbol or 'JPY' in symbol) else 0.0001
-                atr_val = features['atr_norm'].iloc[-1] if 'atr_norm' in features.columns else features['atr'].iloc[-1]
-                atr_pips = (float(atr_val) * current_price) / pip_size
+                atr_pips = (float(features['atr_norm'].iloc[-1]) * current_price) / pip_size
                 levels = self.calculate_tp_sl(symbol, target_signal, current_price, atr_pips=atr_pips)
 
             # Metadata with Volume — use correct direction's trade count

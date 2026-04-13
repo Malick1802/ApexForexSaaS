@@ -591,44 +591,58 @@ def show_trading_terminal():
 
                 try:
                     import pandas_ta as ta
-                    last_price = df['close'].iloc[-1]
-                    prev_price = df['close'].iloc[-2]
-                    change = (last_price - prev_price) / prev_price
-                    rsi_series = ta.rsi(df['close'], length=14)
-                    current_rsi = rsi_series.iloc[-1] if rsi_series is not None and not rsi_series.empty else 0.0
-                    volatility = df['close'].pct_change().std() * 100
+                    
+                    if len(df) >= 2:
+                        last_price = df['close'].iloc[-1]
+                        prev_price = df['close'].iloc[-2]
+                        change = (last_price - prev_price) / prev_price
+                        
+                        # Indicators with safety fallbacks
+                        rsi_series = ta.rsi(df['close'], length=14)
+                        current_rsi = rsi_series.iloc[-1] if (rsi_series is not None and not rsi_series.empty) else 50.0
+                        volatility = df['close'].pct_change().std() * 100
+                        volatility = volatility if not np.isnan(volatility) else 0.0
 
+                        # Calculate real-time PnL if active trade
+                        pnl_html = ""
+                        if result and result.get('price_at_signal'):
+                            try:
+                                entry_price = float(result['price_at_signal'])
+                                direction = 1 if result.get('signal') == 'BUY' else -1
+                                pip_size = 0.01 if ('JPY' in symbol or 'GOLD' in symbol or 'XAU' in symbol) else 0.0001
+                                pnl_pips = (last_price - entry_price) / pip_size * direction
+                                
+                                pnl_color = "#00FF88" # Fallback green
+                                if pnl_pips < 0: pnl_color = "#FF4466" # Fallback red
+                                
+                                pnl_sign = "+" if pnl_pips >= 0 else ""
+                                pnl_html = f'<span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">{pnl_sign}{pnl_pips:.1f} pips</span>'
+                            except:
+                                pnl_html = ""
 
-                    # Calculate real-time PnL if active trade
-                    pnl_html = ""
-                    if result and result.get('price_at_signal'):
-                        try:
-                            entry_price = float(result['price_at_signal'])
-                            direction = 1 if result.get('signal') == 'BUY' else -1
-                            pip_size = 0.01 if 'JPY' in symbol else 0.0001
-                            pnl_pips = (last_price - entry_price) / pip_size * direction
-                            
-                            pnl_color = "var(--signal-buy)" if pnl_pips >= 0 else "var(--signal-sell)"
-                            pnl_sign = "+" if pnl_pips >= 0 else ""
-                            
-                            pnl_html = f'<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">{pnl_sign}{pnl_pips:.1f} pips</span>'
-                        except:
-                            pass
+                        # Render Header (with hardcoded fallbacks for CSS variables)
+                        st.markdown(f"""
+                        <div style="margin-bottom: 16px;">
+                            <span style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">{symbol}</span>
+                            <span style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
+                            <span style="font-family: monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 8px;">
+                                {'▲' if change >= 0 else '▼'} {abs(change):.2%}
+                            </span>
+                            {pnl_html}
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                    st.markdown(f"""
-                    <div style="margin-bottom: 16px;">
-                        <span style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">{symbol}</span>
-                        <span style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; color: var(--accent-cyan); margin-left: 12px;">{last_price:.5f}</span>
-                        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: {'var(--signal-buy)' if change >= 0 else 'var(--signal-sell)'}; margin-left: 8px;">
-                            {'▲' if change >= 0 else '▼'} {abs(change):.2%}
-                        </span>
-                        {pnl_html}
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("Price", f"{last_price:.5f}", f"{change:+.2%}")
-                    m2.metric("Volatility", f"{volatility:.3f}%")
+                        m1, m2, m3 = st.columns(3)
+                        m1.metric("Price", f"{last_price:.5f}", f"{change:+.2%}")
+                        m2.metric("Volatility", f"{volatility:.3f}%")
+                        m3.metric("RSI (14)", f"{current_rsi:.1f}",
+                                  "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
+                    else:
+                        st.warning("Insufficient data for header calculation.")
+                except Exception as e:
+                    logger.error(f"Header rendering failed for {symbol}: {e}")
+                    st.caption("Header metrics currently unavailable.")
+}%")
                     m3.metric("RSI (14)", f"{current_rsi:.1f}",
                               "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
                 except Exception:

@@ -16,6 +16,9 @@ timeout /t 2 /nobreak > nul
 echo 1.5. Configuring Windows Firewall...
 powershell -Command "New-NetFirewallRule -DisplayName 'Apex Dashboard' -Direction Inbound -LocalPort 8505 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue"
 
+echo 1.7. Recalibrating AI Fleet (Ensuring Environment Synergy)...
+.\venv\Scripts\python.exe scripts/recalibrate_fleet.py
+
 echo 2. Starting Apex Sentinel (Watchdog)...
 start "Apex Sentinel" cmd /c "start_sentinel.bat"
 
