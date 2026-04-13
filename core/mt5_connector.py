@@ -24,11 +24,11 @@ try:
     if IS_WINDOWS:
         import MetaTrader5 as mt5
         BRIDGE_MODE = False
-        logger.info("🖥️ Operating in Native Windows MT5 mode.")
+        logger.info("[NATIVE] Operating in Native Windows MT5 mode.")
     else:
         from mt5linux import MetaTrader5 as mt5
         BRIDGE_MODE = True
-        logger.info("🌉 Operating in Linux/Wine Bridge mode.")
+        logger.info("[BRIDGE] Operating in Linux/Wine Bridge mode.")
     MT5_AVAILABLE = True
 except ImportError:
     MT5_AVAILABLE = False
@@ -71,7 +71,7 @@ class MT5Connector:
         Initializes the connection if not already active.
         """
         if not MT5_AVAILABLE:
-            logger.error("🚫 MT5 Interface unavailable (mt5linux missing).")
+            logger.error("[ERROR] MT5 Interface unavailable (mt5linux missing).")
             return None
 
         # If connection exists but is not responding, reset it
@@ -81,7 +81,7 @@ class MT5Connector:
                 if self._connection.account_info() is not None:
                     return self._connection
             except Exception:
-                logger.warning("🔄 MT5 Bridge connection stale. Re-initializing...")
+                logger.warning("[RETRY] MT5 Bridge connection stale. Re-initializing...")
                 self._connection = None
 
         return self._initialize_connection()
@@ -89,9 +89,9 @@ class MT5Connector:
     def _initialize_connection(self):
         """Perform the actual MT5 initialization (Native or Bridge)."""
         if BRIDGE_MODE:
-            logger.info("🔗 Attempting link to Linux MT5 Bridge (Wine)...")
+            logger.info("[LINK] Attempting link to Linux MT5 Bridge (Wine)...")
         else:
-            logger.info("🔗 Attempting native Windows MT5 connection...")
+            logger.info("[LINK] Attempting native Windows MT5 connection...")
         
         try:
             # For mt5linux (Bridge), we need to instantiate. 
@@ -125,16 +125,16 @@ class MT5Connector:
             if success:
                 acc = conn.account_info()
                 if acc:
-                    logger.info(f"✅ MT5 CONNECTED: {acc.server} (Login: {acc.login})")
+                    logger.info(f"[OK] MT5 CONNECTED: {acc.server} (Login: {acc.login})")
                 self._connection = conn
                 return conn
             else:
                 err = conn.last_error()
-                logger.error(f"❌ MT5 Initialization Failed: {err}")
+                logger.error(f"[FAIL] MT5 Initialization Failed: {err}")
                 return None
 
         except Exception as e:
-            logger.error(f"💥 Critical error connecting to MT5: {e}")
+            logger.error(f"[CRITICAL] Critical error connecting to MT5: {e}")
             return None
 
     def shutdown(self):
@@ -142,7 +142,7 @@ class MT5Connector:
         if self._connection:
             try:
                 self._connection.shutdown()
-                logger.info("🔌 MT5 Bridge disconnected.")
+                logger.info("[DISCONNECT] MT5 Bridge disconnected.")
             except Exception:
                 pass
             self._connection = None
