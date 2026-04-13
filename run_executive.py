@@ -17,7 +17,7 @@ from pathlib import Path
 # Add project root
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.executive import ExecutiveEngine
+from core.core.executive import ExecutiveEngine
 import argparse
 
 
@@ -30,7 +30,7 @@ def main():
         '--confidence',
         type=float,
         default=0.75,
-        help='Minimum confidence threshold for signals (default: 0.75 = 75%)'
+        help='Minimum confidence threshold for signals (default: 0.75 = 75%%)'
     )
     
     parser.add_argument(
