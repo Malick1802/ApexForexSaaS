@@ -1,4 +1,6 @@
 @echo off
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
 title Apex Sentinel - Automatic Signal Generator
 echo ===================================================
 echo   APEX SENTINEL - AUTOMATIC SIGNAL GENERATOR
