@@ -3,6 +3,10 @@
 # =============================================================================
 """
 Core application logic and orchestration.
+
+Exports:
+- TrainingManager: Orchestrate training across pairs
+- run_training: Convenience function for training
 """
 
 # Exports removed to prevent eager loading of tensorflow when importing core.database.
