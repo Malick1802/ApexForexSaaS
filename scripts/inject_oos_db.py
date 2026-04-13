@@ -63,7 +63,7 @@ def inject_oos_data():
     print(f"Successfully injected {total_injected} historical OOS trades into signals.db!")
     
     # Trigger recomputation to cement rules
-    from core.core.performance_gate import PerformanceGate
+    from core.performance_gate import PerformanceGate
     gate = PerformanceGate()
     gate.recompute_from_db(lookback_days=14)
     gate.save_whitelist()
