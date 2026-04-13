@@ -1,6 +1,6 @@
 import sys; sys.path.insert(0, '.')
 from data_pipeline.engine import DataEngine
-from core.core.regime_detector import RegimeDetector
+from core.regime_detector import RegimeDetector
 
 engine = DataEngine()
 detector = RegimeDetector()
