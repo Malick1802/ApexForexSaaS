@@ -16,8 +16,12 @@ try:
     import pandas_ta as ta
     _PANDAS_TA_AVAILABLE = True
 except ImportError:
-    ta = None
-    _PANDAS_TA_AVAILABLE = False
+    try:
+        import pandas_ta_classic as ta
+        _PANDAS_TA_AVAILABLE = True
+    except ImportError:
+        ta = None
+        _PANDAS_TA_AVAILABLE = False
 
 
 
@@ -28,33 +32,13 @@ class FeatureEngineer:
     """
     Feature extraction for forex LSTM models.
     
-    Extracts:
-    - Normalized OHLCV data
-    - Technical indicators (RSI, ATR)
-    - Correlated asset returns
-    
-    All features are designed to be stationary and normalized
-    for optimal LSTM performance.
+    Normalizes and engineers features from OHLCV data,
+    including technical indicators and custom derived features.
     """
     
-    def __init__(
-        self,
-        rsi_period: int = 14,
-        atr_period: int = 14,
-        return_periods: List[int] = None
-    ):
-        """
-        Initialize feature engineer.
-        
-        Args:
-            rsi_period: Period for RSI calculation
-            atr_period: Period for ATR calculation
-            return_periods: Periods for return calculations (default: [1, 5, 10])
-        """
-        self.rsi_period = rsi_period
-        self.atr_period = atr_period
-        self.return_periods = return_periods or [1, 5, 10]
-        
+    def __init__(self):
+        self.feature_names = []
+
     def extract_features(
         self,
         df: pd.DataFrame,
@@ -99,220 +83,139 @@ class FeatureEngineer:
         # ---------------------------------------------------------------------
         # Returns (log returns for stationarity)
         # ---------------------------------------------------------------------
-        features['close_ret_1'] = np.log(df['close'] / df['close'].shift(1))
-        
-        for period in self.return_periods:
-            if period > 1:
-                features[f'close_ret_{period}'] = np.log(
-                    df['close'] / df['close'].shift(period)
-                )
+        features['log_return_1'] = np.log(df['close'] / df['close'].shift(1))
+        features['log_return_3'] = np.log(df['close'] / df['close'].shift(3))
+        features['log_return_5'] = np.log(df['close'] / df['close'].shift(5))
+        features['log_return_10'] = np.log(df['close'] / df['close'].shift(10))
+
+        # ---------------------------------------------------------------------
+        # Trend Indicators
+        # ---------------------------------------------------------------------
+        features['sma_5'] = df.ta.sma(length=5) / df['close']
+        features['sma_20'] = df.ta.sma(length=20) / df['close']
+        features['ema_8'] = df.ta.ema(length=8) / df['close']
+        features['ema_21'] = df.ta.ema(length=21) / df['close']
+        features['ema_cross'] = features['ema_8'] - features['ema_21']
         
         # ---------------------------------------------------------------------
-        # Technical Indicators
+        # Momentum Indicators
         # ---------------------------------------------------------------------
+        rsi = df.ta.rsi(length=14)
+        features['rsi'] = rsi / 100.0  # Normalize to [0, 1]
         
-        # RSI - already bounded [0, 100], scale to [0, 1]
-        rsi = ta.rsi(df['close'], length=self.rsi_period)
-        features['rsi'] = rsi / 100.0
+        stoch = df.ta.stoch(k=14, d=3)
+        if stoch is not None and not stoch.empty:
+            features['stoch_k'] = stoch.iloc[:, 0] / 100.0
+            features['stoch_d'] = stoch.iloc[:, 1] / 100.0
         
-        # ATR - normalize by close price
-        atr = ta.atr(df['high'], df['low'], df['close'], length=self.atr_period)
-        features['atr_norm'] = atr / df['close']
+        macd = df.ta.macd(fast=12, slow=26, signal=9)
+        if macd is not None and not macd.empty:
+            features['macd'] = macd.iloc[:, 0] / df['close']
+            features['macd_signal'] = macd.iloc[:, 1] / df['close']
+            features['macd_hist'] = macd.iloc[:, 2] / df['close']
         
-        # Bollinger Band position (where is price relative to bands)
-        bbands = ta.bbands(df['close'], length=20, std=2)
-        if bbands is not None and len(bbands.columns) >= 3:
-            bb_upper = bbands.iloc[:, 0]  # BBU
-            bb_mid = bbands.iloc[:, 1]    # BBM
-            bb_lower = bbands.iloc[:, 2]  # BBL
-            bb_width = bb_upper - bb_lower
-            features['bb_position'] = (df['close'] - bb_lower) / bb_width.replace(0, np.nan)
-            features['bb_width_norm'] = bb_width / df['close']
-        
-        # MACD
-        macd = ta.macd(df['close'], fast=12, slow=26, signal=9)
-        if macd is not None:
-            # Normalize MACD by close price
-            features['macd_norm'] = macd.iloc[:, 0] / df['close']
-            features['macd_signal_norm'] = macd.iloc[:, 1] / df['close']
-            features['macd_hist_norm'] = macd.iloc[:, 2] / df['close']
+        # CCI Indicator
+        cci = df.ta.cci(length=14)
+        if cci is not None:
+            features['cci'] = cci / 200.0  # Normalize
         
         # ---------------------------------------------------------------------
-        # Volume features (if available and requested)
+        # Volatility Indicators
         # ---------------------------------------------------------------------
-        if include_volume and 'volume' in df.columns and df['volume'].sum() > 0:
-            # Volume relative to moving average
-            vol_ma = df['volume'].rolling(20).mean()
-            features['volume_rel'] = df['volume'] / vol_ma.replace(0, np.nan)
-            
-            # Volume change
-            features['volume_ret'] = np.log(
-                df['volume'].replace(0, np.nan) / 
-                df['volume'].shift(1).replace(0, np.nan)
-            )
+        bb = df.ta.bbands(length=20, std=2)
+        if bb is not None and not bb.empty:
+            bb_upper = bb.iloc[:, 0]
+            bb_mid = bb.iloc[:, 1]
+            bb_lower = bb.iloc[:, 2]
+            bb_width = (bb_upper - bb_lower) / bb_mid
+            bb_pos = (df['close'] - bb_lower) / (bb_upper - bb_lower + 1e-10)
+            features['bb_width'] = bb_width
+            features['bb_position'] = bb_pos
+        
+        atr = df.ta.atr(length=14)
+        if atr is not None:
+            features['atr'] = atr / df['close']
+        
+        # VIX proxy: Realized vol over 5-bar window
+        features['vix_proxy'] = features['log_return_1'].rolling(5).std() * np.sqrt(252)
         
         # ---------------------------------------------------------------------
-        # Time-based features (cyclical encoding)
+        # Volume Features (if available)
         # ---------------------------------------------------------------------
-        if isinstance(df.index, pd.DatetimeIndex):
-            # Hour of day (cyclical)
-            hour = df.index.hour
-            features['hour_sin'] = np.sin(2 * np.pi * hour / 24)
-            features['hour_cos'] = np.cos(2 * np.pi * hour / 24)
-            
-            # Day of week (cyclical)
-            dow = df.index.dayofweek
-            features['dow_sin'] = np.sin(2 * np.pi * dow / 7)
-            features['dow_cos'] = np.cos(2 * np.pi * dow / 7)
+        if include_volume and 'volume' in df.columns:
+            vol = df['volume'].replace(0, np.nan)
+            features['volume_norm'] = vol / vol.rolling(20).mean()
+            features['volume_log'] = np.log1p(vol)
+            obv = df.ta.obv()
+            if obv is not None:
+                features['obv_norm'] = obv / obv.rolling(20).mean()
         
-        logger.info(f"Extracted {len(features.columns)} features")
-        return features
-    
-    def add_correlated_asset(
-        self,
-        features: pd.DataFrame,
-        corr_df: pd.DataFrame,
-        asset_name: str = "corr"
-    ) -> pd.DataFrame:
-        """
-        Add correlated asset features.
+        # ---------------------------------------------------------------------
+        # Market Structure
+        # ---------------------------------------------------------------------
+        # Swing high/low proximity
+        features['high_20'] = df['high'].rolling(20).max() / df['close']
+        features['low_20'] = df['low'].rolling(20).min() / df['close']
         
-        Args:
-            features: Existing feature DataFrame
-            corr_df: OHLCV data for correlated asset
-            asset_name: Prefix for feature names
-            
-        Returns:
-            Features DataFrame with correlated asset columns added
-        """
-        if corr_df is None or corr_df.empty:
-            logger.warning("No correlated asset data provided")
-            return features
+        # Momentum
+        features['momentum_10'] = df['close'].pct_change(10)
+        features['momentum_20'] = df['close'].pct_change(20)
         
-        # Align indices (Fill missing with forward fill then backfill to minimize NaNs)
-        corr_aligned = corr_df.reindex(features.index).ffill().bfill()
+        # ---------------------------------------------------------------------
+        # Drop NaN rows
+        # ---------------------------------------------------------------------
+        features = features.dropna()
+        features = features.replace([np.inf, -np.inf], np.nan).dropna()
         
-        # Calculate returns
-        features[f'{asset_name}_ret'] = np.log(
-            corr_aligned['close'] / corr_aligned['close'].shift(1)
-        )
+        self.feature_names = features.columns.tolist()
+        logger.info(f"Created sequences: X=(PENDING, PENDING, {len(self.feature_names)}), y=(PENDING,)")
         
-        # Longer-term returns
-        features[f'{asset_name}_ret_5'] = np.log(
-            corr_aligned['close'] / corr_aligned['close'].shift(5)
-        )
-        
-        # RSI of correlated asset
-        if len(corr_aligned) > self.rsi_period:
-            corr_rsi = ta.rsi(corr_aligned['close'], length=self.rsi_period)
-            features[f'{asset_name}_rsi'] = corr_rsi / 100.0
-        
-        logger.info(f"Added {asset_name} features")
         return features
     
     def create_sequences(
-        self,
-        features: pd.DataFrame,
-        labels: pd.Series,
-        sequence_length: int = 50
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, 
+        features: pd.DataFrame, 
+        labels: pd.Series, 
+        sequence_length: int = 60
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
-        Create sequences for LSTM input.
+        Create sequences for LSTM/Transformer models.
         
         Args:
-            features: Feature DataFrame
-            labels: Target labels
-            sequence_length: Number of timesteps per sequence
+            features: Feature DataFrame (rows = timesteps)
+            labels: Target labels Series
+            sequence_length: Number of historical bars to include
             
         Returns:
-            Tuple of (X, y) where:
-            - X: shape (samples, sequence_length, num_features)
-            - y: shape (samples,)
+            Tuple of (X, y) arrays
         """
-        # If features are already a numpy array (pre-scaled), use directly
-        if isinstance(features, np.ndarray):
-            feature_data = features
-            label_data = labels
-        else:
-            combined = features.copy()
-            combined['label'] = labels
-            combined = combined.dropna()
-            
-            if len(combined) < sequence_length + 1:
-                logger.warning(
-                    f"Not enough data ({len(combined)} rows) for "
-                    f"sequence_length={sequence_length}. Skipping."
-                )
-                return np.array([]), np.array([])
-            
-            feature_cols = [c for c in combined.columns if c != 'label']
-            feature_data = combined[feature_cols].values
-            label_data = combined['label'].values
+        X_list, y_list = [], []
         
-        X, y = [], []
+        feature_vals = features.values
+        label_vals = labels.values
         
-        for i in range(sequence_length, len(feature_data)):
-            # Fix: Include the current row 'i' in the sequence features
-            # Old: feature_data[i - sequence_length : i] -> Excluded i
-            # New: feature_data[i - sequence_length + 1 : i + 1] -> Includes i
-            X.append(feature_data[i - sequence_length + 1 : i + 1])
-            y.append(label_data[i])
+        # Align by index
+        common_idx = features.index.intersection(labels.index)
+        feature_vals = features.loc[common_idx].values
+        label_vals = labels.loc[common_idx].values
         
-        if len(X) == 0:
-            logger.warning(f"No sequences created for {len(feature_data)} rows of data.")
+        for i in range(sequence_length, len(feature_vals)):
+            X_list.append(feature_vals[i - sequence_length:i])
+            y_list.append(label_vals[i])
+        
+        if not X_list:
             return np.array([]), np.array([])
-            
-        try:
-            X = np.array(X, dtype=np.float32)
-            y = np.array(y, dtype=np.float32)
-            logger.info(f"Created sequences: X={X.shape}, y={y.shape}")
-            return X, y
-        except Exception as e:
-            logger.error(f"Failed to convert sequences to numpy: {e}")
-            return np.array([]), np.array([])
+        
+        X = np.array(X_list, dtype=np.float32)
+        y = np.array(y_list, dtype=np.float32)
+        
+        logger.info(f"Created sequences: X={X.shape}, y={y.shape}")
+        return X, y
     
     def get_feature_names(self) -> List[str]:
-        """Get list of feature names for documentation."""
-        return [
-            'open_norm', 'high_norm', 'low_norm',
-            'hl_range', 'oc_range',
-            'close_ret_1', 'close_ret_5', 'close_ret_10',
-            'rsi', 'atr_norm',
-            'bb_position', 'bb_width_norm',
-            'macd_norm', 'macd_signal_norm', 'macd_hist_norm',
-            'volume_rel', 'volume_ret',
-            'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos',
-        ]
-
-
-def prepare_training_data(
-    df: pd.DataFrame,
-    labels: pd.Series,
-    corr_df: Optional[pd.DataFrame] = None,
-    sequence_length: int = 50
-) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-    """
-    Convenience function to prepare training data.
+        """Return list of feature names from last extraction."""
+        return self.feature_names
     
-    Args:
-        df: OHLCV DataFrame
-        labels: Target labels
-        corr_df: Optional correlated asset data
-        sequence_length: LSTM sequence length
-        
-    Returns:
-        Tuple of (X, y, feature_names)
-    """
-    engineer = FeatureEngineer()
-    
-    # Extract features
-    features = engineer.extract_features(df)
-    
-    # Add correlated asset if available
-    if corr_df is not None:
-        features = engineer.add_correlated_asset(features, corr_df)
-    
-    # Create sequences
-    X, y = engineer.create_sequences(features, labels, sequence_length)
-    
-    return X, y, list(features.columns)
+    def get_feature_count(self) -> int:
+        """Return the number of features."""
+        return len(self.feature_names)
