@@ -9,7 +9,7 @@ import time
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 logging.basicConfig(
     level=logging.INFO,
