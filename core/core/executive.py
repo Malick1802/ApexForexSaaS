@@ -29,13 +29,13 @@ import requests
 # Removed python-telegram-bot imports due to imghdr dependency crash in Python 3.13
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
-from core.core.database import SignalDatabase
-from core.core.inference import InferenceEngine
-from core.core.notifications import NotificationManager
+from .database import SignalDatabase
+from .inference import InferenceEngine
+from .notifications import NotificationManager
 from tensorflow import keras
 import joblib
 
@@ -118,7 +118,7 @@ class ExecutiveEngine:
         if current_date > self.last_bayesian_update:
             logger.info("📅 Date rolled over. Running Daily Bayesian Matrix Update...")
             try:
-                from core.core.performance_gate import PerformanceGate
+                from .performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
@@ -346,7 +346,7 @@ class ExecutiveEngine:
         if resolutions_found:
             logger.info("📈 Resolutions detected. Triggering Performance Matrix micro-update...")
             try:
-                from core.core.performance_gate import PerformanceGate
+                from .performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
