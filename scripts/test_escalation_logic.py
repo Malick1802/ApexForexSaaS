@@ -6,8 +6,8 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root))
 
-from core.core.executive import ExecutiveEngine
-from core.core.database import SignalDatabase
+from core.executive import ExecutiveEngine
+from core.database import SignalDatabase
 from datetime import datetime, timezone
 
 def test_escalation():
