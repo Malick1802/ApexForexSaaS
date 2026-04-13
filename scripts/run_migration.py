@@ -6,7 +6,7 @@ import os
 sys.path.append(os.getcwd())
 
 try:
-    from core.core.database import SignalDatabase
+    from core.database import SignalDatabase
     print("✅ Imported SignalDatabase")
     
     # Initialize DB (triggers _init_db and migration)
