@@ -35,14 +35,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
 from data_pipeline.global_features import GlobalFeatureEngineer
-from .database import SignalDatabase
-from .performance_gate import get_performance_gate
+from core.database import SignalDatabase
+from core.performance_gate import get_performance_gate
 # from core.bayesian_engine import get_bayesian_engine
-from .regime_detector import get_detector
-from .gmm_regime_detector import get_gmm_detector
-from .calibration import get_calibration_manager
-from .notifications import NotificationManager
-from .mt5_connector import get_mt5
+from core.regime_detector import get_detector
+from core.gmm_regime_detector import get_gmm_detector
+from core.calibration import get_calibration_manager
+from core.notifications import NotificationManager
+from core.mt5_connector import get_mt5
 
 try:
     from tensorflow import keras
