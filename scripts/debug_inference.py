@@ -7,7 +7,7 @@ from datetime import datetime
 # Add project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
