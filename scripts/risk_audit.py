@@ -6,7 +6,7 @@ from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from core.core.mt5_connector import get_mt5
+from core.mt5_connector import get_mt5
 
 def print_table(data_list):
     if not data_list: return
