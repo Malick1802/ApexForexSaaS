@@ -145,7 +145,7 @@ class MT5Provider(DataProviderBase):
             raise ValueError(f"Unsupported interval: {interval}")
         
         # Ensure symbol is available for data
-        if not mt5.symbol_select(mt5_symbol, True):
+        if not self.mt5.symbol_select(mt5_symbol, True):
             raise ValueError(f"Cannot select symbol {mt5_symbol} in MT5 (Thread Context Issue)")
         
         # Determine date range
@@ -168,10 +168,10 @@ class MT5Provider(DataProviderBase):
         )
         
         # Fetch rates from MT5
-        rates = mt5.copy_rates_range(mt5_symbol, timeframe, start, end)
+        rates = self.mt5.copy_rates_range(mt5_symbol, timeframe, start, end)
         
         if rates is None or len(rates) == 0:
-            error = mt5.last_error()
+            error = self.mt5.last_error()
             raise ValueError(
                 f"No data returned for {mt5_symbol} ({interval}): {error}"
             )
