@@ -8,7 +8,7 @@ import logging
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from data_pipeline import DataEngine
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
