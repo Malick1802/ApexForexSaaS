@@ -5,7 +5,7 @@ from pathlib import Path
 # Add root to sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 engine = InferenceEngine(confidence_threshold=0.8)
 pairs = ['EURUSD', 'GBPUSD', 'AUDJPY', 'USDJPY', 'USDCHF']
