@@ -144,6 +144,12 @@ class InferenceEngine:
         self.calibrator = get_calibration_manager()
         self.perf_gate = get_performance_gate()
 
+        # Internal Caching Logic
+        self._model_cache = OrderedDict()
+        self._global_data_cache = {}
+        self._last_global_update = None
+        self._max_cached_models = 20
+
         if not _TF_AVAILABLE:
             raise ImportError(
                 f"TensorFlow initialization failed. The application cannot load AI models.\n"
@@ -810,10 +816,14 @@ class InferenceEngine:
             if not tradeable:
                 logger.warning(f"⛔ {symbol} BLOCKED by Regime Detector: status={regime_label}")
                 return {
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'symbol': symbol,
                     'signal': 'WAIT',
                     'confidence': 0.0,
+                    'price_at_signal': float(df['close'].iloc[-1]),
                     'regime': regime_label,
-                    'reason': 'Regime Block'
+                    'reason': 'Regime Block',
+                    'is_hidden': 1
                 }
 
             # 1. Base Features
@@ -1071,11 +1081,15 @@ class InferenceEngine:
             if not is_authorized:
                 signal = "WAIT"
             elif signal == "WAIT":
-                # Promotion: If authorized (Benched/Proven) but currently WAIT due to threshold,
-                # adopt the AI's dominant bias for certification/live execution.
-                signal = "BUY" if buy_prob > sell_prob else "SELL"
-                confidence = buy_prob if signal == "BUY" else sell_prob
-                logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification.")
+                # Promotion: Only if authorized (Benched/Proven) AND we have a clear directional edge > 55%
+                dominant_prob = max(buy_prob, sell_prob)
+                if dominant_prob > 0.55:
+                    signal = "BUY" if buy_prob > sell_prob else "SELL"
+                    confidence = buy_prob if signal == "BUY" else sell_prob
+                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification (Prob: {dominant_prob:.1%}).")
+                else:
+                    signal = "WAIT"
+                    logger.info(f"⛔ {symbol}: No directional edge ({dominant_prob:.1%}). Staying at WAIT.")
 
             if signal in ('BUY', 'SELL') and models.get('model_type') not in ('binary', 'expert'):
                 # PROVEN OVERRIDE: If the signal is officially authorized by the 60% Proven floor, 

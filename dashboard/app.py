@@ -371,16 +371,19 @@ def show_market_overview():
     with st.sidebar:
         section_header("🎛️", "Filters")
 
+        # Use session state to persist filters across pages
         if 'accuracy_target' not in st.session_state:
             st.session_state['accuracy_target'] = '90%'
+        
         accuracy_target = st.select_slider('Desired Accuracy',
             options=['60%', '70%', '80%', '90%', 'Apex'],
-            value=st.session_state['accuracy_target'], key='accuracy_target')
+            key='accuracy_target')
 
         if 'confidence_thresh' not in st.session_state:
             st.session_state['confidence_thresh'] = 70
-        confidence_thresh = st.slider("Confidence Filter", 50, 95,
-            st.session_state['confidence_thresh'], key='confidence_thresh')
+            
+        confidence_thresh = st.slider("Confidence Filter", 50, 95, 
+            key='confidence_thresh')
 
         st.caption(f"**{accuracy_target}** accuracy · **{confidence_thresh}%** min confidence")
 
