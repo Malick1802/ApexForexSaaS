@@ -659,7 +659,7 @@ def show_trading_terminal():
                 # Clamp to nearest valid tier
                 _valid_tiers = [60, 70, 80, 90, 100]
                 winning_tier = str(min(_valid_tiers, key=lambda t: abs(t - _tier_num)))
-                from core.core.performance_gate import PerformanceGate
+                from core.performance_gate import PerformanceGate
                 perf_gate = PerformanceGate()
                 is_approved = perf_gate.is_tier_approved(symbol, float(winning_tier) / 100.0)
                 
