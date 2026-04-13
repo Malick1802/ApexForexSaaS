@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from data_pipeline.engine import DataEngine
-from core.core.database import SignalDatabase
+from core.database import SignalDatabase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("MonteCarloAudit")
@@ -78,7 +78,7 @@ class MonteCarloStressTester:
         """
         logger.info(f"🔊 Injecting {noise_pips} pips of noise into {symbol} data...")
         
-        from core.core.inference import InferenceEngine
+        from core.inference import InferenceEngine
         inf_engine = InferenceEngine()
         
         # Fetch 200 bars for testing
