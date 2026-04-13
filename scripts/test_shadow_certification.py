@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.core.inference import InferenceEngine
-from core.core.database import SignalDatabase
+from core.inference import InferenceEngine
+from core.database import SignalDatabase
 
 def test_shadow_certification():
     db = SignalDatabase()
