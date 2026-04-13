@@ -27,9 +27,9 @@ def init_page(title: str, icon: str = "⚡"):
 def get_db():
     """Get properly-pathed SignalDatabase instance with forced reload."""
     import importlib
-    import core.database
-    importlib.reload(core.database)
-    from core.database import SignalDatabase
+    import core.core.database
+    importlib.reload(core.core.database)
+    from core.core.database import SignalDatabase
     return SignalDatabase(db_path=DB_PATH)
 
 
@@ -49,7 +49,7 @@ def get_engine():
 def get_inference():
     """Get InferenceEngine instance (cached)."""
     try:
-        from core.inference import InferenceEngine
+        from core.core.inference import InferenceEngine
         engine = InferenceEngine()
         return engine
     except Exception as e:
