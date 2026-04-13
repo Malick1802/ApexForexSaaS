@@ -9,6 +9,6 @@ echo Press Ctrl+C to stop.
 echo.
 
 call venv\Scripts\activate.bat
-python core/core/executive.py --win-rate 90%
+python -m core.executive --win-rate 90%%
 
 pause
