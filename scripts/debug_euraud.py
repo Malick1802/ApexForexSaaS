@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.core.database import get_db
+from core.database import get_db
 from core.data_engine import DataEngine
 import pandas as pd
 from datetime import datetime
