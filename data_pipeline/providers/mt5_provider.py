@@ -24,7 +24,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from core.core.mt5_connector import get_mt5
+from core.mt5_connector import get_mt5
 
 from data_pipeline.base import DataProviderBase
 
