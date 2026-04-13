@@ -219,7 +219,7 @@ class MT5Provider(DataProviderBase):
     def get_available_symbols(self) -> List[str]:
         """Get all forex symbols available in MT5."""
         self._connect()
-        symbols = mt5.symbols_get()
+        symbols = self.mt5.symbols_get()
         if symbols is None:
             return []
         
@@ -240,7 +240,7 @@ class MT5Provider(DataProviderBase):
         """Check if symbol exists in MT5."""
         self._connect()
         mt5_symbol = self.normalize_symbol(symbol)
-        info = mt5.symbol_info(mt5_symbol)
+        info = self.mt5.symbol_info(mt5_symbol)
         return info is not None
     
     def __del__(self):
