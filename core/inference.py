@@ -1040,7 +1040,7 @@ class InferenceEngine:
             if target_signal in ("BUY", "SELL"):
                 # Pip size: 0.01 for Gold, 0.01 for JPY, 0.0001 for others
                 pip_size = 0.01 if ('XAU' in symbol or 'GOLD' in symbol or 'JPY' in symbol) else 0.0001
-                atr_pips = (float(features['atr_norm'].iloc[-1]) * current_price) / pip_size
+                atr_pips = (float(features['atr'].iloc[-1]) * current_price) / pip_size
                 levels = self.calculate_tp_sl(symbol, target_signal, current_price, atr_pips=atr_pips)
 
             # Metadata with Volume — use correct direction's trade count
