@@ -23,6 +23,13 @@ from data_pipeline.providers.yfinance_provider import YFinanceProvider
 from data_pipeline.providers.twelvedata_provider import TwelveDataProvider
 from data_pipeline.labeling import triple_barrier_label, get_pip_value
 
+# Optional MT5 provider (requires MetaTrader5 package + running terminal)
+try:
+    from data_pipeline.providers.mt5_provider import MT5Provider
+    _MT5_AVAILABLE = True
+except ImportError:
+    _MT5_AVAILABLE = False
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +39,10 @@ PROVIDER_REGISTRY: Dict[str, Type[DataProviderBase]] = {
     "yfinance": YFinanceProvider,
     "twelvedata": TwelveDataProvider,
 }
+
+# Register MT5 if available
+if _MT5_AVAILABLE:
+    PROVIDER_REGISTRY["mt5"] = MT5Provider
 
 
 class DataEngine:
@@ -136,28 +147,38 @@ class DataEngine:
         }
     
     def _create_provider(self, provider_name: str) -> DataProviderBase:
-        """Create a data provider instance."""
-        if provider_name not in PROVIDER_REGISTRY:
-            raise ValueError(
-                f"Unknown provider: {provider_name}. "
-                f"Available: {list(PROVIDER_REGISTRY.keys())}"
-            )
-        
-        provider_class = PROVIDER_REGISTRY[provider_name]
-        provider_config = self._config["data_provider"].get(provider_name, {})
-        
-        # Extract relevant kwargs for the provider
-        if provider_name == "yfinance":
-            return provider_class(
-                rate_limit_delay=provider_config.get("rate_limit_delay", 0.5)
-            )
-        elif provider_name == "twelvedata":
-            return provider_class(
-                api_key=provider_config.get("api_key"),
-                rate_limit_delay=provider_config.get("rate_limit_delay", 1.0)
-            )
-        else:
-            return provider_class()
+        """
+        Create a data provider instance with resilient fallback.
+        """
+        try:
+            if provider_name not in PROVIDER_REGISTRY:
+                raise ValueError(
+                    f"Unknown provider: {provider_name}. "
+                    f"Available: {list(PROVIDER_REGISTRY.keys())}"
+                )
+            
+            provider_class = PROVIDER_REGISTRY[provider_name]
+            provider_config = self._config["data_provider"].get(provider_name, {})
+            
+            # Extract relevant kwargs for the provider
+            if provider_name == "yfinance":
+                return provider_class(
+                    rate_limit_delay=provider_config.get("rate_limit_delay", 0.5)
+                )
+            elif provider_name == "twelvedata":
+                return provider_class(
+                    api_key=provider_config.get("api_key"),
+                    rate_limit_delay=provider_config.get("rate_limit_delay", 1.0)
+                )
+            else:
+                return provider_class()
+        except (ConnectionError, ImportError) as e:
+            if provider_name == "yfinance":
+                raise # If fallback itself fails, we crash
+            
+            logger.warning(f"⚠️ {provider_name} initialization FAILED: {e}. Falling back to yfinance.")
+            # Recursive fallback to yfinance (guaranteed baseline)
+            return self._create_provider("yfinance")
     
     def _build_pairs_lookup(self) -> Dict[str, dict]:
         """Build a lookup dictionary for currency pair configurations."""
@@ -300,8 +321,20 @@ class DataEngine:
         if should_cache:
             cache_path = self._get_cache_path(symbol, interval)
             if self._is_cache_valid(cache_path):
-                logger.info(f"Loading {symbol} from cache")
-                return pd.read_parquet(cache_path)
+                df = pd.read_parquet(cache_path)
+                
+                # Verify that the cache has enough data for the requested 'days'
+                if days is not None:
+                    # Calculate required start time (approximate)
+                    required_start = datetime.now() - timedelta(days=days)
+                    if df.index[0].tz_localize(None) <= required_start:
+                        logger.info(f"Loading {symbol} from cache")
+                        return df
+                    else:
+                        logger.info(f"Cache for {symbol} has insufficient history, re-fetching")
+                else:
+                    logger.info(f"Loading {symbol} from cache")
+                    return df
         
         # Fetch from provider
         if days is None and start is None:
