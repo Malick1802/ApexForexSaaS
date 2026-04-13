@@ -8,7 +8,7 @@ import logging
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.bayesian_engine import get_bayesian_engine
-from core.core.performance_gate import get_performance_gate
+from core.performance_gate import get_performance_gate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("TestBayesian")
