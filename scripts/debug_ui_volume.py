@@ -5,7 +5,7 @@ from pathlib import Path
 # Add project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 from data_pipeline.engine import DataEngine
 
 def debug_ui_volume():
