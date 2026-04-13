@@ -53,31 +53,24 @@ except ImportError as e:
     _TF_ERROR = str(e)
 
 # ---------------------------------------------------------------------------
-# Keras backwards-compat shim
-# Models trained on newer Keras (>= 3.x) include 'quantization_config' in
-# Dense layer configs.  Older Keras on the runtime VM rejects this kwarg.
-# Register a drop-in Dense that silently absorbs the unknown parameter.
+# DEEP KERAS MONKEY PATCH (Python 3.10 Backwards Compat)
+# Models trained on Keras >= 3.x include 'quantization_config' in Dense.
+# Keras 2.x on the Remote VM throws an Unrecognized keyword argument runtime error.
+# We intercept the underlying __init__ call for Dense to silently drop it.
+# This prevents crashes without breaking model architecture during deserialization.
 # ---------------------------------------------------------------------------
-def _build_keras_compat_objects() -> dict:
-    if keras is None:
-        return {}
+if keras is not None:
     try:
-        class _CompatDense(keras.layers.Dense):
-            def __init__(self, *args, quantization_config=None, **kwargs):
-                super().__init__(*args, **kwargs)
-        return {'Dense': _CompatDense}
-    except Exception:
-        return {}
-
-_KERAS_COMPAT = _build_keras_compat_objects()
-
-def _load_model(path: str) -> object:
-    """Wrapper around keras.models.load_model with compat custom_objects."""
-    try:
-        return keras.models.load_model(path, custom_objects=_KERAS_COMPAT)
-    except Exception:
-        # Final fallback: load without custom objects
-        return keras.models.load_model(path)
+        _original_dense_init = keras.layers.Dense.__init__
+        
+        def _patched_dense_init(self, *args, **kwargs):
+            # Silently consume and discard quantization_config if present
+            kwargs.pop('quantization_config', None)
+            _original_dense_init(self, *args, **kwargs)
+            
+        keras.layers.Dense.__init__ = _patched_dense_init
+    except Exception as e:
+        logger.warning(f"Failed to implement Keras Dense monkey-patch: {e}")
 
 
 logger = logging.getLogger(__name__)
@@ -243,8 +236,8 @@ class InferenceEngine:
                     logger.info(f"QUALITY GATE: {symbol} SELL masked (WR={sell_win_rate:.1%}, {sell_trades}t)")
                 
                 models = {
-                   'buy_model': _load_model(str(buy_path)) if buy_qualified else None,
-                    'sell_model': _load_model(str(sell_path)) if sell_qualified else None,
+                   'buy_model': keras.models.load_model(str(buy_path)) if buy_qualified else None,
+                    'sell_model': keras.models.load_model(str(sell_path)) if sell_qualified else None,
                     'scaler': joblib.load(str(scaler_path)),
                     'model_type': 'binary',
                     'buy_trades': buy_trades,
@@ -347,8 +340,8 @@ class InferenceEngine:
                     trades_count = max(trades_count, config_data.get('trades', 0))
 
             models = {
-                'buy_model': _load_model(str(buy_path)),
-                'sell_model': _load_model(str(sell_path)),
+                'buy_model': keras.models.load_model(str(buy_path)),
+                'sell_model': keras.models.load_model(str(sell_path)),
                 'scaler': joblib.load(str(scaler_path)),
                 'model_type': 'expert', # Treated like binary but with custom thresholds
                 'buy_threshold': buy_threshold,
@@ -406,7 +399,7 @@ class InferenceEngine:
                         except: pass
 
                     models = {
-                        'model': _load_model(str(model_path)),
+                        'model': keras.models.load_model(str(model_path)),
                         'scaler': joblib.load(str(scaler_path)),
                         'model_type': 'enhanced',
                         'model_trades': trades_count
@@ -512,7 +505,7 @@ class InferenceEngine:
             
             logger.info(f"Loading Phase 3 Expert Adapter for {symbol} from {expert_path}")
             
-            model = _load_model(str(expert_path))
+            model = keras.models.load_model(str(expert_path))
             scaler = joblib.load(str(scaler_path))
             
             trades = 0
@@ -1041,4 +1034,3 @@ if __name__ == "__main__":
         print(f"SL: {result['sl_price']:.5f} (-{result['sl_pips']} pips)")
     else:
         print("No signal detected")
-
