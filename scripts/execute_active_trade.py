@@ -6,7 +6,7 @@ from pathlib import Path
 
 # Fix module imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from core.core.mt5_connector import get_mt5
+from core.mt5_connector import get_mt5
 
 # Reconfigure stdout for utf-8
 sys.stdout.reconfigure(encoding='utf-8')
