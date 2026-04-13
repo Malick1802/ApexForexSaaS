@@ -29,19 +29,19 @@ import numpy as np
 import pandas as pd
 import yaml
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path (Strictly 3 levels up from core/core/inference.py)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
 from data_pipeline.global_features import GlobalFeatureEngineer
-from core.core.database import SignalDatabase
-from core.core.performance_gate import get_performance_gate
+from .database import SignalDatabase
+from .performance_gate import get_performance_gate
 # from core.bayesian_engine import get_bayesian_engine
-from core.core.regime_detector import get_detector
-from core.core.calibration import get_calibration_manager
-from core.core.notifications import NotificationManager
-from core.core.mt5_connector import get_mt5
+from .regime_detector import get_detector
+from .calibration import get_calibration_manager
+from .notifications import NotificationManager
+from .mt5_connector import get_mt5
 
 try:
     from tensorflow import keras
