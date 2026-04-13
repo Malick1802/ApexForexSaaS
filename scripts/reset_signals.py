@@ -5,7 +5,7 @@ import logging
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.core.database import SignalDatabase
+from core.database import SignalDatabase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
