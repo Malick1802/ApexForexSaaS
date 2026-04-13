@@ -373,10 +373,6 @@ class InferenceEngine:
             scaler_path = base_project_dir / "BUY" / "scaler.joblib"
             
             # Configs for thresholds
-            buy_config_path = base_project_dir / "BUY" / "config.json"
-            sell_config_path = base_project_dir / "SELL" / "config.json"
-                
-            # Load Configs to get thresholds and volume
             buy_threshold = 0.5
             sell_threshold = 0.5
             trades_count = 0
@@ -1000,13 +996,13 @@ class InferenceEngine:
                 # PROVEN OVERRIDE: If the signal is officially authorized by the 60% Proven floor, 
                 # we skip the secondary heatmap split test for stability.
                 if not is_authorized:
-                    winner_pct = p_buy if signal == 'BUY' else p_sell
-                    logger.info(f"DEBUG: {symbol} winner_pct={winner_pct:.4f}, dynamic_threshold={dynamic_threshold:.4f}, p_wait={p_wait:.4f}")
+                    winner_pct = buy_prob if signal == 'BUY' else sell_prob
+                    logger.info(f"DEBUG: {symbol} winner_pct={winner_pct:.4f}, dynamic_threshold={dynamic_threshold:.4f}, wait_prob={wait_prob:.4f}")
                     if winner_pct < dynamic_threshold:
                         logger.info(f"⛔ {symbol}: Heatmap split — winner only {winner_pct:.1%} (need >{dynamic_threshold:.0%}). Downgrading to WAIT.")
                         signal = "WAIT" 
-                    elif p_wait > 0.40:
-                        logger.info(f"⛔ {symbol}: Heatmap wait too high — {p_wait:.1%} (need <40%). Downgrading to WAIT.")
+                    elif wait_prob > 0.40:
+                        logger.info(f"⛔ {symbol}: Heatmap wait too high — {wait_prob:.1%} (need <40%). Downgrading to WAIT.")
                         signal = "WAIT" 
                 else:
                     logger.info(f"⚡ {symbol}: Bypassing Heatmap Gate (Proven/Hurdle Authorized).")
