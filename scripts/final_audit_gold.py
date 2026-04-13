@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path.cwd()))
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 engine = InferenceEngine()
 res = engine.predict_symbol('GOLD', save_to_db=True, allow_stale=True)
