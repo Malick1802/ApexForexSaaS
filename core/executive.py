@@ -33,9 +33,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
-from .database import SignalDatabase
-from .inference import InferenceEngine
-from .notifications import NotificationManager
+from core.database import SignalDatabase
+from core.inference import InferenceEngine
+from core.notifications import NotificationManager
 from tensorflow import keras
 import joblib
 
@@ -118,7 +118,7 @@ class ExecutiveEngine:
         if current_date > self.last_bayesian_update:
             logger.info("📅 Date rolled over. Running Daily Bayesian Matrix Update...")
             try:
-                from .performance_gate import PerformanceGate
+                from core.performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
@@ -283,6 +283,7 @@ class ExecutiveEngine:
     def monitor_active_signals(self):
         """Check all ACTIVE signals against FULL price history (High/Low) since signal generation."""
         active_signals = self.db.get_active_signals()
+        resolutions_found = False
         if not active_signals:
             return
             
@@ -346,7 +347,7 @@ class ExecutiveEngine:
         if resolutions_found:
             logger.info("📈 Resolutions detected. Triggering Performance Matrix micro-update...")
             try:
-                from .performance_gate import PerformanceGate
+                from core.performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
@@ -362,9 +363,6 @@ class ExecutiveEngine:
             symbols: List of symbols to monitor (None = all configured)
         """
         if symbols is None:
-            # Use InferenceEngine to get symbols if possible, or fallback
-            # InferenceEngine doesn't have get_all_pairs exposed directly maybe?
-            # It has self.data_engine.
             symbols = self.inference_engine.data_engine.get_all_pairs()
         
         logger.info(f"Starting continuous monitoring: {len(symbols)} pairs")
@@ -400,7 +398,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="Executive Engine - Production Background Worker")
-    parser.add_argument('--win-rate', type=str, default='90%', help='Target Win Rate (e.g., 90%, Apex)')
+    parser.add_argument('--win-rate', type=str, default='90%', help='Target Win Rate e.g. 90%')
     parser.add_argument('--interval', type=int, default=15, help='Scan interval in minutes (default: 15)')
     parser.add_argument('--symbols', nargs='+', default=None, help='Specific symbols to monitor')
     
@@ -413,4 +411,3 @@ if __name__ == "__main__":
     )
     
     engine.run_continuous(symbols=args.symbols)
-
