@@ -7,8 +7,8 @@ import asyncio
 # Add project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.core.inference import InferenceEngine
-from core.core.database import SignalDatabase
+from core.inference import InferenceEngine
+from core.database import SignalDatabase
 from data_pipeline import DataEngine
 
 # Setup logging
