@@ -6,7 +6,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 def test_certification_gate():
     engine = InferenceEngine(model_dir="models/expert")
