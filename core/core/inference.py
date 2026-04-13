@@ -35,14 +35,22 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
 from data_pipeline.global_features import GlobalFeatureEngineer
-from core.database import SignalDatabase
-from core.performance_gate import get_performance_gate
+from core.core.database import SignalDatabase
+from core.core.performance_gate import get_performance_gate
 # from core.bayesian_engine import get_bayesian_engine
-from core.regime_detector import get_detector
-from core.calibration import get_calibration_manager
-from core.notifications import NotificationManager
-from core.mt5_connector import get_mt5
-from tensorflow import keras
+from core.core.regime_detector import get_detector
+from core.core.calibration import get_calibration_manager
+from core.core.notifications import NotificationManager
+from core.core.mt5_connector import get_mt5
+
+try:
+    from tensorflow import keras
+    _TF_AVAILABLE = True
+    _TF_ERROR = None
+except ImportError as e:
+    keras = None
+    _TF_AVAILABLE = False
+    _TF_ERROR = str(e)
 
 
 logger = logging.getLogger(__name__)
@@ -117,7 +125,16 @@ class InferenceEngine:
         self.calibrator = get_calibration_manager()
         self.perf_gate = get_performance_gate()
 
+        if not _TF_AVAILABLE:
+            raise ImportError(
+                f"TensorFlow initialization failed. The application cannot load AI models.\n"
+                f"Likely missing Microsoft C++ Redistributable on this VM.\n"
+                f"Original Error: {_TF_ERROR}\n"
+                f"Fix: Download and install from https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            )
+
         logger.info(f"InferenceEngine initialized with model_dir={model_dir}")
+
         
     def calculate_lots_precision(self, symbol: str, entry: float, sl: float) -> float:
         """
@@ -451,6 +468,8 @@ class InferenceEngine:
         
         return None
 
+        return None
+
     def load_models(self, symbol: str, win_rate: Optional[int] = None) -> Optional[Dict]:
         """
         Unified model loader - STRICT SPECIALIST MODE.
@@ -531,6 +550,8 @@ class InferenceEngine:
             'sl_pips': int(sl_pips),
             'pip_value': pip_value
         }
+    
+
     
     def _is_data_stale(self, last_candle_time: pd.Timestamp) -> bool:
         """
