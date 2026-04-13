@@ -20,7 +20,7 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.core.training_manager import TrainingManager
+from core.training_manager import TrainingManager
 
 logging.basicConfig(
     level=logging.INFO,
