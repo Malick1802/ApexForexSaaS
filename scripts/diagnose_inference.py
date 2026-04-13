@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 from data_pipeline.engine import DataEngine
 import logging
 
