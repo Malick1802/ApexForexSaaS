@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from data_pipeline.engine import DataEngine
-from core.core.regime_detector import get_detector
+from core.regime_detector import get_detector
 
 def run_regime_check(all_pairs=False):
     engine = DataEngine()
