@@ -9,7 +9,7 @@ import os
 BASE_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from core.core.database import SignalDatabase
+from core.database import SignalDatabase
 from data_pipeline import DataEngine
 
 def check_prices():
