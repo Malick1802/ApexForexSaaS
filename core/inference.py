@@ -1078,18 +1078,31 @@ class InferenceEngine:
 
             expert_signal = signal # Save the model's intended direction for shadow history
             
+            # ── 5. Directional Bias Gate & Promotion Logic ──
             if not is_authorized:
                 signal = "WAIT"
             elif signal == "WAIT":
-                # Promotion: Only if authorized (Benched/Proven) AND we have a clear directional edge > 55%
-                dominant_prob = max(buy_prob, sell_prob)
-                if dominant_prob > 0.55:
+                # Promotion: Only if authorized (Benched/Proven) AND we have a clear directional edge > 60%
+                # This 60% floor ensures we eliminate biased/weak model noise.
+                # BIAS GATE: Define model responsiveness
+                # Avoid models that are 'stuck' near their historical bias (lack of conditional shift)
+                is_biased = False
+                hist_bias = 0.5
+                if isinstance(models, dict):
+                    hist_bias = models.get('historical_bias', 0.5)
+                
+                if abs(dominant_prob - hist_bias) < 0.03:
+                    is_biased = True
+                    logger.warning(f"⚠️ {symbol}: Model Bias Detected ({dominant_prob:.1%} matches historical skew {hist_bias:.1%}). Blocking signal.")
+
+                if dominant_prob >= 0.60 and not is_biased:
                     signal = "BUY" if buy_prob > sell_prob else "SELL"
                     confidence = buy_prob if signal == "BUY" else sell_prob
-                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification (Prob: {dominant_prob:.1%}).")
+                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification (Edge: {dominant_prob:.1%}).")
                 else:
                     signal = "WAIT"
-                    logger.info(f"⛔ {symbol}: No directional edge ({dominant_prob:.1%}). Staying at WAIT.")
+                    reason = "No directional edge" if not is_biased else "Model Bias"
+                    logger.info(f"⛔ {symbol}: {reason} ({dominant_prob:.1%}). Staying at WAIT.")
 
             if signal in ('BUY', 'SELL') and models.get('model_type') not in ('binary', 'expert'):
                 # PROVEN OVERRIDE: If the signal is officially authorized by the 60% Proven floor, 

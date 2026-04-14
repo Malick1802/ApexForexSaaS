@@ -214,6 +214,19 @@ class ExecutiveEngine:
             # MT5 Order Type
             order_type = self.mt5.ORDER_TYPE_BUY if action == "BUY" else self.mt5.ORDER_TYPE_SELL
             
+            # 🔍 Determine supported filling mode (Broker-Specific)
+            filling_type = self.mt5.ORDER_FILLING_FOK
+            symbol_info = self.mt5.symbol_info(symbol)
+            if symbol_info:
+                # Check bitmask for supported modes
+                if (symbol_info.type_filling & self.mt5.SYMBOL_FILLING_FOK):
+                    filling_type = self.mt5.ORDER_FILLING_FOK
+                elif (symbol_info.type_filling & self.mt5.SYMBOL_FILLING_IOC):
+                    filling_type = self.mt5.ORDER_FILLING_IOC
+                else:
+                    # Common retail fallback
+                    filling_type = self.mt5.ORDER_FILLING_RETURN
+
             request = {
                 "action": self.mt5.TRADE_ACTION_DEAL,
                 "symbol": symbol,
@@ -225,14 +238,17 @@ class ExecutiveEngine:
                 "magic": 202404,  # APEX Magic Number
                 "comment": f"APEX {signal.get('confidence_tier')}%",
                 "type_time": self.mt5.ORDER_TIME_GTC,
-                "type_filling": self.mt5.ORDER_FILLING_IOC,
+                "type_filling": filling_type,
             }
 
             # Send order
             result = self.mt5.order_send(request)
-            if result.retcode != self.mt5.TRADE_RETCODE_DONE:
-                logger.error(f"❌ MT5 ORDER FAILED: {result.comment} (Code: {result.retcode})")
+            if not result or result.retcode != self.mt5.TRADE_RETCODE_DONE:
+                err_msg = result.comment if result else "Connection Timeout"
+                err_code = result.retcode if result else "N/A"
+                logger.error(f"❌ MT5 ORDER FAILED: {err_msg} (Code: {err_code}) | Mode: {filling_type}")
                 return False
+
                 
             logger.info(f"🚀 LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price}")
             return True

@@ -47,6 +47,17 @@ st.set_page_config(
 )
 inject_css()
 
+# ── Robust Indicator Fallbacks ──────────────────────────────
+def calculate_rsi_manual(prices, period=14):
+    """Manual RSI calculation if pandas-ta extension fails."""
+    if len(prices) < period:
+        return 50.0
+    delta = prices.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs.iloc[-1]))
+
 
 # ── Cached Loaders ─────────────────────────────────────────
 def load_engine():
@@ -555,7 +566,7 @@ def show_trading_terminal():
                     
                     is_hidden = bool(result.get('is_hidden', False))
                     if is_hidden:
-                        st.info(f"👀 WATCH ONLY: Shadow Certification in Progress (Bias: {conf:.1%})")
+                        st.info(f"👀 WATCH ONLY: Shadow Certification in Progress (Conviction: {conf:.1%})")
                     else:
                         st.info(f"🔒 LOCKED: Displaying Active Trade (Gen: {result['timestamp']})")
                 else:
@@ -601,10 +612,21 @@ def show_trading_terminal():
                         change = (last_price - prev_price) / prev_price
                         
                         # Indicators with safety fallbacks
-                        rsi_series = ta.rsi(df['close'], length=14)
-                        current_rsi = rsi_series.iloc[-1] if (rsi_series is not None and not rsi_series.empty) else 50.0
-                        volatility = df['close'].pct_change().std() * 100
-                        volatility = volatility if not np.isnan(volatility) else 0.0
+                        try:
+                            # Use pandas-ta through the .ta extension for maximum robustness
+                            if 'ta' in dir(df) and hasattr(df.ta, 'rsi'):
+                                rsi_series = df.ta.rsi(length=14)
+                                current_rsi = rsi_series.iloc[-1] if (rsi_series is not None and not rsi_series.empty) else 50.0
+                            else:
+                                # Manual fallback
+                                current_rsi = calculate_rsi_manual(df['close'])
+                                
+                            volatility = df['close'].pct_change().std() * 100
+                            volatility = volatility if not np.isnan(volatility) else 0.0
+                        except Exception as ta_err:
+                            logger.warning(f"TA calc failed for {symbol}: {ta_err}")
+                            current_rsi = 50.0
+                            volatility = 0.0
 
                         # Calculate real-time PnL if active trade
                         pnl_html = ""
@@ -690,8 +712,8 @@ def show_trading_terminal():
                 elif pred in ('BUY', 'SELL'):
                     is_hidden = bool(result.get('is_hidden', 0))
                     if not is_actively_trading:
-                        # The AI has a bias, but no trade is currently running (Cooldown or SL hit)
-                        status_text = f"RESTING (AI Bias: {pred})"
+                        # The AI has a strong conviction, but no trade is currently running (Cooldown or SL hit)
+                        status_text = f"RESTING (AI Conviction: {pred})"
                         status_color = "var(--text-muted)"
                         pred = "WAIT" # Mute the massive badge
                     elif is_hidden or not is_approved:
