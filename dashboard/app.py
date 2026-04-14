@@ -438,14 +438,16 @@ def show_market_overview():
                     regime = sig_data.get('regime') or ''
 
                     regime_badge = ""
+                    r_upper = str(regime).upper()
+                    is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
+                    
                     if regime:
-                        r_upper = regime.upper()
-                        if "TRENDING" in r_upper:
-                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">TRENDING</div>'
+                        if is_crisis:
+                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #FF4466; background: rgba(255,68,102,0.15); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(255,68,102,0.3); box-shadow: 0 0 10px rgba(255,68,102,0.2);">⚡ CRISIS</div>'
+                        elif "TRENDING" in r_upper:
+                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #00FF88; background: rgba(0,255,136,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(0,255,136,0.2);">TRENDING</div>'
                         elif "RANGING" in r_upper:
                             regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">RANGING</div>'
-                        elif "VOLATILE" in r_upper:
-                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">VOLATILE</div>'
 
                     display_sig = sig
                     css_tile = "tile-wait"
@@ -455,13 +457,23 @@ def show_market_overview():
                     
                     is_hidden = bool(sig_data.get('is_hidden', False))
 
-                    if outcome == 'ACTIVE':
+                    extra_styles = ""
+                    if is_crisis:
+                        display_sig = "SAFE"
+                        css_tile = "tile-wait"
+                        css_signal = "tile-signal-wait"
+                        # Use raw_confidence if available to show why it's a crisis (overextended)
+                        f_conf = sig_data.get('raw_confidence', conf)
+                        conf_display = f"{f_conf:.0%}" if f_conf > 0 else "Blocked"
+                        # Force red border for crisis tiles
+                        extra_styles = "border: 1px solid rgba(255,68,102,0.4); background: rgba(255,68,102,0.03); box-shadow: inset 0 0 20px rgba(255,68,102,0.05);"
+                    elif outcome == 'ACTIVE':
                         if is_hidden:
                             # Shadow / Watch Only signal
                             display_sig = "WATCH"
                             css_tile = "tile-wait" # Neutral background
                             css_signal = "tile-signal-wait" 
-                            conf_display = f"{conf:.0%}" # Show the 60% bias as requested
+                            conf_display = f"{sig_data.get('raw_confidence', conf):.0%}"
                             conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar" style="width: {conf:.1%}; background: var(--text-muted);"></div></div>'
                         elif sig == "BUY":
                             css_tile = "tile-buy"
@@ -475,10 +487,11 @@ def show_market_overview():
                             conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-sell" style="width: {conf:.1%}"></div></div>'
                     else:
                         display_sig = "WAIT"
-                        conf_display = "Monitoring..."
+                        conf_display = f"{sig_data.get('raw_confidence', 0):.0%}" if sig_data.get('raw_confidence', 0) > 0 else "Monitoring..."
 
                     tile_html = (
-                        f'<div class="signal-tile {css_tile}" style="position: relative; {"opacity: 0.7;" if is_hidden else ""}">'
+                        f'<div class="signal-tile {css_tile}" '
+                        f'style="position: relative; {"opacity: 0.7;" if is_hidden else ""} {extra_styles}">'
                         f'{regime_badge}'
                         f'<div class="tile-symbol">{symbol}</div>'
                         f'<div class="tile-signal {css_signal}">{display_sig}</div>'
@@ -694,9 +707,15 @@ def show_trading_terminal():
                 perf_gate = PerformanceGate()
                 is_approved = perf_gate.is_tier_approved(symbol, float(winning_tier) / 100.0)
                 
+                regime = result.get('regime') or ''
+                is_crisis = 'CRISIS' in regime.upper()
                 status_text = "PASSED" if (conf > 0 and pred != "WAIT") else "FILTERED (Caution)" if (pred == "WAIT" and conf > 0.1) else "FILTERED"
                 
-                # Dynamic override for Watch Only signals
+                # Dynamic override for Crisis/Safety blocks
+                if is_crisis:
+                    status_text = "⚠️ CRISIS BLOCK (Safety)"
+                    status_color = "#FF4466" # Bright Red
+                    pred = "WAIT"
                 if is_market_closed:
                     status_text = "HISTORICAL ANALYSIS"
                     status_color = "var(--text-muted)"
@@ -731,6 +750,9 @@ def show_trading_terminal():
                 except:
                     ts_display = "Just Now"
 
+                # Use raw_confidence for the UI display to show expert conviction even if filtered
+                display_conf = result.get('raw_confidence', conf)
+                
                 st.markdown(f"""
 <div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
 <!-- 1. DECISION LAYER -->
@@ -743,11 +765,12 @@ def show_trading_terminal():
     </div>
 </div>
 <div class="signal-badge {css}" style="margin-bottom: 20px;">{pred}</div>
+{f'<div style="font-family: var(--font-mono); font-size: 0.6rem; color: #00FF88; margin-top: -15px; margin-bottom: 15px;">AI INTENT: {result.get("expert_intent")}</div>' if (pred == "WAIT" and result.get("expert_intent") and result.get("expert_intent") != "WAIT") else ''}
 <!-- 2. EXPERT CONVICTION vs HURDLE -->
 <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-glass);">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expert Conviction</span>
-<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{conf:.1%}</span>
+<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{display_conf:.1%}</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Precision Hurdle</span>

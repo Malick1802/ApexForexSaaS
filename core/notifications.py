@@ -33,7 +33,8 @@ class NotificationManager:
         self.enabled = self.telegram_config.get('enabled', False)
         self.bot_token = self.telegram_config.get('bot_token', '')
         self.chat_id = self.telegram_config.get('chat_id', '')
-        self.alert_threshold = self.telegram_config.get('alert_threshold', 0.70)
+        self.alert_threshold = self.telegram_config.get('alert_threshold', 0.60) # Default to 60% for shadow visibility
+        self.notify_shadow = self.telegram_config.get('notify_shadow_trades', True)
 
     def send_telegram_message(self, message: str) -> bool:
         """
@@ -76,12 +77,17 @@ class NotificationManager:
         confidence = signal_data.get('confidence', 0)
         symbol = signal_data.get('symbol', 'UNKNOWN')
         signal = signal_data.get('signal', 'WAIT')
+        is_shadow = signal_data.get('is_shadow_alert', False)
+
+        if is_shadow and not self.notify_shadow:
+            return False
 
         if confidence < alert_threshold:
             logger.info(f"Telegram alert skipped for {symbol} {signal} (Confidence {confidence*100:.1f}% < {alert_threshold*100:.1f}%)")
             return False
 
-        logger.info(f"Sending Telegram alert for {symbol} {signal} (Confidence {confidence*100:.1f}%)")
+        label = "SHADOW" if is_shadow else "CERTIFIED"
+        logger.info(f"Sending Telegram alert [{label}] for {symbol} {signal} (Confidence {confidence*100:.1f}%)")
             
         # Icon based on signal
         icon = "⚪"

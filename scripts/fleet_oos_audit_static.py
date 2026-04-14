@@ -79,9 +79,13 @@ def run_static_oos_audit():
             base_features = feature_engineer.extract_features(df_labeled)
             features = global_engineer.add_global_features(symbol, base_features, global_data)
             
-            y_all = df_labeled['label'].astype(int).values
+            # The saved foundation scaler expects exactly 34 columns. Slice extra features cleanly.
+            features = features.iloc[:, :34]
+            
+            y_all_series = df_labeled['label'].astype(int)
+            y_all = y_all_series.values
             bto_all = df_labeled['bars_to_outcome'].astype(int).values
-            X, _ = feature_engineer.create_sequences(features, y_all, sequence_length=60)
+            X, _ = feature_engineer.create_sequences(features, y_all_series, sequence_length=60)
             
             # Slice for OOS only (Post 3/31)
             oos_cutoff_dt = pd.Timestamp(OOS_START_DATE, tz='UTC')
@@ -107,53 +111,37 @@ def run_static_oos_audit():
             # ─────────────────────────────────────────────────────────────
             # SIMULATION ENGINE: Chronological Loop for Isolation
             # ─────────────────────────────────────────────────────────────
-            symbol_tiers = {}
-            for t in TIERS:
-                active_trade_until = -1
-                wins = 0
-                losses = 0
-                pending = 0
-                
-                for i in range(len(raw_preds)):
-                    if i <= active_trade_until:
-                        continue # Strict isolation for THIS tier
+            symbol_tiers = {"BUY": {}, "SELL": {}}
+            for direction_idx, direction_name in [(1, 'BUY'), (2, 'SELL')]:
+                for t in TIERS:
+                    active_trade_until = -1
+                    wins = 0
+                    losses = 0
+                    pending = 0
+                    for i in range(len(raw_preds)):
+                        if i <= active_trade_until: continue
+                        pred_class = np.argmax(raw_preds[i])
+                        confidence = raw_preds[i][pred_class]
                         
-                    # Model Consensus (0=Wait, 1=Buy, 2=Sell)
-                    pred_class = np.argmax(raw_preds[i])
-                    confidence = raw_preds[i][pred_class]
+                        if pred_class == direction_idx and confidence >= t:
+                            truth = y_oos[i]
+                            duration = bto_oos[i]
+                            if i + duration >= len(y_oos):
+                                pending += 1
+                                active_trade_until = len(y_oos)
+                                continue
+                            if truth == direction_idx: wins += 1
+                            else: losses += 1
+                            active_trade_until = i + duration
                     
-                    if pred_class != 0 and confidence >= t:
-                        # 🚀 ENTER TRADE
-                        truth = y_oos[i]
-                        duration = bto_oos[i]
-                        
-                        # Check PENDING state
-                        # If duration extends past end of available data
-                        if i + duration >= len(y_oos):
-                            pending += 1
-                            active_trade_until = len(y_oos) # Block until end
-                            continue
-
-                        # Resolve Outcome
-                        if pred_class == 1: # BUY
-                            if truth == 1: wins += 1
-                            else: losses += 1
-                        elif pred_class == 2: # SELL
-                            if truth == 2: wins += 1
-                            else: losses += 1
-                            
-                        # Set Isolation Block
-                        active_trade_until = i + duration
-                
-                total_resolved = wins + losses
-                accuracy = (wins / total_resolved) if total_resolved > 0 else 0.0
-                
-                symbol_tiers[int(t*100)] = {
-                    "accuracy": accuracy,
-                    "trades": total_resolved,
-                    "pending": pending
-                }
-                logger.info(f"  Tier {int(t*100)}%: Acc={accuracy:.1%} | Resolved={total_resolved} | Pending={pending}")
+                    total_resolved = wins + losses
+                    accuracy = (wins / total_resolved) if total_resolved > 0 else 0.0
+                    symbol_tiers[direction_name][int(t*100)] = {
+                        "accuracy": accuracy,
+                        "trades": total_resolved,
+                        "pending": pending
+                    }
+                    logger.info(f"  {direction_name} Tier {int(t*100)}%: Acc={accuracy:.1%} | Resolved={total_resolved} | Pending={pending}")
             
             fleet_results[symbol] = symbol_tiers
             

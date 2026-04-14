@@ -183,7 +183,7 @@ class ExecutiveEngine:
             lots = max(lots, symbol_info.volume_min)
             lots = min(lots, symbol_info.volume_max)
             
-            logger.info(f"📊 Risk Calc [{symbol}]: Bal=${balance:.2f}, Risk=${risk_usd:.2f}, SL={sl_pips}p, Result={lots} lots")
+            logger.info(f"Risk Calc [{symbol}]: Bal=${balance:.2f}, Risk=${risk_usd:.2f}, SL={sl_pips}p, Result={lots} lots")
             return lots
             
         except Exception as e:
@@ -218,10 +218,10 @@ class ExecutiveEngine:
             filling_type = self.mt5.ORDER_FILLING_FOK
             symbol_info = self.mt5.symbol_info(symbol)
             if symbol_info:
-                # Check bitmask for supported modes
-                if (symbol_info.type_filling & self.mt5.SYMBOL_FILLING_FOK):
+                # Check bitmask for supported modes (1=FOK, 2=IOC)
+                if (symbol_info.filling_mode & 1):
                     filling_type = self.mt5.ORDER_FILLING_FOK
-                elif (symbol_info.type_filling & self.mt5.SYMBOL_FILLING_IOC):
+                elif (symbol_info.filling_mode & 2):
                     filling_type = self.mt5.ORDER_FILLING_IOC
                 else:
                     # Common retail fallback
@@ -246,7 +246,7 @@ class ExecutiveEngine:
             if not result or result.retcode != self.mt5.TRADE_RETCODE_DONE:
                 err_msg = result.comment if result else "Connection Timeout"
                 err_code = result.retcode if result else "N/A"
-                logger.error(f"❌ MT5 ORDER FAILED: {err_msg} (Code: {err_code}) | Mode: {filling_type}")
+                logger.error(f"MT5 ORDER FAILED: {err_msg} (Code: {err_code}) | Mode: {filling_type}")
                 return False
 
                 
@@ -317,7 +317,7 @@ class ExecutiveEngine:
                 if symbol in self._recent_signals:
                     elapsed = (datetime.now(timezone.utc) - self._recent_signals[symbol]).total_seconds() / 60
                     if elapsed < self._cooldown_minutes:
-                        logger.info(f"⏭ {symbol}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min), skipping duplicate.")
+                        logger.info(f"SKIP: {symbol}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min), skipping duplicate.")
                         return None
 
                 # 2. Active Trade Check & Escalation Logic
@@ -328,47 +328,52 @@ class ExecutiveEngine:
                 new_tier = int(result.get('confidence_tier', 0))
 
                 if active_signals:
-                    # If the new signal is NOT a higher tier, skip it to prevent spam.
-                    if new_tier <= highest_active_tier:
-                        logger.debug(f"⏭ {symbol}: Active trade exists at tier {highest_active_tier}%. New signal {new_tier}% is not an escalation. Skipping.")
-                        return None
-                    
-                    # If it IS a higher tier, we escalate it!
-                    logger.info(f"🚀 {symbol}: ESCALATION! New {new_tier}% signal exceeds current {highest_active_tier}% active monitoring.")
-                    
-                    # Safety Lock: If a LIVE trade is already open, the escalated signal MUST be shadow (hidden).
-                    if existing_live:
-                        logger.info(f"🛡 {symbol}: MT5 Position already open. Escalated {new_tier}% signal will be tracked as SHADOW for certification only.")
+                    if existing_live and not bool(result.get('is_hidden', 0)):
+                        logger.info(f"LOCK: {symbol}: MT5 Position already open. New {new_tier}% signal will be tracked as SHADOW for certification only.")
                         result['is_hidden'] = 1
                         result['outcome'] = 'ACTIVE'
+                    elif not existing_live:
+                        logger.info(f"GHOST: {symbol}: Overlapping SHADOW trade ({new_tier}%) allowed to accumulate volume towards minimums.")
                 
-                # New actionable signal (Initial or Escalation) — save it
-                self.db.save_signal(result)
-                
+            # ALWAYS persist the latest analysis outcome for the dashboard
+            self.db.save_signal(result)
+            
+            if signal in ('BUY', 'SELL'):
                 # 3. Certification Gate: Only alert and log as NEW if proven for MT5
                 # and NOT hidden (Shadow Training)
                 is_hidden = bool(result.get('is_hidden', False))
                 
                 if is_proven and not is_hidden:
-                    log_icon = "🟢" if signal == "BUY" else "🔴"
+                    log_label = "BUY" if signal == "BUY" else "SELL"
                     logger.info(
-                        f"{log_icon} NEW CERTIFIED SIGNAL: {symbol} {signal} @ {result['price_at_signal']:.5f} "
+                        f"NEW CERTIFIED SIGNAL: {symbol} {log_label} @ {result['price_at_signal']:.5f} "
                         f"(Conf: {result['confidence']:.1%})"
                     )
                     
-                    # 🚀 LIVE TRADE EXECUTION
+                    # LIVE TRADE EXECUTION
                     if self.place_mt5_trade(result):
                         result['is_live'] = True
                     
-                    # Send Telegram alert
-                    self.notifier.send_signal_alert(result)
+                    # Send Telegram alert (Unless CRISIS)
+                    regime = result.get('regime', 'NORMAL')
+                    if 'CRISIS' in str(regime).upper():
+                        logger.warning(f"BLOCK: Telegram alert suppressed for {symbol} due to CRISIS regime.")
+                    else:
+                        self.notifier.send_signal_alert(result)
                 elif is_hidden:
-                    logger.info(f"🤫 SHADOW TRADE: {symbol} {signal} (Logged for certification history only)")
-                    if self.notifier.telegram_config.get('notify_shadow_trades', False):
+                    logger.info(f"SHADOW TRADE: {symbol} {signal} (Logged for certification history only)")
+                    
+                    # --- Notification Safety Gate ---
+                    # NEVER send Telegram alerts if the market is in CRISIS
+                    regime = result.get('regime', 'NORMAL')
+                    if 'CRISIS' in str(regime).upper():
+                        logger.warning(f"BLOCK: Telegram alert suppressed for {symbol} due to CRISIS regime.")
+                        result['is_shadow_alert'] = False
+                    elif self.notifier.telegram_config.get('notify_shadow_trades', False):
                         result['is_shadow_alert'] = True
                         self.notifier.send_signal_alert(result)
                 else:
-                    logger.info(f"👀 WATCH ONLY: {symbol} {signal} (Not yet certified in matrix)")
+                    logger.info(f"WATCH ONLY: {symbol} {signal} (Not yet certified in matrix)")
                 
                 # Update cooldown
                 self._recent_signals[symbol] = datetime.now(timezone.utc)

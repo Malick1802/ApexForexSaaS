@@ -15,14 +15,14 @@ TIERS = [60, 70, 80, 90, 100]
 class PerformanceGate:
     """
     Multi-Tier Trading Whitelist Manager.
-    Evaluates pairs independently at 5 confidence hurdles (60, 70, 80, 90, 100).
+    Evaluates pairs independently by DIRECTION at 5 confidence hurdles (60, 70, 80, 90, 100).
     Condition: Realized Accuracy >= 70% AND Resolved Trades >= 2 per tier.
     """
 
     def __init__(self, db_path: str = "signals.db"):
         self.db_path = db_path
-        # matrix: { symbol: { tier_str: { accuracy, trades, status } } }
-        self.performance_matrix: Dict[str, Dict[str, Dict]] = {}
+        # matrix: { symbol: { direction: { tier_str: { accuracy, trades, status } } } }
+        self.performance_matrix: Dict[str, Dict[str, Dict[str, Dict]]] = {}
         self.load_whitelist()
 
     def load_whitelist(self):
@@ -49,16 +49,20 @@ class PerformanceGate:
             json.dump(data, f, indent=2)
         logger.info(f"Performance Matrix saved for {len(self.performance_matrix)} symbols.")
 
-    def is_tier_approved(self, symbol: str, confidence) -> bool:
-        """Check if the specific confidence tier for a pair is officially APPROVED."""
-        return self.get_tier_status(symbol, confidence) == "APPROVED"
+    def is_tier_approved(self, symbol: str, direction: str, confidence) -> bool:
+        """Check if the specific confidence tier for a pair/direction is officially APPROVED."""
+        return self.get_tier_status(symbol, direction, confidence) == "APPROVED"
 
-    def get_tier_status(self, symbol: str, confidence) -> str:
+    def get_tier_status(self, symbol: str, direction: str, confidence) -> str:
         """
-        Get the status (APPROVED/BENCHED) of a specific confidence tier for a pair.
+        Get the status (APPROVED/BENCHED) of a specific confidence tier for a pair and direction.
         Supports both float (0.70) and formatted strings ('70%').
         """
         if symbol not in self.performance_matrix:
+            return "⬜ No data"
+            
+        direction_data = self.performance_matrix[symbol].get(direction)
+        if not direction_data:
             return "⬜ No data"
             
         # Normalize confidence to int (e.g. 70)
@@ -68,7 +72,8 @@ class PerformanceGate:
             except:
                 return "⬜ No data"
         else:
-            conf_int = int(confidence * 100)
+            # Handle both 0.85 and 85
+            conf_int = int(confidence) if confidence >= 1 else int(confidence * 100)
 
         applicable_tier = None
         for t in reversed(TIERS):
@@ -79,7 +84,7 @@ class PerformanceGate:
         if not applicable_tier:
             return "⬜ No data" # Below 60% is always restricted
             
-        tier_data = self.performance_matrix[symbol].get(applicable_tier)
+        tier_data = direction_data.get(applicable_tier)
         if not tier_data:
             return "⬜ No data"
             
@@ -87,8 +92,8 @@ class PerformanceGate:
 
     def recompute_from_db(self, lookback_days: int = 14):
         """
-        Scan signals.db for the last X days and update all 5 tiers for all symbols.
-        Recency Rule applies.
+        Scan signals.db for the last X days and update all 5 tiers for all symbols BY DIRECTION.
+        Recency Rule applies perfectly matching user logic.
         """
         if not Path(self.db_path).exists():
             return
@@ -107,49 +112,49 @@ class PerformanceGate:
 
             for symbol in symbols:
                 if symbol not in self.performance_matrix:
-                    self.performance_matrix[symbol] = {}
+                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}}
                 
-                for t in TIERS:
-                    # 2. Calculate tier accuracy (signals >= t confidence)
-                    cursor.execute("""
-                        SELECT outcome, COUNT(*) as count 
-                        FROM signals 
-                        WHERE symbol = ? 
-                        AND timestamp >= ? 
-                        AND confidence >= ?
-                        AND outcome IN ('SUCCESS', 'FAIL')
-                        GROUP BY outcome
-                    """, (symbol, cutoff_date, t / 100.0))
-                    
-                    stats = {row['outcome']: row['count'] for row in cursor.fetchall()}
-                    success = stats.get('SUCCESS', 0)
-                    fail = stats.get('FAIL', 0)
-                    total = success + fail
-                    
-                    if total < MIN_TRADES:
-                        continue # Preserve existing baseline if insufficient recent data
-                    
-                    found_recent = True
-                    win_rate = (success / total) if total > 0 else 0.0
-                    
-                    # Bayesian Integration
-                    # We start with a (2,2) prior (Weak belief at 50%)
-                    alpha = 2.0 + success
-                    beta = 2.0 + fail
-                    
-                    # Approved if Bayesian Mean >= 70% threshold
-                    bayesian_mean = alpha / (alpha + beta)
-                    approved = (bayesian_mean >= DEFAULT_HURDLE - 0.05) # Sligthly More lenient for recent streaks
-                    
-                    self.performance_matrix[symbol][str(t)] = {
-                        "alpha": alpha,
-                        "beta": beta,
-                        "accuracy": win_rate,
-                        "trades": total,
-                        "status": "APPROVED" if approved else "BENCHED",
-                        "last_updated": datetime.now(timezone.utc).isoformat(),
-                        "source": f"Live Bayesian ({lookback_days}d)"
-                    }
+                # Make sure both directions exist in the dict
+                if "BUY" not in self.performance_matrix[symbol]:
+                    self.performance_matrix[symbol]["BUY"] = {}
+                if "SELL" not in self.performance_matrix[symbol]:
+                    self.performance_matrix[symbol]["SELL"] = {}
+                
+                for direction in ["BUY", "SELL"]:
+                    for t in TIERS:
+                        # 2. Calculate tier accuracy BY DIRECTION (signals >= t confidence)
+                        cursor.execute("""
+                            SELECT outcome, COUNT(*) as count 
+                            FROM signals 
+                            WHERE symbol = ? 
+                            AND signal = ?
+                            AND timestamp >= ? 
+                            AND confidence >= ?
+                            AND outcome IN ('SUCCESS', 'FAIL')
+                            GROUP BY outcome
+                        """, (symbol, direction, cutoff_date, t / 100.0))
+                        
+                        stats = {row['outcome']: row['count'] for row in cursor.fetchall()}
+                        success = stats.get('SUCCESS', 0)
+                        fail = stats.get('FAIL', 0)
+                        total = success + fail
+                        
+                        if total == 0:
+                            continue 
+                        
+                        found_recent = True
+                        win_rate = (success / total) if total > 0 else 0.0
+                        
+                        # Apply Strict Approval Logic without Bayesian dampening
+                        approved = (total >= MIN_TRADES) and (win_rate >= DEFAULT_HURDLE)
+                        
+                        self.performance_matrix[symbol][direction][str(t)] = {
+                            "accuracy": win_rate,
+                            "trades": total,
+                            "status": "APPROVED" if approved else "BENCHED",
+                            "last_updated": datetime.now(timezone.utc).isoformat(),
+                            "source": f"Live Data ({lookback_days}d)"
+                        }
 
             conn.close()
             if found_recent:
@@ -172,34 +177,29 @@ class PerformanceGate:
             with open(path, "r") as f:
                 audit_data = json.load(f)
             
-            for symbol, tiers in audit_data.items():
+            for symbol, directions in audit_data.items():
                 if symbol not in self.performance_matrix:
-                    self.performance_matrix[symbol] = {}
+                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}}
                 
-                for t_str, data in tiers.items():
-                    acc = data.get("accuracy", 0.0)
-                    trades = data.get("trades", 0)
-                    
-                    # Bayesian Initialization from Audit
-                    # alpha = 2.0 + (accuracy * trades)
-                    # beta = 2.0 + ((1-accuracy) * trades)
-                    alpha = 2.0 + (acc * trades)
-                    beta = 2.0 + ((1.0 - acc) * trades)
-                    
-                    # Apply Hurdle: Bayesian Mean >= 70% threshold
-                    bayesian_mean = alpha / (alpha + beta)
-                    approved = (bayesian_mean >= DEFAULT_HURDLE - 0.05)
-                    
-                    # Baseline Sync: Set or Update
-                    self.performance_matrix[symbol][t_str] = {
-                        "alpha": alpha,
-                        "beta": beta,
-                        "accuracy": acc,
-                        "trades": trades,
-                        "status": "APPROVED" if approved else "BENCHED",
-                        "last_updated": datetime.now(timezone.utc).isoformat(),
-                        "source": "Audit Baseline (Bayesian)"
-                    }
+                for direction, tiers in directions.items():
+                    if direction not in self.performance_matrix[symbol]:
+                        self.performance_matrix[symbol][direction] = {}
+                        
+                    for t_str, data in tiers.items():
+                        acc = data.get("accuracy", 0.0)
+                        trades = data.get("trades", 0)
+                        
+                        # Apply Strict Hurdle: >= 2 trades and >= 70% win rate
+                        approved = (trades >= MIN_TRADES) and (acc >= DEFAULT_HURDLE)
+                        
+                        # Baseline Sync: Set or Update
+                        self.performance_matrix[symbol][direction][t_str] = {
+                            "accuracy": acc,
+                            "trades": trades,
+                            "status": "APPROVED" if approved else "BENCHED",
+                            "last_updated": datetime.now(timezone.utc).isoformat(),
+                            "source": "Audit Baseline"
+                        }
             
             self.save_whitelist()
             logger.info("Multi-Tier Sync Complete.")
@@ -207,43 +207,41 @@ class PerformanceGate:
         except Exception as e:
             logger.error(f"Audit sync failed: {e}")
 
-    def update_bayesian(self, symbol: str, tier: int, outcome: str):
-        """Update alpha/beta for a specific symbol/tier based on live outcome."""
+    def update_stats(self, symbol: str, direction: str, tier: int, outcome: str):
+        """Update stats for a specific symbol/direction/tier based on live outcome directly."""
         if symbol not in self.performance_matrix:
-            self.performance_matrix[symbol] = {}
-        
+            self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}}
+        if direction not in self.performance_matrix[symbol]:
+            self.performance_matrix[symbol][direction] = {}
+            
         t_str = str(tier)
         # 1. Ensure Tier Entry Exists
-        if t_str not in self.performance_matrix[symbol]:
-            self.performance_matrix[symbol][t_str] = {
-                "alpha": 2.0, "beta": 2.0, "accuracy": 0.5, "trades": 0, 
-                "status": "BENCHED", "source": "Live Init"
+        if t_str not in self.performance_matrix[symbol][direction]:
+            self.performance_matrix[symbol][direction][t_str] = {
+                "accuracy": 0.0, "trades": 0, 
+                "status": "BENCHED", "source": "Live Init", "successes": 0
             }
             
-        data = self.performance_matrix[symbol][t_str]
+        data = self.performance_matrix[symbol][direction][t_str]
         
-        # 2. Robust Bayesian Initialization (Migrate Legacy Data)
-        if "alpha" not in data or "beta" not in data:
-            acc = data.get("accuracy", 0.5)
-            tr = data.get("trades", 0)
-            data["alpha"] = 2.0 + (acc * tr)
-            data["beta"] = 2.0 + ((1.0 - acc) * tr)
+        # Retrofit successes if we only have accuracy/trades
+        if "successes" not in data:
+            data["successes"] = int(data.get("accuracy", 0) * data.get("trades", 0))
 
         # 3. Apply Outcome
         if outcome == "SUCCESS":
-            data["alpha"] += 1
-        elif outcome == "FAIL":
-            data["beta"] += 1
+            data["successes"] += 1
             
         data["trades"] += 1
-        data["accuracy"] = (data["alpha"] - 2.0) / (data["trades"]) if data["trades"] > 0 else 0.5
+        data["accuracy"] = data["successes"] / data["trades"] if data["trades"] > 0 else 0.0
         
         # Re-evaluate status
-        bayesian_mean = data["alpha"] / (data["alpha"] + data["beta"])
-        data["status"] = "APPROVED" if (bayesian_mean >= DEFAULT_HURDLE - 0.10) else "BENCHED"
+        approved = (data["trades"] >= MIN_TRADES) and (data["accuracy"] >= DEFAULT_HURDLE)
+        data["status"] = "APPROVED" if approved else "BENCHED"
         data["last_updated"] = datetime.now(timezone.utc).isoformat()
+        data["source"] = "Live Incremental"
         
-        logger.info(f"Bayesian Update [{symbol}@{tier}]: {outcome}. New Mean: {bayesian_mean:.1%}")
+        logger.info(f"Stats Update [{symbol} {direction}@{tier}]: {outcome}. New Acc: {data['accuracy']:.1%} ({data['trades']} trades)")
         self.save_whitelist()
 
 # Singleton helper

@@ -136,10 +136,10 @@ class InferenceEngine:
         # Fallback to rule-based if GMM not trained
         try:
             self._regime_detector = get_gmm_detector()
-            logger.info("🧠 Phase 4: GMM Regime Detector Active.")
+            logger.info("Phase 4: GMM Regime Detector Active.")
         except:
             self._regime_detector = get_detector()
-            logger.warning("⚠️ Phase 4: GMM not found. Falling back to Rule-Based Regime detection.")
+            logger.warning("Phase 4: GMM not found. Falling back to Rule-Based Regime detection.")
             
         self.calibrator = get_calibration_manager()
         self.perf_gate = get_performance_gate()
@@ -685,7 +685,7 @@ class InferenceEngine:
                 'GatedResidualNetwork': GatedResidualNetwork
             }
             model = keras.models.load_model(str(model_path), custom_objects=custom_objects)
-            logger.info(f"✅ Loaded Foundation Model (TFT) for {symbol}")
+            logger.info(f"Loaded Foundation Model (TFT) for {symbol}")
             
             # Load universal scaler (should be saved in foundation dir)
             scaler_path = base_dir / "scaler.joblib"
@@ -770,24 +770,48 @@ class InferenceEngine:
                 except: target_int = 60
 
         try:
-            # ── 0. SIGNAL LOCKING CHECK (STRICT) ──────────────────────────
-            # Rule: If a symbol is already ACTIVE (Live or Shadow), we LOCK it.
-            # This prevents re-predicting or conflicting signals until resolution.
+            # ── 0. DATA FETCHING ──────────────────────────────────────────
+            df = self.data_engine.fetch(symbol, interval="1h", days=30)  # 30 days for EMA200 warmup
+            if df is None or len(df) < 60: return None
+            if not allow_stale and self._is_data_stale(df.index[-1]): return None
+
+            # ── 1. REGIME DETECTION GATE (LIVE) ─────────────────────────────────────────
+            # We detect the regime for EVERY call, even if locked, to ensure the dashboard 
+            # and notification filters possess real-time safety awareness.
+            tradeable, dynamic_threshold, regime_result = self._regime_detector.is_tradeable(df, symbol)
+            live_regime = regime_result.regime.value if regime_result else "UNKNOWN"
+
+            # --- 2. LIVE METADATA SYNC (DASHBOARD PARITY) ---
+            # We sync the CURRENT regime and AI context to the latest DB record for this symbol.
+            # This ensures the dashboard reflects the truth even during 'WAIT' or 'LOCKED' periods.
             if self.db:
-                # Include hidden=True to lock on shadow trades too
-                active_signals = self.db.get_active_signals(symbol, include_hidden=True)
-                real_active = [s for s in active_signals if s.get('signal') in ('BUY', 'SELL')]
+                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol)
+                if latest_signals:
+                    latest = latest_signals[0]
+                    # Note: raw_confidence isn't calculated yet, but we'll update it later if needed.
+                    # For now, we update the regime which is detected at the top.
+                    update_payload = {
+                        'regime': live_regime,
+                    }
+                    try: 
+                        update_payload['atr_zscore'] = float(df['atr_zscore'].iloc[-1])
+                        update_payload['adx'] = float(df['adx'].iloc[-1])
+                    except: pass
+                    
+                    self.db.update_signal_metadata(latest['id'], update_payload)
+                    
+                # Now check for strict trade locking (BUY/SELL)
+                active_trades = [s for s in latest_signals if s.get('outcome') == 'ACTIVE' and s.get('signal') in ('BUY', 'SELL')]
                 
-                if real_active:
-                    lock = real_active[0]
-                    logger.info(f"🔒 {symbol}: Active Signal detected (ID: {lock['id']}). Locking system state.")
+                if active_trades:
+                    lock = active_trades[0]
                     return {
                         'id': lock['id'],
                         'timestamp': lock['timestamp'],
                         'symbol': lock['symbol'],
                         'signal': lock['signal'],
                         'confidence': float(lock.get('confidence', 0.0)),
-                        'raw_confidence': float(lock.get('raw_confidence', 0.0)),
+                        'raw_confidence': float(lock.get('raw_confidence') or 0.0),
                         'buy_prob': float(lock.get('buy_prob', 0.0)),
                         'sell_prob': float(lock.get('sell_prob', 0.0)),
                         'wait_prob': float(lock.get('wait_prob', 0.0)),
@@ -798,34 +822,17 @@ class InferenceEngine:
                         'sl_pips': int(lock.get('sl_pips', 0)),
                         'winning_tier': lock.get('winning_tier', f"{target_int}%"),
                         'model_trades': lock.get('model_trades', 0),
-                        'regime': lock.get('regime', 'Trending'),
+                        'regime': live_regime, # Force current live regime
+                        'regime_threshold': dynamic_threshold,
                         'is_locked': True
                     }
             
             logger.info(f"[PREDICT] PREDICTION REQUEST: {symbol} @ {target_int}% (Input: {win_rate})")
             
             
-            df = self.data_engine.fetch(symbol, interval="1h", days=30)  # 30 days for EMA200 warmup
-            if df is None or len(df) < 60: return None
-            if not allow_stale and self._is_data_stale(df.index[-1]): return None
-
-            # ── Regime Detection Gate (PHASE 4) ─────────────────────────────────────────
-            tradeable, dynamic_threshold, regime_result = self._regime_detector.is_tradeable(df, symbol)
-            regime_label = regime_result.regime.value if regime_result else "UNKNOWN"
+            # Skipping fetch/regime detection (already performed at top)
+            regime_label = live_regime
             
-            if not tradeable:
-                logger.warning(f"⛔ {symbol} BLOCKED by Regime Detector: status={regime_label}")
-                return {
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'symbol': symbol,
-                    'signal': 'WAIT',
-                    'confidence': 0.0,
-                    'price_at_signal': float(df['close'].iloc[-1]),
-                    'regime': regime_label,
-                    'reason': 'Regime Block',
-                    'is_hidden': 1
-                }
-
             # 1. Base Features
             base_features = self.feature_engineer.extract_features(df)
             
@@ -985,8 +992,8 @@ class InferenceEngine:
                 # ── 1. PROVEN OPPORTUNITY OVERRIDE ────────────────────────────
                 # Rule: If proven at 70% accuracy, floor is 60% confidence.
                 # We check the performance gate for BOTH directions at their current probabilities.
-                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, buy_prob)
-                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, sell_prob)
+                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
+                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
 
                 # ── 2. Determine Dominant Signal ────────────────────────────
                 if (buy_prob >= buy_threshold or buy_proven) and buy_prob > sell_prob:
@@ -996,16 +1003,21 @@ class InferenceEngine:
                 else:
                     signal, confidence = "WAIT", wait_prob
                 
+                dominant_prob = max(buy_prob, sell_prob)
                 # Hard gate for strictly approved pairs
                 is_tier_proven = buy_proven if signal == 'BUY' else sell_proven if signal == 'SELL' else False
             else:
                 # 3-Class Foundation Model
                 proba = models['model'].predict(X_scaled, verbose=0)[0]
                 wait_prob, buy_prob, sell_prob = float(proba[0]), float(proba[1]), float(proba[2])
+                dominant_prob = max(buy_prob, sell_prob)
                 
+                # Initialize state variables
+                is_authorized = False
+                is_hidden = 1
                 # Check provenness for 3-class logic
-                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, buy_prob)
-                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, sell_prob)
+                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
+                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
 
                 if (buy_prob >= buy_threshold or buy_proven) and buy_prob > sell_prob:
                     signal, confidence = "BUY", buy_prob
@@ -1025,7 +1037,7 @@ class InferenceEngine:
             
             # Recalculate proven/authorized state for 3-class models
             # Get the status from the performance gate for this confidence level
-            tier_status = self.perf_gate.get_tier_status(symbol, raw_confidence)
+            tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
             is_tier_proven = (tier_status == "APPROVED")
             is_tier_benched = (tier_status == "BENCHED")
                 
@@ -1033,46 +1045,44 @@ class InferenceEngine:
             # Map raw model confidence to real-world win rate
             try:
                 final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
-                logger.info(f"⚖️ {symbol} {signal} Calibrated: {raw_confidence:.1%} -> {final_confidence:.1%}")
+                final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
+                logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} -> {final_confidence:.1%}")
             except Exception as e:
                 logger.warning(f"Calibration failed for {symbol}: {e}")
                 final_confidence = raw_confidence
 
-            # ── 5. Strict Tier-Specific Authorization ──────────────────
-            # Rule: Only take trades at specialized confidence tiers (60/70/80...)
-            # if that specific tier is certified in the performance matrix.
-            
             # Determine currently applicable tier (bucket)
             conf_int = int(raw_confidence * 100)
             applicable_tier = 0
             for t in [60, 70, 80, 90, 100]:
                 if conf_int >= t:
                     applicable_tier = t
-            
+
             # Check for Tier-Specific Approval (Proven status)
-            is_tier_proven = self.perf_gate.is_tier_approved(symbol, raw_confidence)
+            tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
+            is_tier_proven = (tier_status == "APPROVED")
+            is_tier_benched = (tier_status == "BENCHED")
             static_hurdle = target_int / 100.0
             
-            is_authorized = False
-            is_hidden = 0
-            
-            if is_tier_proven:
-                # If specific tier is certified, we TRUST the 60% floor.
-                logger.info(f"✅ {symbol}: {applicable_tier}% Tier is CERTIFIED. Authorizing LIVE trade.")
+            # 1. Shadow Floor (Ghost Signal)
+            # Universal 60% minimum to ensure history is collected for all benched models
+            if raw_confidence >= 0.60:
                 is_authorized = True
-                is_hidden = 0
-            elif is_tier_benched and (raw_confidence >= 0.60):
-                # If benched, authorize a "Silent/Shadow" trade to accumulate history
-                logger.info(f"🤫 {symbol}: {applicable_tier}% Tier is BENCHED. Authorizing SHADOW certification trade.")
-                is_authorized = True
-                is_hidden = 1 # Hide from UI/Telegram
-            elif final_confidence >= max(static_hurdle, dynamic_threshold):
-                # If hit either the user's hurdle OR the institutional regime hurdle
-                logger.info(f"⚠️ {symbol}: Tier {applicable_tier}% not certified. Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}).")
-                is_authorized = True
-                is_hidden = 0 if is_tier_proven else 1 # Only show high-hurdle if proven
-            else:
-                logger.info(f"⛔ {symbol}: {final_confidence:.1%} < Threshold {max(static_hurdle, dynamic_threshold):.1%}. Signal={signal} Benched (Waiting).")
+                is_hidden = 1
+                logger.info(f"GHOST: {symbol}: {applicable_tier}% Tier authorized for Shadow Certification.")
+
+            # 2. Live Upgrade (Market Signal)
+            # Only upgrade to Live (visible) if it passes safety regimes AND accuracy hurdles
+            if is_authorized and tradeable:
+                if is_tier_proven:
+                    is_hidden = 0
+                    logger.info(f"LIVE: {symbol}: {applicable_tier}% Tier is PROVEN. Sending to Terminal.")
+                elif final_confidence >= max(static_hurdle, dynamic_threshold):
+                    is_hidden = 0
+                    logger.info(f"LIVE: {symbol}: Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}). Sending to Terminal.")
+
+            if not is_authorized:
+                logger.info(f"BLOCK: {symbol}: {raw_confidence:.1%} < 60% Safety Floor. Total filter applied.")
                 is_authorized = False
                 is_hidden = 1
 
@@ -1093,7 +1103,7 @@ class InferenceEngine:
                 
                 if abs(dominant_prob - hist_bias) < 0.03:
                     is_biased = True
-                    logger.warning(f"⚠️ {symbol}: Model Bias Detected ({dominant_prob:.1%} matches historical skew {hist_bias:.1%}). Blocking signal.")
+                    logger.warning(f"BIAS: {symbol}: Model Bias Detected ({dominant_prob:.1%} matches historical skew {hist_bias:.1%}). Blocking signal.")
 
                 if dominant_prob >= 0.60 and not is_biased:
                     signal = "BUY" if buy_prob > sell_prob else "SELL"
@@ -1112,12 +1122,25 @@ class InferenceEngine:
                     logger.info(f"DEBUG: {symbol} winner_pct={winner_pct:.4f}, dynamic_threshold={dynamic_threshold:.4f}, wait_prob={wait_prob:.4f}")
                     if winner_pct < dynamic_threshold:
                         logger.info(f"⛔ {symbol}: Heatmap split — winner only {winner_pct:.1%} (need >{dynamic_threshold:.0%}). Downgrading to WAIT.")
-                        signal = "WAIT" 
+                        if not is_hidden: signal = "WAIT" 
                     elif wait_prob > 0.40:
                         logger.info(f"⛔ {symbol}: Heatmap wait too high — {wait_prob:.1%} (need <40%). Downgrading to WAIT.")
-                        signal = "WAIT" 
+                        if not is_hidden: signal = "WAIT" 
                 else:
                     logger.info(f"⚡ {symbol}: Bypassing Heatmap Gate (Proven/Hurdle Authorized).")
+            
+            # --- 4.5 Logical Harmonization ---
+            # If the market is in CRISIS, we absolutely must return WAIT.
+            # We record the model's intent in 'expert_intent' for dashboard transparency.
+            expert_intent = "WAIT"
+            if dominant_prob >= 0.60:
+                expert_intent = "BUY" if buy_prob > sell_prob else "SELL"
+            
+            if not tradeable:
+                logger.warning(f"BLOCK: {symbol} in {regime_label} regime. Forcing WAIT state.")
+                signal = "WAIT"
+                is_authorized = False
+                is_hidden = 1
             
             current_price = float(df['close'].iloc[-1])
             levels = {'tp_price': 0.0, 'sl_price': 0.0, 'tp_pips': 0, 'sl_pips': 0}
@@ -1137,15 +1160,15 @@ class InferenceEngine:
             # Prioritize volume from the loaded model object itself
             trades = models.get('model_trades', 0)
             if trades == 0:
-                if signal == 'BUY': trades = models.get('buy_trades', 0)
-                elif signal == 'SELL': trades = models.get('sell_trades', 0)
+                if target_signal == 'BUY': trades = models.get('buy_trades', 0)
+                elif target_signal == 'SELL': trades = models.get('sell_trades', 0)
             
             if trades == 0:
                 # Fallback to filesystem only if model dict is missing volume data
                 try:
                     base = Path("models")
                     # Try specific expertise branch first
-                    specific_path = base / symbol / str(target_int) / (signal if signal != "WAIT" else "BUY") / "config.json"
+                    specific_path = base / symbol / str(target_int) / (target_signal if target_signal != "WAIT" else "BUY") / "config.json"
                     if specific_path.exists():
                         with open(specific_path, 'r') as f:
                             c = json.load(f)
@@ -1166,8 +1189,9 @@ class InferenceEngine:
                 'signal': signal,
                 'expert_signal': expert_signal, # NEW: The original bias for Sentinel/Shadow monitor
                 'confidence': final_confidence,
-                'confidence_tier': applicable_tier, # NEW: Numeric tier for Escalation logic
+                'confidence_tier': applicable_tier,
                 'raw_confidence': raw_confidence,
+                'expert_intent': expert_intent,
                 'buy_prob': float(buy_prob),
                 'sell_prob': float(sell_prob),
                 'wait_prob': float(wait_prob),
@@ -1184,6 +1208,8 @@ class InferenceEngine:
                 'is_proven': int(is_tier_proven),
                 'is_hidden': int(is_hidden),
                 'outcome': 'ACTIVE' if (is_authorized and signal != "WAIT") else 'N/A',
+                'raw_confidence': raw_confidence, # Ensure these match the keys app.py looks for
+                'expert_intent': expert_intent,
                 'adx': 0.0,
                 'atr_zscore': 0.0,
                 'vix_proxy': round(float(features['vix_proxy'].iloc[-1]), 4) if 'vix_proxy' in features.columns else 0.0,
@@ -1272,8 +1298,11 @@ class InferenceEngine:
                     self.db.save_signal(result)
                     
                     # Ensure telegram fires natively if we bypass the executive loop
-                    # ONLY send Telegram alerts for Certified (Proven) signals
-                    if result.get('signal') in ('BUY', 'SELL') and is_tier_proven:
+                    # Send Telegram alerts for BOTH Certified and Shadow signals
+                    if result.get('signal') in ('BUY', 'SELL'):
+                        # Mark as shadow if not proven
+                        if not is_tier_proven:
+                            result['is_shadow_alert'] = True
                         self.notifier.send_signal_alert(result)
                         
                     return result
@@ -1281,6 +1310,16 @@ class InferenceEngine:
                     # Return None so callers (Executive/main) don't send duplicate alerts
                     return None
             
+            # Final Sync Update: Now that we have the full result, sync it one last time to the DB
+            # This ensures that even if we don't 'save' a new record, the existing one is updated with fresh AI context.
+            if self.db:
+                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol)
+                if latest_signals:
+                    self.db.update_signal_metadata(latest_signals[0]['id'], {
+                        'raw_confidence': result.get('raw_confidence', 0.0),
+                        'expert_intent': result.get('expert_intent', 'WAIT')
+                    })
+
             return result
             
         except Exception as e:

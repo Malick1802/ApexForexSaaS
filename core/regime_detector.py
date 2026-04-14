@@ -67,13 +67,13 @@ REGIME_THRESHOLDS = {
 # ── Regime detection parameters ───────────────────────────────────────────────
 ADX_TREND_THRESHOLD   = 25.0
 ADX_RANGING_THRESHOLD = 20.0
-ATR_ZSCORE_CRISIS     = 2.5     # ATR z-score above this = crisis
-BB_ZSCORE_CRISIS      = 2.5     # BB-width z-score above this = crisis
+ATR_ZSCORE_CRISIS     = 2.0     # ATR z-score above this = crisis
+BB_ZSCORE_CRISIS      = 1.8     # BB-width z-score above this = crisis
 EMA_PERIOD            = 200
 ADX_PERIOD            = 14
 ATR_PERIOD            = 14
 BB_PERIOD             = 20
-ZSCORE_LOOKBACK       = 168     # 1 week of hourly bars for z-score normalisation
+ZSCORE_LOOKBACK       = 24      # 24 hour lookback for rapid crisis detection
 
 
 class RegimeDetector:
@@ -184,16 +184,35 @@ class RegimeDetector:
         current_price = float(close.iloc[-1])
         ema_val = float(ema200.iloc[-1])
         ema_trend = "above" if current_price > ema_val else "below"
-
-        # ── 5. Regime classification rules ────────────────────────────────────
-        # Rule 1 — CRISIS: ATR or BB width has spiked abnormally
-        if atr_zscore >= ATR_ZSCORE_CRISIS or bb_zscore >= BB_ZSCORE_CRISIS:
+        
+        # ── 5. Price Stretch (Deviation from mean) ─────────────────────────────
+        # If price is more than 3 ATRs away from its 200-hour EMA, it is overextended.
+        price_dist = abs(current_price - ema_val)
+        current_atr = float(atr_series.iloc[-1]) if len(atr_series) > 0 else 0.0
+        # Normalise distance in 'ATR units'
+        atr_distance = price_dist / current_atr if current_atr > 0 else 0.0
+        
+        # ── 6. Regime classification rules ────────────────────────────────────
+        # Rule 1 — CRISIS: ATR spike OR Extreme Price Stretch
+        is_shock = (atr_zscore >= ATR_ZSCORE_CRISIS or bb_zscore >= BB_ZSCORE_CRISIS)
+        is_stretched = (atr_distance >= EMA_STRETCH_THRESHOLD)
+        is_rsi_extreme = (current_rsi >= RSI_CRISIS_HIGH or current_rsi <= RSI_CRISIS_LOW)
+        
+        if is_shock or is_stretched or is_rsi_extreme:
             regime = MarketRegime.CRISIS
-            reason = (
-                f"ATR z-score={atr_zscore:.2f} "
-                f"(threshold {ATR_ZSCORE_CRISIS}) | "
-                f"BB z-score={bb_zscore:.2f}"
-            )
+            if is_shock:
+                reason = (
+                    f"VOLATILITY SHOCK: ATR z-score={atr_zscore:.2f} "
+                    f"(threshold {ATR_ZSCORE_CRISIS}) | "
+                    f"BB z-score={bb_zscore:.2f}"
+                )
+            elif is_rsi_extreme:
+                reason = f"RSI DANGER ZONE: RSI is {current_rsi:.1f} (Overextended @ {RSI_CRISIS_HIGH}/{RSI_CRISIS_LOW} boundary)"
+            else:
+                reason = (
+                    f"PRICE STRETCH: Distance from EMA200 is {atr_distance:.1f} ATRs "
+                    f"(Threshold {EMA_STRETCH_THRESHOLD}). Market overextended."
+                )
             logger.info(f"[Regime] {symbol}: 🚨 CRISIS detected — {reason}")
 
         # Rule 2 — TRENDING: ADX strong AND price clearly away from EMA200

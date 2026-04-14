@@ -87,7 +87,9 @@ class SignalDatabase:
                     'confidence_tier': 'INTEGER',
                     'buy_win_rate': 'REAL',
                     'sell_win_rate': 'REAL',
-                    'suggested_lots': 'REAL'
+                    'suggested_lots': 'REAL',
+                    'raw_confidence': 'REAL',
+                    'expert_intent': 'TEXT'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -129,8 +131,9 @@ class SignalDatabase:
                     tp_price, sl_price, tp_pips, sl_pips, model_trades,
                     raw_probabilities, outcome, regime, vix_proxy,
                     yield_slope, buy_prob, sell_prob, wait_prob,
-                    suggested_lots, is_proven, is_hidden, adx, atr_zscore
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    suggested_lots, is_proven, is_hidden, adx, atr_zscore,
+                    raw_confidence, expert_intent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     data['timestamp'], 
                     data['symbol'], 
@@ -158,7 +161,9 @@ class SignalDatabase:
                     data.get('is_proven', 0),
                     data.get('is_hidden', 0),
                     data.get('adx'),
-                    data.get('atr_zscore')
+                    data.get('atr_zscore'),
+                    data.get('raw_confidence', 0.0),
+                    data.get('expert_intent')
                 ))
 
                 
@@ -263,6 +268,38 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Failed to fetch active signals: {e}")
             return []
+
+    def update_signal_metadata(self, signal_id: int, updates: dict):
+        """Update specific columns of an existing signal (e.g., regime, confidence)."""
+        if not updates:
+            return
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Filter out keys that aren't valid columns for security
+                valid_cols = [
+                    'regime', 'raw_confidence', 'expert_intent', 'atr_zscore', 
+                    'adx', 'yield_slope', 'buy_prob', 'sell_prob', 'wait_prob',
+                    'outcome', 'status'
+                ]
+                
+                set_clauses = []
+                params = []
+                for k, v in updates.items():
+                    if k in valid_cols:
+                        set_clauses.append(f"{k} = ?")
+                        params.append(v)
+                
+                if not set_clauses:
+                    return
+                
+                params.append(signal_id)
+                sql = f"UPDATE signals SET {', '.join(set_clauses)} WHERE id = ?"
+                cursor.execute(sql, tuple(params))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to update signal {signal_id} metadata: {e}")
 
     def has_active_signal(self, symbol: str, include_hidden: bool = False) -> bool:
         """Check if there's already an active BUY/SELL signal for this symbol."""
