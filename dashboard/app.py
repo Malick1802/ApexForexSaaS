@@ -464,7 +464,7 @@ def show_market_overview():
                         css_signal = "tile-signal-wait"
                         # Use raw_confidence if available to show why it's a crisis (overextended)
                         f_conf = sig_data.get('raw_confidence', conf)
-                        conf_display = f"{f_conf:.0%}" if f_conf > 0 else "Blocked"
+                        conf_display = f"{(f_conf or 0.0):.0%}" if (f_conf or 0.0) > 0 else "Blocked"
                         # Force red border for crisis tiles
                         extra_styles = "border: 1px solid rgba(255,68,102,0.4); background: rgba(255,68,102,0.03); box-shadow: inset 0 0 20px rgba(255,68,102,0.05);"
                     elif outcome == 'ACTIVE':
@@ -487,7 +487,7 @@ def show_market_overview():
                             conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-sell" style="width: {conf:.1%}"></div></div>'
                     else:
                         display_sig = "WAIT"
-                        conf_display = f"{sig_data.get('raw_confidence', 0):.0%}" if sig_data.get('raw_confidence', 0) > 0 else "Monitoring..."
+                        conf_display = f"{(sig_data.get('raw_confidence') or 0.0):.0%}" if (sig_data.get('raw_confidence') or 0.0) > 0 else "Monitoring..."
 
                     tile_html = (
                         f'<div class="signal-tile {css_tile}" '
@@ -770,7 +770,7 @@ def show_trading_terminal():
 <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-glass);">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expert Conviction</span>
-<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{display_conf:.1%}</span>
+<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{(display_conf or 0.0):.1%}</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Precision Hurdle</span>
@@ -788,14 +788,14 @@ STATUS: {status_text}
 <div style="padding-top: 10px; border-top: 1px solid var(--border-glass);">
 <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">Market Sentiment Heatmap</div>
 <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.05); margin-bottom: 10px;">
-<div style="width: {p_buy:.1%}; background: var(--signal-buy);"></div>
-<div style="width: {p_wait:.1%}; background: var(--signal-wait);"></div>
-<div style="width: {p_sell:.1%}; background: var(--signal-sell);"></div>
+<div style="width: {(p_buy or 0.0):.1%}; background: var(--signal-buy);"></div>
+<div style="width: {(p_wait or 0.0):.1%}; background: var(--signal-wait);"></div>
+<div style="width: {(p_sell or 0.0):.1%}; background: var(--signal-sell);"></div>
 </div>
 <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.65rem;">
-<div style="color: var(--signal-buy);">B {p_buy:.0%}</div>
-<div style="color: var(--signal-wait);">W {p_wait:.0%}</div>
-<div style="color: var(--signal-sell);">S {p_sell:.0%}</div>
+<div style="color: var(--signal-buy);">B {(p_buy or 0.0):.0%}</div>
+<div style="color: var(--signal-wait);">W {(p_wait or 0.0):.0%}</div>
+<div style="color: var(--signal-sell);">S {(p_sell or 0.0):.0%}</div>
 </div>
 </div>
 <!-- 4. SAFETY EXPLAINER -->

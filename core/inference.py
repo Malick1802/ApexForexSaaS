@@ -1316,8 +1316,8 @@ class InferenceEngine:
                 latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol)
                 if latest_signals:
                     self.db.update_signal_metadata(latest_signals[0]['id'], {
-                        'raw_confidence': result.get('raw_confidence', 0.0),
-                        'expert_intent': result.get('expert_intent', 'WAIT')
+                        'raw_confidence': float(result.get('raw_confidence') or 0.0) if result else 0.0,
+                        'expert_intent': result.get('expert_intent', 'WAIT') if result else 'WAIT'
                     })
 
             return result
