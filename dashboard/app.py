@@ -603,30 +603,27 @@ def show_trading_terminal():
                 except:
                     pass
 
-                try:
-                    import pandas_ta as ta
-                    
-                    if len(df) >= 2:
+                if len(df) >= 2:
+                    try:
                         last_price = df['close'].iloc[-1]
                         prev_price = df['close'].iloc[-2]
                         change = (last_price - prev_price) / prev_price
-                        
-                        # Indicators with safety fallbacks
+
+                        # RSI — always use manual calculation as safe baseline (no pandas-ta hard dependency)
+                        current_rsi = calculate_rsi_manual(df['close'])
                         try:
-                            # Use pandas-ta through the .ta extension for maximum robustness
-                            if 'ta' in dir(df) and hasattr(df.ta, 'rsi'):
+                            import pandas_ta as ta
+                            if hasattr(df, 'ta') and hasattr(df.ta, 'rsi'):
                                 rsi_series = df.ta.rsi(length=14)
-                                current_rsi = rsi_series.iloc[-1] if (rsi_series is not None and not rsi_series.empty) else 50.0
-                            else:
-                                # Manual fallback
-                                current_rsi = calculate_rsi_manual(df['close'])
-                                
-                            volatility = df['close'].pct_change().std() * 100
-                            volatility = volatility if not np.isnan(volatility) else 0.0
-                        except Exception as ta_err:
-                            logger.warning(f"TA calc failed for {symbol}: {ta_err}")
-                            current_rsi = 50.0
-                            volatility = 0.0
+                                if rsi_series is not None and not rsi_series.empty:
+                                    rsi_val = float(rsi_series.iloc[-1])
+                                    if not np.isnan(rsi_val):
+                                        current_rsi = rsi_val
+                        except Exception:
+                            pass  # Keep manual RSI fallback from above
+
+                        volatility = df['close'].pct_change().std() * 100
+                        volatility = float(volatility) if not np.isnan(float(volatility)) else 0.0
 
                         # Calculate real-time PnL if active trade
                         pnl_html = ""
@@ -662,16 +659,11 @@ def show_trading_terminal():
                         m2.metric("Volatility", f"{volatility:.3f}%")
                         m3.metric("RSI (14)", f"{current_rsi:.1f}",
                                   "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
-                    else:
-                        st.warning("Insufficient data for header calculation.")
-                except Exception as e:
-                    logger.error(f"Header rendering failed for {symbol}: {e}")
-                    st.caption("Header metrics currently unavailable.")
-}%")
-                    m3.metric("RSI (14)", f"{current_rsi:.1f}",
-                              "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
-                except Exception:
-                    pass
+                    except Exception as e:
+                        logger.error(f"Header rendering failed for {symbol}: {e}")
+                        st.caption("Header metrics currently unavailable.")
+                else:
+                    st.warning("Insufficient data for header calculation.")
 
                 render_chart(df, symbol)
             else:
