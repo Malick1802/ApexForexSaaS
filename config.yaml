@@ -27,7 +27,7 @@ currency_pairs:
     symbol: GBPNZD
   - correlated_assets:
     - correlation: 0.5
-      symbol: GOLD
+      symbol: XAUUSD
     - correlation: -0.45
       symbol: VIX
     pip_type: standard
@@ -37,7 +37,7 @@ currency_pairs:
     - correlation: -0.95
       symbol: DOLLAR_INDX
     - correlation: 0.6
-      symbol: GOLD
+      symbol: XAUUSD
     pip_type: standard
     symbol: EURUSD
   - correlated_assets:
@@ -49,14 +49,14 @@ currency_pairs:
     symbol: GBPUSD
   - correlated_assets:
     - correlation: -0.55
-      symbol: GOLD
+      symbol: XAUUSD
     - correlation: -0.9
       symbol: EURUSD
     pip_type: standard
     symbol: USDCHF
   - correlated_assets:
     - correlation: 0.8
-      symbol: GOLD
+      symbol: XAUUSD
     - correlation: 0.65
       symbol: COPPER
     pip_type: standard
@@ -83,7 +83,7 @@ currency_pairs:
     symbol: EURGBP
   - correlated_assets:
     - correlation: -0.5
-      symbol: GOLD
+      symbol: XAUUSD
     pip_type: standard
     symbol: EURAUD
   - correlated_assets:
@@ -98,7 +98,7 @@ currency_pairs:
     symbol: EURCHF
   - correlated_assets:
     - correlation: -0.45
-      symbol: GOLD
+      symbol: XAUUSD
     pip_type: standard
     symbol: GBPAUD
   - correlated_assets:
@@ -115,7 +115,7 @@ currency_pairs:
     - correlation: 0.5
       symbol: CrudeOIL
     - correlation: 0.55
-      symbol: GOLD
+      symbol: XAUUSD
     pip_type: standard
     symbol: AUDCAD
   - correlated_assets:
@@ -140,7 +140,7 @@ currency_pairs:
     symbol: GBPJPY
   - correlated_assets:
     - correlation: 0.7
-      symbol: GOLD
+      symbol: XAUUSD
     pip_type: jpy
     symbol: AUDJPY
   - correlated_assets:

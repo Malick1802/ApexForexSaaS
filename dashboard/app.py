@@ -708,7 +708,7 @@ def show_trading_terminal():
                     
                     from core.performance_gate import get_performance_gate
                     perf_gate = get_performance_gate()
-                    is_approved = perf_gate.is_tier_approved(symbol, float(winning_tier) / 100.0)
+                    is_approved = perf_gate.is_tier_approved(symbol, pred, float(winning_tier) / 100.0)
                     
                     regime = str(result.get('regime') or 'RANGING').upper()
                     is_crisis = 'CRISIS' in regime
