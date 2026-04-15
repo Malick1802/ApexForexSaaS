@@ -67,13 +67,16 @@ REGIME_THRESHOLDS = {
 # ── Regime detection parameters ───────────────────────────────────────────────
 ADX_TREND_THRESHOLD   = 25.0
 ADX_RANGING_THRESHOLD = 20.0
-ATR_ZSCORE_CRISIS     = 2.0     # ATR z-score above this = crisis
-BB_ZSCORE_CRISIS      = 1.8     # BB-width z-score above this = crisis
+ATR_ZSCORE_CRISIS     = 3.5     # Increased from 2.0 to avoid false positive "Crisis" on normal volatility
+BB_ZSCORE_CRISIS      = 3.0     # Increased from 1.8 for institutional stability
 EMA_PERIOD            = 200
 ADX_PERIOD            = 14
 ATR_PERIOD            = 14
 BB_PERIOD             = 20
-ZSCORE_LOOKBACK       = 24      # 24 hour lookback for rapid crisis detection
+ZSCORE_LOOKBACK       = 100     # Increased from 24 for a more stable baseline
+EMA_STRETCH_THRESHOLD = 2.5     # Price deviation in ATR units
+RSI_CRISIS_HIGH       = 80.0
+RSI_CRISIS_LOW        = 20.0
 
 
 class RegimeDetector:
@@ -192,7 +195,14 @@ class RegimeDetector:
         # Normalise distance in 'ATR units'
         atr_distance = price_dist / current_atr if current_atr > 0 else 0.0
         
-        # ── 6. Regime classification rules ────────────────────────────────────
+        # ── 6. RSI (Momentum Extreme) ─────────────────────────────────────────
+        delta = close.diff()
+        gain = delta.clip(lower=0).rolling(14).mean()
+        loss = (-delta.clip(upper=0)).rolling(14).mean()
+        rs = gain / loss.replace(0, np.nan)
+        current_rsi = 100 - (100 / (1 + rs.iloc[-1])) if not pd.isna(rs.iloc[-1]) else 50.0
+
+        # ── 7. Regime classification rules ────────────────────────────────────
         # Rule 1 — CRISIS: ATR spike OR Extreme Price Stretch
         is_shock = (atr_zscore >= ATR_ZSCORE_CRISIS or bb_zscore >= BB_ZSCORE_CRISIS)
         is_stretched = (atr_distance >= EMA_STRETCH_THRESHOLD)

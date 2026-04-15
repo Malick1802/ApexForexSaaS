@@ -694,66 +694,70 @@ def show_trading_terminal():
                 p_sell = result.get('sell_prob') or 0.0
                 p_wait = result.get('wait_prob') or 0.0
 
-                # ── 2. Performance Status Overlay ─────────────────────────
-                _raw_tier = result.get('winning_tier', st.session_state.get('accuracy_target', '60%'))
-                # Normalize: extract the first valid tier number (guards against '70%70%70%...' corruption)
-                import re as _re
-                _tier_match = _re.search(r'(\d+)', str(_raw_tier))
-                _tier_num = int(_tier_match.group(1)) if _tier_match else 60
-                # Clamp to nearest valid tier
-                _valid_tiers = [60, 70, 80, 90, 100]
-                winning_tier = str(min(_valid_tiers, key=lambda t: abs(t - _tier_num)))
-                from core.performance_gate import PerformanceGate
-                perf_gate = PerformanceGate()
-                is_approved = perf_gate.is_tier_approved(symbol, float(winning_tier) / 100.0)
-                
-                regime = result.get('regime') or ''
-                is_crisis = 'CRISIS' in regime.upper()
-                status_text = "PASSED" if (conf > 0 and pred != "WAIT") else "FILTERED (Caution)" if (pred == "WAIT" and conf > 0.1) else "FILTERED"
-                
-                # Dynamic override for Crisis/Safety blocks
-                if is_crisis:
-                    status_text = "⚠️ CRISIS BLOCK (Safety)"
-                    status_color = "#FF4466" # Bright Red
-                    pred = "WAIT"
-                if is_market_closed:
-                    status_text = "HISTORICAL ANALYSIS"
-                    status_color = "var(--text-muted)"
-                    if pred in ('BUY', 'SELL'): pred = "WAIT" # Mute historical badges
-                elif pred in ('BUY', 'SELL'):
-                    is_hidden = bool(result.get('is_hidden', 0))
-                    if not is_actively_trading:
-                        # The AI has a strong conviction, but no trade is currently running (Cooldown or SL hit)
-                        status_text = f"RESTING (AI Conviction: {pred})"
-                        status_color = "var(--text-muted)"
-                        pred = "WAIT" # Mute the massive badge
-                    elif is_hidden or not is_approved:
-                        # The trade is actively locked in the DB, but it is shadow mode
-                        status_text = "CERTIFICATION PHASE (Shadow)"
-                        status_color = "var(--accent-gold)"
-                        pred = "WAIT" # Keep badge at WAIT to prevent user entry
-                    else:
-                        status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
-                else:
-                    status_color = "var(--accent-gold)" if (pred == "WAIT" and conf > 0.1) else "var(--text-muted)"
-                
-                # Use a specific color for 'PASSED' if not already set by overrides
-                if status_text == "PASSED" and not status_color:
-                    status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
-                
-                vol_trades = result.get('model_trades', 0)
-                
-                from datetime import datetime
+                # --- 2. Performance Status & Safety ---
                 try:
-                    ts_obj = datetime.fromisoformat(result.get('timestamp', datetime.now().isoformat()))
-                    ts_display = ts_obj.strftime("%d %b %H:%M")
-                except:
-                    ts_display = "Just Now"
-
-                # Use raw_confidence for the UI display to show expert conviction even if filtered
-                display_conf = result.get('raw_confidence', conf)
+                    # Clean the tier string (handles cases like '70%70%' or None)
+                    _raw_tier = result.get('winning_tier', st.session_state.get('accuracy_target', '60%'))
+                    import re as _re
+                    _tier_match = _re.search(r'(\d+)', str(_raw_tier))
+                    _tier_num = int(_tier_match.group(1)) if _tier_match else 60
+                    # Clamp to nearest valid tier
+                    _valid_tiers = [60, 70, 80, 90, 100]
+                    _clamped_tier = str(min(_valid_tiers, key=lambda t: abs(t - _tier_num)))
+                    winning_tier = _clamped_tier
+                    
+                    from core.performance_gate import get_performance_gate
+                    perf_gate = get_performance_gate()
+                    is_approved = perf_gate.is_tier_approved(symbol, float(winning_tier) / 100.0)
+                    
+                    regime = str(result.get('regime') or 'RANGING').upper()
+                    is_crisis = 'CRISIS' in regime
+                    
+                    status_text = "PASSED" if (conf > 0 and pred != "WAIT") else "FILTERED (Caution)" if (pred == "WAIT" and conf > 0.1) else "FILTERED"
+                    status_color = "var(--text-muted)" # Initial fallback
+                    
+                    # Dynamic override for Crisis/Safety blocks
+                    if is_crisis:
+                        status_text = "⚠️ CRISIS BLOCK (Safety)"
+                        status_color = "#FF4466" # Bright Red
+                        pred = "WAIT"
+                    elif is_market_closed:
+                        status_text = "HISTORICAL ANALYSIS"
+                        status_color = "var(--text-muted)"
+                        if pred in ('BUY', 'SELL'): pred = "WAIT"
+                    elif pred in ('BUY', 'SELL'):
+                        is_hidden = bool(result.get('is_hidden', 0))
+                        if not is_actively_trading:
+                            status_text = f"RESTING (AI Conviction: {pred})"
+                            status_color = "var(--text-muted)"
+                            pred = "WAIT"
+                        elif is_hidden or not is_approved:
+                            status_text = "CERTIFICATION PHASE (Shadow)"
+                            status_color = "var(--accent-gold)"
+                            pred = "WAIT"
+                        else:
+                            status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
+                    else:
+                        status_color = "var(--accent-gold)" if (pred == "WAIT" and conf > 0.1) else "var(--text-muted)"
+                except Exception as e:
+                    logger.warning(f"Status calculation failed: {e}")
+                    status_text = "INITIALIZING..."
+                    status_color = "var(--text-muted)"
+                    winning_tier = "60"
                 
-                st.markdown(f"""
+                # --- 3. Render AI Verdict Card ---
+                try:
+                    ts_display = "Just Now"
+                    try:
+                        from datetime import datetime
+                        ts_obj = datetime.fromisoformat(result.get('timestamp', datetime.now().isoformat()))
+                        ts_display = ts_obj.strftime("%d %b %H:%M")
+                    except: pass
+
+                    display_conf = result.get('raw_confidence', conf) or 0.0
+                    vol_trades = result.get('model_trades', 0) or 0
+                    
+                    st.markdown(f"""
 <div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
 <!-- 1. DECISION LAYER -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -770,11 +774,11 @@ def show_trading_terminal():
 <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-glass);">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expert Conviction</span>
-<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{(display_conf or 0.0):.1%}</span>
+<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{display_conf:.1%}</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Precision Hurdle</span>
-<span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">{f"{result.get('regime_threshold'):.0%}" if result.get('regime_threshold') else f"{winning_tier}%"}</span>
+<span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">{f"{result.get('regime_threshold', 0):.0%}" if result.get('regime_threshold') else f"{winning_tier}%"}</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expertise Volume</span>
@@ -809,6 +813,9 @@ STATUS: {status_text}
 </div>
 </div>
 """, unsafe_allow_html=True)
+                except Exception as e:
+                    logger.error(f"Card rendering failed: {e}")
+                    st.error("AI Verdict Card: Initialization in Progress...")
 
                 if pred in ["BUY", "SELL"] and result.get('tp_price'):
                     st.markdown("<br>", unsafe_allow_html=True)
