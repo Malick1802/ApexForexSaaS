@@ -56,9 +56,9 @@ GMM_SCALER_PATH   = Path("models/regime/gmm_scaler.pkl")
 GMM_LABELS_PATH   = Path("models/regime/gmm_labels.pkl")  # cluster→regime mapping
 
 # --- Safety Thresholds ---
-EMA_STRETCH_THRESHOLD = 1.8 # Lowered from 2.2 for higher sensitivity
-RSI_CRISIS_HIGH       = 75.0
-RSI_CRISIS_LOW        = 25.0
+EMA_STRETCH_THRESHOLD = 5.0 # Increased from 1.8 to allow trading in strong trends
+RSI_CRISIS_HIGH       = 90.0
+RSI_CRISIS_LOW        = 10.0
 
 # ── Per-regime confidence thresholds ──────────────────────────────────────────
 REGIME_THRESHOLDS = {
@@ -66,6 +66,7 @@ REGIME_THRESHOLDS = {
     "RANGING":   0.72,
     "CRISIS":    1.01,   # Blocks every trade
 }
+STRETCH_HURDLE_BUMP = 0.05   # Add 5% hurdle if market is overextended
 
 
 class MarketRegime(Enum):
@@ -262,41 +263,60 @@ class GMMRegimeDetector:
         X    = self.scaler.transform(last)
         proba = self.gmm.predict_proba(X)[0]           # Soft membership
         cluster = int(np.argmax(proba))
+        
+        # Determine regime from cluster
+        regime_str = self.cluster_to_regime.get(cluster, "RANGING")
+        regime = MarketRegime[regime_str]
+        
         feat_dict = dict(zip(["atr_z", "bb_z", "adx", "rsi_dev", "ema_dev"],
                              feats.iloc[-1].values.tolist()))
                              
-        # --- Hard Safety Override: Price Stretch & RSI Extremes ---
+        # --- Hard Safety Overrides: TRUE Shocks Only ---
+        # Note: GMM already handles most volatility, but we keep Z-score overrides 
+        # for black-swan events that might not be in the training set.
+        atr_z_val = feat_dict.get('atr_z', 0)
+        bb_z_val = feat_dict.get('bb_z', 0)
+        
         ema_dev_val = abs(feat_dict.get('ema_dev', 0))
-        current_rsi = feats['rsi_dev'].iloc[-1] + 50 # feats stores abs(rsi-50)
-        # Actually feats stores abs(rsi-50). Let's get raw RSI from features dict if possible 
-        # or just use the dev to detect extremes relative to 50.
-        # rsi_dev > 25 means RSI > 75 or RSI < 25.
-        rsi_dev_val = feat_dict.get('rsi_dev', 0)
+        rsi_dev_val = feat_dict.get('rsi_dev', 0) # |rsi-50|
         
+        is_shock = (atr_z_val >= 4.5 or bb_z_val >= 4.0)
         is_stretched = (ema_dev_val >= EMA_STRETCH_THRESHOLD)
-        is_rsi_extreme = (rsi_dev_val >= 25.0) # |rsi-50| >= 25 -> 75 or 25
+        is_rsi_extreme = (rsi_dev_val >= 40.0) # |rsi-50| >= 40 -> 90 or 10
         
-        if is_stretched or is_rsi_extreme:
+        # Initialize flags
+        block = False
+        reason = ""
+
+        if is_shock:
             regime = MarketRegime.CRISIS
             regime_str = "CRISIS"
-            reason_type = "PRICE STRETCH" if is_stretched else "RSI DANGER ZONE"
-            log_val = ema_dev_val if is_stretched else (rsi_dev_val + 50)
-            logger.warning(f"[GMM] {symbol}: {reason_type} OVERRIDE. Value {log_val:.1f}. Forcing CRISIS.")
+            block = True
+            reason = f"VOLATILITY SHOCK (ATR_z={atr_z_val:.2f}) | "
+        else:
+            block = (regime == MarketRegime.CRISIS)
 
+        # Dynamic Threshold calculation
         threshold  = REGIME_THRESHOLDS[regime_str]
-        block      = (regime == MarketRegime.CRISIS)
+        
+        # Apply 'Aware' penalty for stretched trending markets (without blocking)
+        if is_stretched or is_rsi_extreme:
+            if regime != MarketRegime.CRISIS:
+                old_t = threshold
+                threshold += STRETCH_HURDLE_BUMP
+                stretch_type = "PRICE" if is_stretched else "RSI"
+                reason += f"STRETCHED {stretch_type} ({ema_dev_val:.1f}) | Hurdle Raised: {old_t:.2f} -> {threshold:.2f} | "
 
-        reason = (
+        reason += (
             f"GMM cluster={cluster} ({regime_str}) | "
             f"proba={proba.tolist()} | "
-            f"ADX={feat_dict['adx']:.1f} | "
-            f"ATR_z={feat_dict['atr_z']:.2f}"
+            f"ADX={feat_dict['adx']:.1f}"
         )
 
         if block:
-            logger.info(f"[GMM] {symbol}: CRISIS -- {reason}")
+            logger.info(f"[GMM] {symbol}: 🚨 CRISIS -- {reason}")
         else:
-            logger.info(f"[GMM] {symbol}: {regime_str} | threshold={threshold:.0%} — {reason}")
+            logger.info(f"[GMM] {symbol}: ✅ {regime_str} | threshold={threshold:.2f} — {reason}")
 
         return RegimeResult(
             regime=regime,
