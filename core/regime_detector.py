@@ -52,6 +52,7 @@ class RegimeResult:
     adx: float
     atr_zscore: float
     bb_zscore: float
+    volatility: float             # Added for diagnostic visibility
     ema_trend: str                # "above" | "below" | "unknown"
     reason: str                   # Human-readable explanation
 
@@ -67,16 +68,17 @@ REGIME_THRESHOLDS = {
 # ── Regime detection parameters ───────────────────────────────────────────────
 ADX_TREND_THRESHOLD   = 25.0
 ADX_RANGING_THRESHOLD = 20.0
-ATR_ZSCORE_CRISIS     = 3.5     # Increased from 2.0 to avoid false positive "Crisis" on normal volatility
-BB_ZSCORE_CRISIS      = 3.0     # Increased from 1.8 for institutional stability
+ATR_ZSCORE_CRISIS     = 4.5     # Increased for institutional-grade shock detection
+BB_ZSCORE_CRISIS      = 4.0     # Flash-crash detection only
 EMA_PERIOD            = 200
 ADX_PERIOD            = 14
 ATR_PERIOD            = 14
 BB_PERIOD             = 20
-ZSCORE_LOOKBACK       = 100     # Increased from 24 for a more stable baseline
-EMA_STRETCH_THRESHOLD = 2.5     # Price deviation in ATR units
-RSI_CRISIS_HIGH       = 80.0
-RSI_CRISIS_LOW        = 20.0
+ZSCORE_LOOKBACK       = 100
+EMA_STRETCH_THRESHOLD = 5.0     # Price must be 5 ATRs away to be 'stretched'
+RSI_CRISIS_HIGH       = 90.0    # True exhaustion only
+RSI_CRISIS_LOW        = 10.0
+STRETCH_HURDLE_BUMP   = 0.05    # Add 5% to confidence hurdle if stretched
 
 
 class RegimeDetector:
@@ -203,28 +205,21 @@ class RegimeDetector:
         current_rsi = 100 - (100 / (1 + rs.iloc[-1])) if not pd.isna(rs.iloc[-1]) else 50.0
 
         # ── 7. Regime classification rules ────────────────────────────────────
-        # Rule 1 — CRISIS: ATR spike OR Extreme Price Stretch
+        # Rule 1 — CRISIS: TRUE Volatility Shock (ATR or BB Expansion)
         is_shock = (atr_zscore >= ATR_ZSCORE_CRISIS or bb_zscore >= BB_ZSCORE_CRISIS)
+        
+        # Rule 1.5 — CAUTION (Non-blocking but aware)
         is_stretched = (atr_distance >= EMA_STRETCH_THRESHOLD)
         is_rsi_extreme = (current_rsi >= RSI_CRISIS_HIGH or current_rsi <= RSI_CRISIS_LOW)
         
-        if is_shock or is_stretched or is_rsi_extreme:
+        if is_shock:
             regime = MarketRegime.CRISIS
-            if is_shock:
-                reason = (
-                    f"VOLATILITY SHOCK: ATR z-score={atr_zscore:.2f} "
-                    f"(threshold {ATR_ZSCORE_CRISIS}) | "
-                    f"BB z-score={bb_zscore:.2f}"
-                )
-            elif is_rsi_extreme:
-                reason = f"RSI DANGER ZONE: RSI is {current_rsi:.1f} (Overextended @ {RSI_CRISIS_HIGH}/{RSI_CRISIS_LOW} boundary)"
-            else:
-                reason = (
-                    f"PRICE STRETCH: Distance from EMA200 is {atr_distance:.1f} ATRs "
-                    f"(Threshold {EMA_STRETCH_THRESHOLD}). Market overextended."
-                )
-            logger.info(f"[Regime] {symbol}: 🚨 CRISIS detected — {reason}")
-
+            reason = (
+                f"VOLATILITY SHOCK: ATR z-score={atr_zscore:.2f} | "
+                f"BB z-score={bb_zscore:.2f}"
+            )
+            logger.warning(f"[Regime] {symbol}: 🚨 CRISIS detected — {reason}")
+        
         # Rule 2 — TRENDING: ADX strong AND price clearly away from EMA200
         elif adx >= ADX_TREND_THRESHOLD:
             if ema_trend == "above":
@@ -232,6 +227,8 @@ class RegimeDetector:
             else:
                 regime = MarketRegime.TRENDING_DOWN
             reason = f"ADX={adx:.1f} > {ADX_TREND_THRESHOLD} | price {ema_trend} EMA200"
+            if is_stretched:
+                reason += f" (STRETCHED: {atr_distance:.1f} ATRs)"
             logger.info(f"[Regime] {symbol}: 📈 {regime.value} — {reason}")
 
         # Rule 3 — RANGING: low ADX
@@ -240,8 +237,17 @@ class RegimeDetector:
             reason = f"ADX={adx:.1f} < {ADX_TREND_THRESHOLD} | choppy/ranging"
             logger.info(f"[Regime] {symbol}: ↔️  RANGING — {reason}")
 
+        # Dynamic Threshold calculation
         threshold = REGIME_THRESHOLDS[regime]
-        block     = (regime == MarketRegime.CRISIS)
+        
+        # Apply 'Aware' penalty for stretched trending markets
+        if is_stretched or is_rsi_extreme:
+            if regime != MarketRegime.CRISIS:
+                old_t = threshold
+                threshold += STRETCH_HURDLE_BUMP
+                reason += f" | Hurdle Raised: {old_t:.2f} -> {threshold:.2f}"
+
+        block = (regime == MarketRegime.CRISIS)
 
         return RegimeResult(
             regime=regime,
@@ -250,6 +256,7 @@ class RegimeDetector:
             adx=adx,
             atr_zscore=atr_zscore,
             bb_zscore=bb_zscore,
+            volatility=current_atr,
             ema_trend=ema_trend,
             reason=reason,
         )
