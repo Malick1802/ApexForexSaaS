@@ -265,18 +265,14 @@ class GMMRegimeDetector:
         cluster = int(np.argmax(proba))
         
         # Determine regime from cluster
-        regime_str = self.cluster_to_regime.get(cluster, "RANGING")
-        regime = MarketRegime[regime_str]
+        cluster_regime = self.cluster_to_regime.get(cluster, "RANGING")
         
         feat_dict = dict(zip(["atr_z", "bb_z", "adx", "rsi_dev", "ema_dev"],
                              feats.iloc[-1].values.tolist()))
                              
         # --- Hard Safety Overrides: TRUE Shocks Only ---
-        # Note: GMM already handles most volatility, but we keep Z-score overrides 
-        # for black-swan events that might not be in the training set.
         atr_z_val = feat_dict.get('atr_z', 0)
         bb_z_val = feat_dict.get('bb_z', 0)
-        
         ema_dev_val = abs(feat_dict.get('ema_dev', 0))
         rsi_dev_val = feat_dict.get('rsi_dev', 0) # |rsi-50|
         
@@ -284,17 +280,26 @@ class GMMRegimeDetector:
         is_stretched = (ema_dev_val >= EMA_STRETCH_THRESHOLD)
         is_rsi_extreme = (rsi_dev_val >= 40.0) # |rsi-50| >= 40 -> 90 or 10
         
-        # Initialize flags
+        # Initialize final classification
+        regime_str = cluster_regime
         block = False
         reason = ""
 
+        # Logic: If GMM thinks it's a CRISIS, but volatility is quiet, it's just a strong trend.
+        if regime_str == "CRISIS" and not is_shock:
+            regime_str = "TRENDING"
+            reason += "(GMM CRISIS DOWNGRADED: VOL LOW) | "
+
+        # Force CRISIS if we HAVE a shock, regardless of GMM
         if is_shock:
-            regime = MarketRegime.CRISIS
             regime_str = "CRISIS"
             block = True
-            reason = f"VOLATILITY SHOCK (ATR_z={atr_z_val:.2f}) | "
+            reason += f"VOLATILITY SHOCK (ATR_z={atr_z_val:.2f}) | "
         else:
-            block = (regime == MarketRegime.CRISIS)
+            block = (regime_str == "CRISIS")
+
+        # Map string back to Enum
+        regime = MarketRegime[regime_str]
 
         # Dynamic Threshold calculation
         threshold  = REGIME_THRESHOLDS[regime_str]
