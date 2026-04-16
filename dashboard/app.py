@@ -355,28 +355,65 @@ def show_market_overview():
     except:
         config_pairs = {}
 
-    # Build signal map from DB
-    # 1. Background layer: Recent history
-    # CRITICAL FIX: Only populate map with ACTIVE signals. 
-    # Expired/Closed signals should return to "WAIT" state on the visual grid.
-    # 1. Background layer: Recent history (Last known signal for every pair)
-    # Include hidden signals so benched history is visible in the grid
-    all_signals = db.get_recent_signals(limit=1000, include_hidden=True)
-    sig_map = {}
-    if all_signals:
-        # Sort by timestamp to ensure we keep the LATEST
-        for s in sorted(all_signals, key=lambda x: x['timestamp']):
-            sym = s['symbol']
-            # We take the latest signal for each pair, regardless of outcome
-            # This ensures we don't show "Awaiting Data" if a WAIT signal exists.
-            sig_map[sym] = s
-                
-    # 2. Priority layer: ACTIVE signals overwrite everything
-    # This ensures "Awaiting Data" doesn't appear if we have an active shadow trade
-    active_signals = db.get_active_signals(include_hidden=True)
-    if active_signals:
-        for s in sorted(active_signals, key=lambda x: x['timestamp']):
-            sig_map[s['symbol']] = s
+    @st.fragment(run_every=timedelta(seconds=30))
+    def _market_overview_pulse():
+        # Build signal map from DB
+        all_signals = db.get_recent_signals(limit=1000, include_hidden=True)
+        sig_map = {}
+        if all_signals:
+            for s in sorted(all_signals, key=lambda x: x['timestamp']):
+                sym = s['symbol']
+                sig_map[sym] = s
+                    
+        active_signals = db.get_active_signals(include_hidden=True)
+        if active_signals:
+            for s in sorted(active_signals, key=lambda x: x['timestamp']):
+                sig_map[s['symbol']] = s
+
+        # Signal grid categories
+        categories = {
+            "⚡ Majors": config_pairs.get('majors', []),
+            "🔷 Minors": config_pairs.get('minors', []),
+            "🔶 Crosses": config_pairs.get('crosses', []),
+        }
+
+        for cat_name, pair_list in categories.items():
+            if not pair_list: continue
+            st.markdown(f'<div class="section-header"><span class="section-header-text">{cat_name}</span></div>', unsafe_allow_html=True)
+            cols = st.columns(4)
+            symbols = [p['symbol'] for p in pair_list]
+            for i, symbol in enumerate(symbols):
+                sig_data = sig_map.get(symbol)
+                with cols[i % 4]:
+                    link = f'terminal?nav=true&symbol={symbol}'
+                    if not sig_data:
+                        tile_html = f'<div class="signal-tile tile-wait"><div class="tile-symbol">{symbol}</div><div class="tile-signal tile-signal-wait">—</div><div class="tile-conf">Awaiting Data</div></div>'
+                    else:
+                        sig = sig_data.get('signal', 'WAIT')
+                        regime = sig_data.get('regime') or ''
+                        r_upper = str(regime).upper()
+                        is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
+                        conf = sig_data.get('confidence', 0)
+                        
+                        regime_badge = ""
+                        if regime:
+                            if is_crisis: regime_badge = '<div class="regime-badge-crisis">⚡ CRISIS</div>'
+                            elif "TRENDING" in r_upper: regime_badge = '<div class="regime-badge-trending">TRENDING</div>'
+                            else: regime_badge = f'<div class="regime-badge-neutral">{r_upper}</div>'
+                        
+                        display_sig = "SAFE" if is_crisis else sig
+                        tile_html = (
+                            f'<div class="signal-tile {"tile-wait" if is_crisis else "tile-active"}" style="position: relative;">'
+                            f'{regime_badge}'
+                            f'<div class="tile-symbol">{symbol}</div>'
+                            f'<div class="tile-signal {"tile-signal-wait" if is_crisis else "tile-signal-active"}">{display_sig}</div>'
+                            f'<div class="tile-conf">{conf:.0%}</div>'
+                            f'</div>'
+                        )
+                    st.markdown(f'<a href="{link}" target="_parent" style="text-decoration: none; color: inherit;">{tile_html}</a>', unsafe_allow_html=True)
+
+    # Initial Pulse Trigger
+    _market_overview_pulse()
 
     # Sidebar filters
     with st.sidebar:
@@ -559,39 +596,37 @@ def show_trading_terminal():
 
         with col_main:
             try:
-                # Force fresh data fetch for live terminal
-                df = engine.fetch(symbol, interval=timeframe, days=60, use_cache=False)
+                # Add a pulsing heartbeat to indicate scanning is active
+                st.markdown(f"""
+                <div style="background: rgba(0,255,136,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.1); display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                    <div style="width: 8px; height: 8px; background: #00FF88; border-radius: 50%; box-shadow: 0 0 10px #00FF88;"></div>
+                    <span style="font-size: 0.7rem; font-family: var(--font-mono); color: #00FF88; letter-spacing: 0.1em;">LIVE ANALYSIS PULSE: {datetime.now().strftime('%H:%M:%S')}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
-                # 1. Check for EXISTING ACTIVE SIGNAL first
+                # 1. Check for EXISTING ACTIVE SIGNAL first (High Priority)
                 active_signals = db.get_active_signals(symbol=symbol, include_hidden=True)
-                is_actively_trading = False
                 
-                # Only lock onto actionable signals (BUY/SELL), allowing WAIT signals to refresh dynamically
-                if active_signals and active_signals[0]['signal'] in ('BUY', 'SELL', 'WAIT'):
-                    is_actively_trading = True
+                if active_signals:
                     result = active_signals[0]
-                    if 'model_trades' not in result: result['model_trades'] = 0
-                    if 'winning_tier' not in result: result['winning_tier'] = st.session_state['accuracy_target']
-                    
                     pred = result['signal']
-                    # Use the stored confidence which now reflects directional bias
                     conf = result['confidence']
-                    
                     is_hidden = bool(result.get('is_hidden', False))
+                    
                     if is_hidden:
                         st.info(f"👀 WATCH ONLY: Shadow Certification in Progress (Conviction: {conf:.1%})")
                     else:
-                        st.info(f"🔒 LOCKED: Displaying Active Trade (Gen: {result['timestamp']})")
+                        st.success(f"🚀 LIVE SIGNAL: {symbol} {pred} Active in Terminal")
                 else:
-                    # 2. No active signal? Run LIVE INFERENCE
+                    # 2. No active signal? Run FRESH INFERENCE
                     result = inf_engine.predict_symbol(
-                        symbol, save_to_db=False,
-                        win_rate=st.session_state['accuracy_target'], allow_stale=True
+                        symbol, save_to_db=False, 
+                        win_rate=st.session_state['accuracy_target'], allow_stale=False
                     )
 
-                    if result:
-                        pred = result.get('signal', 'WAIT')
-                        conf = result.get('confidence', 0)
+                if result:
+                    pred = result.get('signal', 'WAIT')
+                    conf = result.get('confidence', 0)
                 
                 # Removed raw JSON dump to clean UI
                 pass

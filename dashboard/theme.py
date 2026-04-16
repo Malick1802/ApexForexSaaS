@@ -439,6 +439,28 @@ def inject_css():
         border-radius: 20px;
         font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--accent-cyan);
     }
+    /* ── Sentinel Health Pulse ─────────────────────── */
+    .health-badge {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 12px; border-radius: 12px;
+        font-size: 0.65rem; font-weight: 700; font-family: var(--font-mono);
+        letter-spacing: 0.05em; text-transform: uppercase;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.02);
+        margin: 10px auto; width: fit-content;
+    }
+    .health-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        box-shadow: 0 0 8px currentColor;
+    }
+    .health-online { color: #00FF88; border-color: rgba(0,255,136,0.2); background: rgba(0,255,136,0.05); }
+    .health-offline { color: #FF4466; border-color: rgba(255,68,102,0.2); background: rgba(255,68,102,0.05); }
+    
+    @keyframes heartbeat {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(1.2); }
+    }
+    .pulse-animation { animation: heartbeat 2s ease-in-out infinite; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -490,10 +512,38 @@ def sidebar_logo():
 
 
 def sidebar_footer():
-    """Render sidebar version badge."""
-    st.markdown("""
+    """Render sidebar version badge with Sentinel Health Pulse."""
+    from datetime import datetime, timedelta
+    
+    # ── Sentinel Health Check ───────────────────────
+    status_class = "health-offline"
+    status_text = "SENTINEL STALLED"
+    
+    try:
+        db = get_db()
+        latest = db.get_recent_signals(limit=1)
+        if latest:
+            # Check if updated in last 20 mins
+            last_ts = datetime.fromisoformat(latest[0]['timestamp'])
+            # Ensure TZ awareness
+            if last_ts.tzinfo is None:
+                from datetime import timezone
+                last_ts = last_ts.replace(tzinfo=timezone.utc)
+            
+            now = datetime.now(last_ts.tzinfo)
+            if (now - last_ts) < timedelta(minutes=20):
+                status_class = "health-online"
+                status_text = "SENTINEL ACTIVE"
+    except:
+        pass
+
+    st.markdown(f"""
+    <div class="health-badge {status_class}">
+        <div class="health-dot pulse-animation" style="background: currentColor;"></div>
+        {status_text}
+    </div>
     <div class="version-badge">
-        <strong>Apex</strong> v2.0.0 · © 2026 ApexForex
+        <strong>Apex</strong> v2.0.2 · Real-Time Sync Active
     </div>
     """, unsafe_allow_html=True)
 

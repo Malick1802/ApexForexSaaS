@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 class MarketRegime(Enum):
     TRENDING_UP   = "TRENDING_UP"
     TRENDING_DOWN = "TRENDING_DOWN"
+    TRENDING      = "TRENDING"
     RANGING       = "RANGING"
     CRISIS        = "CRISIS"
 
@@ -49,12 +50,14 @@ class RegimeResult:
     regime: MarketRegime
     confidence_threshold: float   # Dynamic threshold to use for this regime
     block_trading: bool           # True = do NOT trade in this regime
-    adx: float
-    atr_zscore: float
-    bb_zscore: float
-    volatility: float             # Added for diagnostic visibility
-    ema_trend: str                # "above" | "below" | "unknown"
     reason: str                   # Human-readable explanation
+    adx: float = 0.0
+    atr_zscore: float = 0.0
+    bb_zscore: float = 0.0
+    volatility: float = 0.0
+    ema_trend: str = "unknown"
+    gmm_proba: Optional[np.ndarray] = None
+    features: Optional[dict] = None
 
 
 # ── Per-regime threshold map ──────────────────────────────────────────────────

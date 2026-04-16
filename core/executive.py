@@ -121,16 +121,16 @@ class ExecutiveEngine:
         """Automatically recompute Bayesian matrix when day rolls over."""
         current_date = datetime.now(timezone.utc).date()
         if current_date > self.last_bayesian_update:
-            logger.info("📅 Date rolled over. Running Daily Bayesian Matrix Update...")
+            logger.info("Date rolled over. Running Daily Bayesian Matrix Update...")
             try:
                 from core.performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
                 self.last_bayesian_update = current_date
-                logger.info("✅ Daily Bayesian Matrix Update Complete (Rolling 14-day window maintained).")
+                logger.info("Daily Bayesian Matrix Update Complete (Rolling 14-day window maintained).")
             except Exception as e:
-                logger.error(f"❌ Matrix Update Failed: {e}", exc_info=True)
+                logger.error(f"Matrix Update Failed: {e}", exc_info=True)
 
     def _calculate_lot_size(self, symbol: str, sl_pips: float) -> float:
         """
@@ -250,7 +250,7 @@ class ExecutiveEngine:
                 return False
 
                 
-            logger.info(f"🚀 LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price}")
+            logger.info(f"LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price}")
             return True
             
         except Exception as e:
@@ -421,7 +421,7 @@ class ExecutiveEngine:
     
     def monitor_active_signals(self):
         """Check all ACTIVE signals against FULL price history (High/Low) since signal generation."""
-        active_signals = self.db.get_active_signals()
+        active_signals = self.db.get_active_signals(include_hidden=True)
         resolutions_found = False
         if not active_signals:
             return
@@ -431,8 +431,8 @@ class ExecutiveEngine:
         for sig in active_signals:
             symbol = sig['symbol']
             try:
-                # Fetch detailed 1m data (1 day is usually enough for active trades)
-                df = self.inference_engine.data_engine.fetch(symbol, interval="1m", days=1, use_cache=False)
+                # Fetch detailed 1m data (Lookback 14 days to resolve older/slow trades)
+                df = self.inference_engine.data_engine.fetch(symbol, interval="1m", days=14, use_cache=False)
                 if df.empty:
                     continue
                     
@@ -458,21 +458,21 @@ class ExecutiveEngine:
                     # Check SL (Low) - Any candle hitting SL?
                     if sl and (relevant['low'] <= sl).any():
                         outcome = 'FAIL'
-                        logger.info(f"❌ FAIL: {symbol} hit SL {sl}")
+                        logger.info(f"FAIL: {symbol} hit SL {sl}")
                     # Check TP (High) - Any candle hitting TP?
                     elif tp and (relevant['high'] >= tp).any():
                         outcome = 'SUCCESS'
-                        logger.info(f"🎯 SUCCESS: {symbol} hit TP {tp}")
+                        logger.info(f"SUCCESS: {symbol} hit TP {tp}")
                         
                 elif direction == 'SELL':
                     # Check SL (High)
                     if sl and (relevant['high'] >= sl).any():
                         outcome = 'FAIL'
-                        logger.info(f"❌ FAIL: {symbol} hit SL {sl}")
+                        logger.info(f"FAIL: {symbol} hit SL {sl}")
                     # Check TP (Low)
                     elif tp and (relevant['low'] <= tp).any():
                         outcome = 'SUCCESS'
-                        logger.info(f"🎯 SUCCESS: {symbol} hit TP {tp}")
+                        logger.info(f"SUCCESS: {symbol} hit TP {tp}")
                         
                 if outcome:
                     self.db.update_signal_outcome(sig['id'], outcome)
@@ -484,15 +484,15 @@ class ExecutiveEngine:
         # If trades were resolved, trigger a micro-update of the performance matrix
         # This keeps the dashboard perfectly in sync with real-time shadow performance.
         if resolutions_found:
-            logger.info("📈 Resolutions detected. Triggering Performance Matrix micro-update...")
+            logger.info("Resolutions detected. Triggering Performance Matrix micro-update...")
             try:
                 from core.performance_gate import PerformanceGate
                 gate = PerformanceGate()
                 gate.recompute_from_db(lookback_days=14)
                 gate.save_whitelist()
-                logger.info("✅ Performance Matrix synchronization complete.")
+                logger.info("Performance Matrix synchronization complete.")
             except Exception as e:
-                logger.error(f"❌ Real-time matrix update failed: {e}")
+                logger.error(f"Real-time matrix update failed: {e}")
     
     def run_continuous(self, symbols: Optional[List[str]] = None):
         """

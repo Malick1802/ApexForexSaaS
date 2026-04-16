@@ -26,6 +26,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
+from core.regime_detector import MarketRegime, RegimeResult
 
 try:
     import pandas_ta as ta
@@ -69,20 +70,7 @@ REGIME_THRESHOLDS = {
 STRETCH_HURDLE_BUMP = 0.05   # Add 5% hurdle if market is overextended
 
 
-class MarketRegime(Enum):
-    TRENDING = "TRENDING"
-    RANGING  = "RANGING"
-    CRISIS   = "CRISIS"
 
-
-@dataclass
-class RegimeResult:
-    regime: MarketRegime
-    confidence_threshold: float
-    block_trading: bool
-    gmm_proba: np.ndarray        # Soft membership probabilities per cluster
-    features: dict               # Raw feature values for logging
-    reason: str
 
 
 def _compute_features(df: pd.DataFrame) -> Optional[pd.DataFrame]:

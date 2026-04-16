@@ -1041,61 +1041,13 @@ class InferenceEngine:
             is_tier_proven = (tier_status == "APPROVED")
             is_tier_benched = (tier_status == "BENCHED")
                 
-            # ── Phase 4: Platt Scaling Calibration ───────────────────────────
-            # Map raw model confidence to real-world win rate
-            try:
-                final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
-                final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
-                logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} -> {final_confidence:.1%}")
-            except Exception as e:
-                logger.warning(f"Calibration failed for {symbol}: {e}")
-                final_confidence = raw_confidence
+            # --- PHASE 3: Directional Bias Gate & Promotion Logic ---
+            # Evaluate model responsiveness and potential promotion before calibration.
+            expert_signal = signal 
+            is_authorized = False # Default until calibrated floor met
+            is_hidden = 1
 
-            # Determine currently applicable tier (bucket)
-            conf_int = int(raw_confidence * 100)
-            applicable_tier = 0
-            for t in [60, 70, 80, 90, 100]:
-                if conf_int >= t:
-                    applicable_tier = t
-
-            # Check for Tier-Specific Approval (Proven status)
-            tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
-            is_tier_proven = (tier_status == "APPROVED")
-            is_tier_benched = (tier_status == "BENCHED")
-            static_hurdle = target_int / 100.0
-            
-            # 1. Shadow Floor (Ghost Signal)
-            # Universal 60% minimum to ensure history is collected for all benched models
-            if raw_confidence >= 0.60:
-                is_authorized = True
-                is_hidden = 1
-                logger.info(f"GHOST: {symbol}: {applicable_tier}% Tier authorized for Shadow Certification.")
-
-            # 2. Live Upgrade (Market Signal)
-            # Only upgrade to Live (visible) if it passes safety regimes AND accuracy hurdles
-            if is_authorized and tradeable:
-                if is_tier_proven:
-                    is_hidden = 0
-                    logger.info(f"LIVE: {symbol}: {applicable_tier}% Tier is PROVEN. Sending to Terminal.")
-                elif final_confidence >= max(static_hurdle, dynamic_threshold):
-                    is_hidden = 0
-                    logger.info(f"LIVE: {symbol}: Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}). Sending to Terminal.")
-
-            if not is_authorized:
-                logger.info(f"BLOCK: {symbol}: {raw_confidence:.1%} < 60% Safety Floor. Total filter applied.")
-                is_authorized = False
-                is_hidden = 1
-
-            expert_signal = signal # Save the model's intended direction for shadow history
-            
-            # ── 5. Directional Bias Gate & Promotion Logic ──
-            if not is_authorized:
-                signal = "WAIT"
-            elif signal == "WAIT":
-                # Promotion: Only if authorized (Benched/Proven) AND we have a clear directional edge > 60%
-                # This 60% floor ensures we eliminate biased/weak model noise.
-                # BIAS GATE: Define model responsiveness
-                # Avoid models that are 'stuck' near their historical bias (lack of conditional shift)
+            if signal == "WAIT":
                 is_biased = False
                 hist_bias = 0.5
                 if isinstance(models, dict):
@@ -1107,12 +1059,46 @@ class InferenceEngine:
 
                 if dominant_prob >= 0.60 and not is_biased:
                     signal = "BUY" if buy_prob > sell_prob else "SELL"
-                    confidence = buy_prob if signal == "BUY" else sell_prob
+                    raw_confidence = buy_prob if signal == "BUY" else sell_prob
                     logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification (Edge: {dominant_prob:.1%}).")
                 else:
                     signal = "WAIT"
                     reason = "No directional edge" if not is_biased else "Model Bias"
                     logger.info(f"⛔ {symbol}: {reason} ({dominant_prob:.1%}). Staying at WAIT.")
+
+            # --- PHASE 4: Platt Scaling Calibration ---
+            # Map raw model conviction to real-world win rate (The "Real" Number)
+            try:
+                final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
+                logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} (Raw) -> {final_confidence:.1%} (Real)")
+            except Exception as e:
+                logger.warning(f"Calibration failed for {symbol}: {e}")
+                final_confidence = raw_confidence
+
+            # --- PHASE 5: Authorization & Safety Hurdles ---
+            # Strict 60% REAL win rate floor check.
+            if final_confidence >= 0.60:
+                is_authorized = True
+                is_hidden = 1
+            else:
+                logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < 60% REAL Safety Floor. Authorization Denied.")
+                is_authorized = False
+                is_hidden = 1
+                signal = "WAIT" # Forced rollback to safety
+
+            # 2. Live Upgrade (Market Signal)
+            # Only upgrade to Live (visible) if it passes safety regimes AND accuracy hurdles
+            if is_authorized and tradeable:
+                if is_tier_proven:
+                    is_hidden = 0
+                    logger.info(f"LIVE: {symbol}: {applicable_tier}% Tier is PROVEN. Sending to Terminal.")
+                elif final_confidence >= max(static_hurdle, dynamic_threshold):
+                    is_hidden = 0
+                    logger.info(f"LIVE: {symbol}: Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}). Sending to Terminal.")
+
+
+            expert_signal = signal # Save the model's intended direction for shadow history
+            
 
             if signal in ('BUY', 'SELL') and models.get('model_type') not in ('binary', 'expert'):
                 # PROVEN OVERRIDE: If the signal is officially authorized by the 60% Proven floor, 
@@ -1239,8 +1225,9 @@ class InferenceEngine:
             if save_to_db:
                 should_save = True
                 
-                # Check Database for recent signals to make cooldown stateless
-                recent_db_signals = self.db.get_recent_signals(limit=5, symbol=symbol)
+                # Check Database for recent signals including SHADOW (include_hidden=True)
+                # We use a larger limit (50) to ensure we capture the 60-min window accurately
+                recent_db_signals = self.db.get_recent_signals(limit=50, symbol=symbol, include_hidden=True)
                 
                 # ── Correlation Cluster Filter ────────────────────────────
                 # Prevent taking trades on highly correlated pairs to limit exposure
@@ -1263,17 +1250,23 @@ class InferenceEngine:
                         if save_to_db:
                             return None
 
-                # STRICT LOCK: If there is ANY active signal for this symbol, block new SAVING of signals.
-                # Only apply lock if the active signal is a real trade (BUY/SELL). Pure WAIT audit signals don't block.
-                active_signals = [s for s in recent_db_signals if s.get('outcome') == 'ACTIVE' and s.get('signal') in ('BUY', 'SELL')]
+                # STRICT LOCK: Block generation if a previous signal is still "Unresolved" AT THE SAME TIER.
+                unresolved_outcomes = ('NEW', 'PENDING', 'ACTIVE', 'N/A')
+                active_signals = [
+                    s for s in recent_db_signals 
+                    if s.get('outcome') in unresolved_outcomes
+                    and s.get('signal') == signal
+                    and s.get('confidence_tier') == applicable_tier
+                ]
                 if active_signals:
-                    logger.info(f"🔒 {symbol} has active signal (ID: {active_signals[0]['id']}). Blocking new generation task (UI still shows bias).")
+                    logger.info(f"🔒 {symbol} has unresolved signal {active_signals[0]['id']} (Outcome: {active_signals[0].get('outcome')}). Blocking new generation.")
                     if save_to_db:
                         # Only return None for background-saving callers like main.py
                         return None
 
                 for recent in recent_db_signals:
-                    if recent['signal'] == signal:
+                    # Deduplication now respects both Signal AND Tier
+                    if recent['signal'] == signal and recent.get('confidence_tier') == applicable_tier:
                         try:
                             sig_time = datetime.fromisoformat(recent['timestamp'])
                             if sig_time.tzinfo is None:

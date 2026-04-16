@@ -71,13 +71,17 @@ class NotificationManager:
         if not self.enabled:
             return
 
-        # Priority: 1. Signal's specific regime hurdle, 2. Config threshold, 3. Default 70%
-        alert_threshold = signal_data.get('regime_threshold') or self.telegram_config.get('alert_threshold', 0.70)
-        
         confidence = signal_data.get('confidence', 0)
         symbol = signal_data.get('symbol', 'UNKNOWN')
         signal = signal_data.get('signal', 'WAIT')
         is_shadow = signal_data.get('is_shadow_alert', False)
+
+        # For Shadow Alerts, use the global config floor to allow visibility while benched.
+        # For Certified alerts, respect the dynamic regime hurdle (0.65+ for trending etc.)
+        if is_shadow:
+            alert_threshold = self.telegram_config.get('alert_threshold', 0.60)
+        else:
+            alert_threshold = signal_data.get('regime_threshold') or self.telegram_config.get('alert_threshold', 0.70)
 
         if is_shadow and not self.notify_shadow:
             return False
