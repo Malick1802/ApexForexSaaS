@@ -1036,10 +1036,8 @@ class InferenceEngine:
                 raw_confidence = wait_prob
             
             # Recalculate proven/authorized state for 3-class models
-            # Get the status from the performance gate for this confidence level
-            tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
-            is_tier_proven = (tier_status == "APPROVED")
-            is_tier_benched = (tier_status == "BENCHED")
+            # (Moved to Phase 4.5 to ensure it uses Platt Scaled Confidence)
+
                 
             # --- PHASE 3: Directional Bias Gate & Promotion Logic ---
             # Evaluate model responsiveness and potential promotion before calibration.
@@ -1074,6 +1072,12 @@ class InferenceEngine:
             except Exception as e:
                 logger.warning(f"Calibration failed for {symbol}: {e}")
                 final_confidence = raw_confidence
+
+            # --- PHASE 4.5: Calibrated Tier Validation ---
+            # Now that we have the Real probability, check the corresponding tier in the whitelist
+            tier_status = self.perf_gate.get_tier_status(symbol, signal, final_confidence)
+            is_tier_proven = (tier_status == "APPROVED")
+            is_tier_benched = (tier_status == "BENCHED")
 
             # --- PHASE 5: Authorization & Safety Hurdles ---
             # Strict 60% REAL win rate floor check.
