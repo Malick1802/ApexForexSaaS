@@ -173,17 +173,34 @@ class ExecutiveEngine:
                 return 0.01
                 
             # Lots = Risk_USD / (Loss_per_lot)
-            # Loss_per_lot = (sl_dist_price / tick_size) * tick_value
             loss_per_lot = (sl_dist_price / tick_size) * tick_value
+            risk_lots = risk_usd / loss_per_lot
             
-            lots = risk_usd / loss_per_lot
+            # ── 1:30 PROP-FIRM LEVERAGE CONSTRAINT (GETLEVERAGED) ──
+            # Physical limit of buying power. 
+            # E.g. $10k account at 1:30 max position is ~$300k notional (approx 3.0 lots total)
+            max_leverage = 30
+            # Calculate the explicit margin required for 1.0 standard lot using MT5 api
+            margin_per_lot = self.mt5.order_calc_margin(self.mt5.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask)
             
-            # Normalize to broker constraints
-            lots = round(lots, 2)
+            if margin_per_lot:
+                # We use 90% of available margin to ensure we don't hit auto-liquidation walls
+                max_margin_lots = (balance * 0.9) / margin_per_lot
+            else:
+                # Fallback purely derived from notional value
+                notional_value_per_lot = symbol_info.ask * symbol_info.trade_contract_size
+                max_margin_lots = ((balance * 0.9) * max_leverage) / notional_value_per_lot
+
+            # Take the smallest between our Risk Profile and our Margin Reality
+            lots = min(risk_lots, max_margin_lots)
+            
+            # Normalize strictly to broker step requirements
+            step = symbol_info.volume_step
+            lots = round(lots / step) * step
             lots = max(lots, symbol_info.volume_min)
             lots = min(lots, symbol_info.volume_max)
             
-            logger.info(f"Risk Calc [{symbol}]: Bal=${balance:.2f}, Risk=${risk_usd:.2f}, SL={sl_pips}p, Result={lots} lots")
+            logger.info(f"Risk Calc [{symbol}]: Bal=${balance:.2f}, Risk=${risk_usd:.2f} (0.5%), SL={sl_pips:.1f}p -> Margin Capped Lots={lots:.2f}")
             return lots
             
         except Exception as e:
