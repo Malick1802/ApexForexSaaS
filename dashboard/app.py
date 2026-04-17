@@ -198,7 +198,6 @@ def show_command_center():
     completed_count = 0
 
     if recent:
-        from datetime import datetime, timedelta
         # Time Window: Current Week (Monday to Now)
         now = datetime.now()
         start_of_week = now - timedelta(days=now.weekday())
@@ -434,6 +433,18 @@ def show_market_overview():
             key='confidence_thresh')
 
         st.caption(f"**{accuracy_target}** accuracy · **{confidence_thresh}%** min confidence")
+
+    # Build sig_map in outer scope so the detailed tile loop can access it
+    # (The @st.fragment inner function has its own copy for auto-refresh)
+    _all_signals = db.get_recent_signals(limit=1000, include_hidden=True)
+    sig_map = {}
+    if _all_signals:
+        for s in sorted(_all_signals, key=lambda x: x['timestamp']):
+            sig_map[s['symbol']] = s
+    _active_signals = db.get_active_signals(include_hidden=True)
+    if _active_signals:
+        for s in sorted(_active_signals, key=lambda x: x['timestamp']):
+            sig_map[s['symbol']] = s
 
     categories = {
         "⚡ Majors": config_pairs.get('majors', []),
@@ -784,7 +795,6 @@ def show_trading_terminal():
                 try:
                     ts_display = "Just Now"
                     try:
-                        from datetime import datetime
                         ts_obj = datetime.fromisoformat(result.get('timestamp', datetime.now().isoformat()))
                         ts_display = ts_obj.strftime("%d %b %H:%M")
                     except: pass
