@@ -395,6 +395,50 @@ def inject_css():
     .conf-bar-buy { background: linear-gradient(90deg, var(--signal-buy), rgba(0,255,136,0.3)); }
     .conf-bar-sell { background: linear-gradient(90deg, var(--signal-sell), rgba(255,68,102,0.3)); }
 
+    /* ── Ghost Indicator (Secondary Tier) ──────────────── */
+    .ghost-indicator {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 8px;
+        height: 8px;
+        background: var(--accent-cyan);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent-cyan), 0 0 20px var(--accent-cyan);
+        animation: ghost-pulse 2s infinite;
+        z-index: 5;
+    }
+    @keyframes ghost-pulse {
+        0% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+        70% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 0 10px rgba(0, 229, 255, 0); }
+        100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+    }
+
+    /* ── Tier Stack (Terminal) ─────────────────────────── */
+    .tier-stack-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .tier-stack-item:hover { background: rgba(255,255,255,0.06); }
+    .tier-stack-live { border-left-color: var(--signal-buy); background: rgba(0,255,136,0.05); }
+    .tier-stack-shadow { border-left-color: var(--text-muted); opacity: 0.8; }
+    
+    .tier-stack-badge {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
     /* ── Section Headers ───────────────────────────── */
     .section-header {
         display: flex; align-items: center; gap: 10px;

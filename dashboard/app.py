@@ -356,17 +356,32 @@ def show_market_overview():
 
     @st.fragment(run_every=timedelta(seconds=30))
     def _market_overview_pulse():
-        # Build signal map from DB
-        all_signals = db.get_recent_signals(limit=1000, include_hidden=True)
-        sig_map = {}
-        if all_signals:
-            for s in sorted(all_signals, key=lambda x: x['timestamp']):
-                sym = s['symbol']
-                sig_map[sym] = s
-                    
+        # Build signal groups (Symbol -> List) to handle Tier overlapping
         active_signals = db.get_active_signals(include_hidden=True)
-        if active_signals:
-            for s in sorted(active_signals, key=lambda x: x['timestamp']):
+        sig_map = {}
+        has_secondary_tier = {}
+
+        # Group by symbol
+        groups = {}
+        for s in active_signals:
+            sym = s['symbol']
+            if sym not in groups: groups[sym] = []
+            groups[sym].append(s)
+
+        # Select the 'Best' signal for tile display (Priority: Live > Highest Tier > Newest)
+        for sym, sigs in groups.items():
+            sorted_sigs = sorted(
+                sigs, 
+                key=lambda x: (not bool(x.get('is_hidden', 0)), x.get('confidence_tier', 0), x['timestamp']),
+                reverse=True
+            )
+            sig_map[sym] = sorted_sigs[0]
+            has_secondary_tier[sym] = len(sorted_sigs) > 1
+
+        # Fallback for symbols with only historical signals (no active ones)
+        recent = db.get_recent_signals(limit=100, include_hidden=True)
+        for s in recent:
+            if s['symbol'] not in sig_map:
                 sig_map[s['symbol']] = s
 
         # Signal grid categories
@@ -458,8 +473,9 @@ def show_market_overview():
 
                         tile_html = (
                             f'<div class="signal-tile {css_tile}" '
-                            f'style="position: relative; {"opacity: 0.7;" if is_hidden else ""} {extra_styles}">'
+                            f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles}">'
                             f'{regime_badge}'
+                            f'{"<div class=\"ghost-indicator\" title=\"Secondary Tier Active\"></div>" if has_secondary_tier.get(symbol) else ""}'
                             f'<div class="tile-symbol">{symbol}</div>'
                             f'<div class="tile-signal {css_signal}">{display_sig}</div>'
                             f'<div class="tile-conf">{conf_display}</div>'
@@ -697,7 +713,45 @@ def show_trading_terminal():
                 p_sell = result.get('sell_prob') or 0.0
                 p_wait = result.get('wait_prob') or 0.0
 
-                # --- 2. Performance Status & Safety ---
+                # --- 3. Multi-Tier Conviction Stack (NEW) ---
+                st.markdown('<div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Stacked Conviction View</div>', unsafe_allow_html=True)
+                
+                # Fetch all active tiers for this symbol
+                all_active_tiers = db.get_active_signals(symbol=symbol, include_hidden=True)
+                if all_active_tiers:
+                    # Sort: Live first, then tier descending
+                    all_active_tiers.sort(key=lambda x: (not bool(x.get('is_hidden', 0)), x.get('confidence_tier', 0)), reverse=True)
+                    
+                    for tier_data in all_active_tiers:
+                        t_val = tier_data.get('confidence_tier', 0)
+                        t_sig = tier_data.get('signal', 'WAIT')
+                        t_live = not bool(tier_data.get('is_hidden', 0))
+                        
+                        item_class = "tier-stack-live" if t_live else "tier-stack-shadow"
+                        badge_label = "LIVE" if t_live else "SHADOW"
+                        
+                        st.markdown(f"""
+                        <div class="tier-stack-item {item_class}">
+                            <div style="font-weight: 600; font-family: var(--font-mono); color: {'var(--signal-buy)' if t_sig == 'BUY' else 'var(--signal-sell)' if t_sig == 'SELL' else 'var(--text-muted)'};">
+                                {t_val}% {t_sig}
+                            </div>
+                            <div class="tier-stack-badge" style="background: { 'rgba(0,255,136,0.1)' if t_live else 'rgba(255,255,255,0.05)' }; color: { 'var(--signal-buy)' if t_live else 'var(--text-muted)' }; border: 1px solid { 'var(--signal-buy-border)' if t_live else 'var(--border-glass)' };">
+                                {badge_label}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.caption("No secondary convictions detected.")
+
+                st.markdown('<div style="margin-top: 24px;"></div>', unsafe_allow_html=True)
+
+                # --- 4. Main Verdict Display (Legacy Refactored) ---
+                st.markdown(f"""
+                <div style="padding: 16px; background: {status_color if '#000' in status_color else 'rgba(255,255,255,0.02)'}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">SYSTEM STATUS</div>
+                    <div style="font-weight: 700; color: {status_color}; font-size: 0.9rem;">{status_text}</div>
+                </div>
+                """, unsafe_allow_html=True)
                 try:
                     # Clean the tier string (handles cases like '70%70%' or None)
                     _raw_tier = result.get('winning_tier', st.session_state.get('accuracy_target', '60%'))
