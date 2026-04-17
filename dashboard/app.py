@@ -542,8 +542,8 @@ def show_trading_terminal():
         st.slider("Confidence Filter", 50, 95, key='confidence_thresh')
         confidence_thresh = st.session_state['confidence_thresh']
 
-    # ── Live Data Fragment (reruns every 5s WITHOUT full page blink) ──
-    @st.fragment(run_every=timedelta(seconds=5))
+    # ── Live Data Fragment (reruns every 10s WITHOUT full page blink) ──
+    @st.fragment(run_every=timedelta(seconds=10))
     def _live_terminal_data():
         result = None
         pred = "WAIT"
@@ -685,7 +685,7 @@ def show_trading_terminal():
                 else:
                     st.warning("Insufficient data for header calculation.")
 
-                render_chart(df, symbol, key=time.time())
+                render_chart(df, symbol)
             else:
                 st.warning("No chart data available. Check API connection.")
 

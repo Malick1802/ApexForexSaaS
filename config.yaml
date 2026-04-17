@@ -176,8 +176,8 @@ currency_pairs:
 data:
   cache:
     directory: data_cache
-    enabled: false
-    expiry_hours: 1
+    enabled: true
+    expiry_hours: 0.02
   default_history_days: 1825
   timeframes:
   - 1h
