@@ -1058,7 +1058,7 @@ class InferenceEngine:
                 if dominant_prob >= 0.60 and not is_biased:
                     signal = "BUY" if buy_prob > sell_prob else "SELL"
                     raw_confidence = buy_prob if signal == "BUY" else sell_prob
-                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} for {applicable_tier}% certification (Edge: {dominant_prob:.1%}).")
+                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} certification (Edge: {dominant_prob:.1%}).")
                 else:
                     signal = "WAIT"
                     reason = "No directional edge" if not is_biased else "Model Bias"
@@ -1095,25 +1095,13 @@ class InferenceEngine:
             if is_authorized and tradeable:
                 if is_tier_proven:
                     is_hidden = 0
-                    logger.info(f"LIVE: {symbol}: {applicable_tier}% Tier is PROVEN. Sending to Terminal.")
-                elif final_confidence >= max(static_hurdle, dynamic_threshold):
-                    is_hidden = 0
-                    logger.info(f"LIVE: {symbol}: Hit dynamic hurdle ({max(static_hurdle, dynamic_threshold):.1%}). Sending to Terminal.")
-
+                    logger.info(f"LIVE: {symbol}: Tier is PROVEN. Sending to Terminal.")
 
             expert_signal = signal # Save the model's intended direction for shadow history
-            
 
             if signal in ('BUY', 'SELL') and models.get('model_type') not in ('binary', 'expert'):
-                # PROVEN OVERRIDE: If the signal is officially authorized by the 60% Proven floor, 
-                # we skip the secondary heatmap split test for stability.
                 if not is_authorized:
-                    winner_pct = buy_prob if signal == 'BUY' else sell_prob
-                    logger.info(f"DEBUG: {symbol} winner_pct={winner_pct:.4f}, dynamic_threshold={dynamic_threshold:.4f}, wait_prob={wait_prob:.4f}")
-                    if winner_pct < dynamic_threshold:
-                        logger.info(f"⛔ {symbol}: Heatmap split — winner only {winner_pct:.1%} (need >{dynamic_threshold:.0%}). Downgrading to WAIT.")
-                        if not is_hidden: signal = "WAIT" 
-                    elif wait_prob > 0.40:
+                    if wait_prob > 0.40:
                         logger.info(f"⛔ {symbol}: Heatmap wait too high — {wait_prob:.1%} (need <40%). Downgrading to WAIT.")
                         if not is_hidden: signal = "WAIT" 
                 else:
@@ -1153,33 +1141,13 @@ class InferenceEngine:
                 if target_signal == 'BUY': trades = models.get('buy_trades', 0)
                 elif target_signal == 'SELL': trades = models.get('sell_trades', 0)
             
-            if trades == 0:
-                # Fallback to filesystem only if model dict is missing volume data
-                try:
-                    base = Path("models")
-                    # Try specific expertise branch first
-                    specific_path = base / symbol / str(target_int) / (target_signal if target_signal != "WAIT" else "BUY") / "config.json"
-                    if specific_path.exists():
-                        with open(specific_path, 'r') as f:
-                            c = json.load(f)
-                            trades = c.get('trades', 0) or c.get('total_samples', 0)
-                    
-                    # Try pair root second
-                    if trades == 0:
-                        alt_conf = base / symbol / "config.json"
-                        if alt_conf.exists():
-                            with open(alt_conf, 'r') as f:
-                                c = json.load(f)
-                                trades = c.get('trades', 0) or c.get('total_samples', 0)
-                except: pass
-
             result = {
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'symbol': symbol,
                 'signal': signal,
                 'expert_signal': expert_signal, # NEW: The original bias for Sentinel/Shadow monitor
                 'confidence': final_confidence,
-                'confidence_tier': applicable_tier,
+                'confidence_tier': target_int,
                 'raw_confidence': raw_confidence,
                 'expert_intent': expert_intent,
                 'buy_prob': float(buy_prob),
@@ -1194,12 +1162,10 @@ class InferenceEngine:
                 'model_trades': trades,
                 'model_version': models.get('model_type', 'foundation_tft'),
                 'regime': regime_label,
-                'regime_threshold': dynamic_threshold,
+                'regime_threshold': 0.60,
                 'is_proven': int(is_tier_proven),
                 'is_hidden': int(is_hidden),
                 'outcome': 'ACTIVE' if (is_authorized and signal != "WAIT") else 'N/A',
-                'raw_confidence': raw_confidence, # Ensure these match the keys app.py looks for
-                'expert_intent': expert_intent,
                 'adx': 0.0,
                 'atr_zscore': 0.0,
                 'vix_proxy': round(float(features['vix_proxy'].iloc[-1]), 4) if 'vix_proxy' in features.columns else 0.0,
