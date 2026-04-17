@@ -558,7 +558,7 @@ def show_trading_terminal():
                 """, unsafe_allow_html=True)
 
                 # 0. Fetch Data (CRITICAL FIX)
-                df = inf_engine.get_data(symbol, interval=timeframe)
+                df = inf_engine.data_engine.fetch(symbol, interval=timeframe, days=7)
                 if df.empty:
                     raise Exception(f"No candlestick data received for {symbol}")
 
