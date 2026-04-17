@@ -841,12 +841,35 @@ STATUS: {status_text}
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.markdown("""
-                <div class="glass-card" style="text-align: center; padding: 40px;">
-                    <div style="font-size: 2rem; margin-bottom: 8px;">🔌</div>
-                    <div style="color: var(--text-muted);">Select a pair to analyze</div>
-                </div>
-            """, unsafe_allow_html=True)
+                # No result yet — show an informative monitoring card
+                # (either model not trained for this pair, or inference is still loading)
+                last_price_display = ""
+                try:
+                    if not df.empty:
+                        last_price_display = f"{df['close'].iloc[-1]:.5f}"
+                except: pass
+
+                st.markdown(f"""
+<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid var(--text-muted);">
+  <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">
+    {symbol} · Monitoring
+  </div>
+  <div class="signal-badge signal-wait" style="margin-bottom: 20px;">WAIT</div>
+  <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-glass);">
+    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">Last Price</div>
+    <div style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{last_price_display or "—"}</div>
+  </div>
+  <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;">
+    STATUS: SCANNING...
+  </div>
+  <div style="padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);">
+    <div style="font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;">AI Status</div>
+    <p style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+      No specialist model is currently certified for {symbol}. The engine is monitoring for high-conviction setups.
+    </p>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     # Invoke the fragment — first call renders, subsequent calls auto-rerun every 15s
     _live_terminal_data()
