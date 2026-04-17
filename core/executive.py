@@ -443,7 +443,7 @@ class ExecutiveEngine:
                     if 'CRISIS' in str(regime).upper():
                         logger.warning(f"BLOCK: Telegram alert suppressed for {symbol} due to CRISIS regime.")
                         result['is_shadow_alert'] = False
-                    elif self.notifier.telegram_config.get('notify_shadow_trades', False):
+                    elif self.notifier.notify_shadow:
                         result['is_shadow_alert'] = True
                         self.notifier.send_signal_alert(result)
                 else:
