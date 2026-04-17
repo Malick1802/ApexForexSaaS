@@ -406,12 +406,22 @@ class ExecutiveEngine:
                         logger.info(f"LOCK: {symbol}: MT5 Position already open. New {new_tier}% signal will be tracked as SHADOW for certification only.")
                         result['is_hidden'] = 1
                         result['outcome'] = 'ACTIVE'
+                    elif existing_live and bool(result.get('is_hidden', 0)):
+                        # An active LIVE position already exists and this is a shadow — skip entirely
+                        # to prevent the exact duplicate accumulation bug
+                        logger.info(f"DEDUP: {symbol}: Live position open + shadow already logged. Suppressing duplicate shadow.")
+                        return None
                     elif not existing_live:
+                        # Check if a shadow already exists for the same direction
+                        existing_shadow_dirs = [s['signal'] for s in active_signals if bool(s.get('is_hidden', 0))]
+                        if result['signal'] in existing_shadow_dirs:
+                            logger.info(f"DEDUP: {symbol}: Shadow signal for {result['signal']} already active. Suppressing duplicate.")
+                            return None
                         logger.info(f"GHOST: {symbol}: Overlapping SHADOW trade ({new_tier}%) allowed to accumulate volume towards minimums.")
-                
+
             # ALWAYS persist the latest analysis outcome for the dashboard
             self.db.save_signal(result)
-            
+
             if signal in ('BUY', 'SELL'):
                 # 3. Certification Gate: Only alert and log as NEW if proven for MT5
                 # and NOT hidden (Shadow Training)
