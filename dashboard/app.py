@@ -501,6 +501,9 @@ def show_trading_terminal():
     inf_engine = load_inference_v2()
     db = get_db()
 
+    # Get trading status from config for UI labels
+    is_actively_trading = inf_engine.config.get('trading', {}).get('execute_trades', False)
+
     with st.sidebar:
         section_header("🎛️", "Analysis Controls")
         all_pairs = engine.get_all_pairs()
