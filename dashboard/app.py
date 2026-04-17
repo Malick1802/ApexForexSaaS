@@ -471,11 +471,12 @@ def show_market_overview():
                             display_sig = "WAIT"
                             conf_display = f"{(sig_data.get('raw_confidence') or 0.0):.0%}" if (sig_data.get('raw_confidence') or 0.0) > 0 else "Monitoring..."
 
+                        ghost_html = '<div class="ghost-indicator" title="Secondary Tier Active"></div>' if has_secondary_tier.get(symbol) else ""
                         tile_html = (
                             f'<div class="signal-tile {css_tile}" '
                             f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles}">'
                             f'{regime_badge}'
-                            f'{"<div class=\"ghost-indicator\" title=\"Secondary Tier Active\"></div>" if has_secondary_tier.get(symbol) else ""}'
+                            f'{ghost_html}'
                             f'<div class="tile-symbol">{symbol}</div>'
                             f'<div class="tile-signal {css_signal}">{display_sig}</div>'
                             f'<div class="tile-conf">{conf_display}</div>'
