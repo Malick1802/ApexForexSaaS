@@ -18,9 +18,9 @@ import schedule
 import os
 import psutil
 from datetime import datetime
-from core.core.inference import InferenceEngine
-from core.core.notifications import NotificationManager
-from core.core.guardrail import get_guardrail
+from core.inference import InferenceEngine
+from core.notifications import NotificationManager
+from core.guardrail import get_guardrail
 
 # Configure Logging
 logging.basicConfig(

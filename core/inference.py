@@ -1243,14 +1243,17 @@ class InferenceEngine:
                                 sig_time = sig_time.replace(tzinfo=timezone.utc)
                             
                             time_since = (datetime.now(timezone.utc) - sig_time).total_seconds() / 60
-                            # Bypass cooldown for certified BUY/SELL signals — they must always save
-                            # so the locking mechanism can pick them up on the next predict call.
-                            # Only WAIT signals respect the deduplication cooldown.
-                            if signal in ('BUY', 'SELL') and is_tier_proven:
-                                logger.info(f"✅ {symbol}: Certified {signal} — bypassing cooldown ({time_since:.1f} min). Saving.")
-                                break  # Force should_save=True
-                            elif time_since < 60:
-                                logger.info(f"⏳ {symbol} {signal} on cooldown. Last signal {time_since:.1f} minutes ago.")
+                            # Deduplication: If a matching signal (BUY/SELL at the same tier) is already ACTIVE, N/A, or NEW,
+                            # we must NEVER save a duplicate, even if it is 'Proven'.
+                            if signal in ('BUY', 'SELL') and recent.get('outcome') in unresolved_outcomes:
+                                logger.info(f"🔒 {symbol} {signal} {applicable_tier}% is already {recent.get('outcome')}. Blocking duplicate.")
+                                should_save = False
+                                break
+
+                            # Cooldown: Only WAIT signals or resolved signals respect the 60-min window.
+                            # Certified signals can save frequently ONLY if the previous one was RESOLVED.
+                            if signal == 'WAIT' and time_since < 60:
+                                logger.info(f"⏳ {symbol} WAIT on cooldown ({time_since:.1f} min).")
                                 should_save = False
                                 break
                         except Exception:
