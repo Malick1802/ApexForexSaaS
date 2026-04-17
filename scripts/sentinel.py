@@ -83,8 +83,11 @@ class LightSentinel:
         for sig in signals:
             sym = sig['symbol']
             sig_id = sig['id']
-            # Use expert_signal for resolution (handles WAIT/Shadow signals correctly)
-            direction = sig.get('expert_signal') or sig.get('signal')
+            # Use expert_signal for resolution, but if it was overridden to WAIT by safety layers, 
+            # fall back to the raw `signal` so Shadow/Benched trades can be properly graded.
+            direction = sig.get('expert_signal')
+            if not direction or direction == "WAIT":
+                direction = sig.get('signal')
             entry_price = sig['price_at_signal']
             tp_price = sig.get('tp_price')
             sl_price = sig.get('sl_price')

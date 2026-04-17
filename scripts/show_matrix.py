@@ -17,7 +17,7 @@ def report():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT symbol, signal, outcome, confidence, timestamp
+        SELECT symbol, signal, outcome, confidence, timestamp, is_hidden
         FROM signals
         WHERE outcome = 'ACTIVE' AND signal IN ('BUY', 'SELL')
         ORDER BY timestamp DESC
@@ -48,7 +48,8 @@ def report():
     print()
     print("Active Trades in DB:")
     for sym, t in active.items():
-        print(f"  {sym}: {t['signal']} @ {t['confidence']*100:.1f}% — since {t['timestamp'][:16]}")
+        tag = "[SHADOW]" if t.get('is_hidden') else "[LIVE]"
+        print(f"  {sym}: {tag} {t['signal']} @ {t['confidence']*100:.1f}% — since {t['timestamp'][:16]}")
 
 if __name__ == "__main__":
     report()

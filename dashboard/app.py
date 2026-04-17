@@ -435,11 +435,13 @@ def show_market_overview():
                         elif outcome == 'ACTIVE':
                             if is_hidden:
                                 # Shadow / Watch Only signal
-                                display_sig = "WATCH"
-                                css_tile = "tile-wait" # Neutral background
-                                css_signal = "tile-signal-wait" 
+                                display_sig = sig
+                                css_tile = "tile-buy" if sig == "BUY" else "tile-sell"
+                                css_signal = "tile-signal-wait" # Keep signal text muted so it doesn't pop as much
                                 conf_display = f"{sig_data.get('raw_confidence', conf):.0%}"
                                 conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar" style="width: {conf if conf else 0.0:.1%}; background: var(--text-muted);"></div></div>'
+                                regime_badge += '<div style="position: absolute; top: 30px; right: 10px; font-size: 0.55rem; color: #aaa; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); border: 1px dashed rgba(255,255,255,0.2);">SHADOW</div>'
+                                extra_styles = "opacity: 0.6; filter: grayscale(50%);"
                             elif sig == "BUY":
                                 css_tile = "tile-buy"
                                 css_signal = "tile-signal-buy"
@@ -691,10 +693,6 @@ def show_trading_terminal():
             section_header("🤖", "AI Verdict")
 
             if result:
-                css = "signal-wait"
-                if pred == "BUY": css = "signal-buy"
-                elif pred == "SELL": css = "signal-sell"
-
                 p_buy = result.get('buy_prob') or 0.0
                 p_sell = result.get('sell_prob') or 0.0
                 p_wait = result.get('wait_prob') or 0.0
@@ -739,7 +737,8 @@ def show_trading_terminal():
                         elif is_hidden or not is_approved:
                             status_text = "CERTIFICATION PHASE (Shadow)"
                             status_color = "var(--accent-gold)"
-                            pred = "WAIT"
+                            # Do NOT force pred = "WAIT" down here so the user sees the actual direction
+                            css = "wait" if pred == "WAIT" else ("buy" if pred == "BUY" else "sell")
                         else:
                             status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
                     else:
@@ -760,6 +759,8 @@ def show_trading_terminal():
 
                     display_conf = result.get('raw_confidence', conf) or 0.0
                     vol_trades = result.get('model_trades', 0) or 0
+                    
+                    css = f"signal-{pred.lower()}"
                     
                     st.markdown(f"""
 <div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
