@@ -746,13 +746,6 @@ def show_trading_terminal():
 
                 st.markdown('<div style="margin-top: 24px;"></div>', unsafe_allow_html=True)
 
-                # --- 4. Main Verdict Display (Legacy Refactored) ---
-                st.markdown(f"""
-                <div style="padding: 16px; background: {status_color if '#000' in status_color else 'rgba(255,255,255,0.02)'}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">SYSTEM STATUS</div>
-                    <div style="font-weight: 700; color: {status_color}; font-size: 0.9rem;">{status_text}</div>
-                </div>
-                """, unsafe_allow_html=True)
                 try:
                     # Clean the tier string (handles cases like '70%70%' or None)
                     _raw_tier = result.get('winning_tier', st.session_state.get('accuracy_target', '60%'))
@@ -792,8 +785,6 @@ def show_trading_terminal():
                         elif is_hidden or not is_approved:
                             status_text = "CERTIFICATION PHASE (Shadow)"
                             status_color = "var(--accent-gold)"
-                            # Do NOT force pred = "WAIT" down here so the user sees the actual direction
-                            css = "wait" if pred == "WAIT" else ("buy" if pred == "BUY" else "sell")
                         else:
                             status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
                     else:
@@ -803,6 +794,14 @@ def show_trading_terminal():
                     status_text = "INITIALIZING..."
                     status_color = "var(--text-muted)"
                     winning_tier = "60"
+
+                # --- 4. Main Verdict Display (Legacy Refactored) ---
+                st.markdown(f"""
+                <div style="padding: 16px; background: {status_color if '#000' in status_color else 'rgba(255,255,255,0.02)'}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">SYSTEM STATUS</div>
+                    <div style="font-weight: 700; color: {status_color}; font-size: 0.9rem;">{status_text}</div>
+                </div>
+                """, unsafe_allow_html=True)
                 
                 # --- 3. Render AI Verdict Card ---
                 try:
