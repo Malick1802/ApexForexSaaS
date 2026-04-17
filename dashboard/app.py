@@ -585,6 +585,15 @@ def show_trading_terminal():
                         win_rate=st.session_state['accuracy_target'], allow_stale=False
                     )
 
+                # 3. FALLBACK: If inference failed, show most recent DB signal for this symbol
+                if not result:
+                    sym_signals = db.get_recent_signals(symbol=symbol, limit=1, include_hidden=True)
+                    if sym_signals:
+                        result = sym_signals[0]
+                        pred = result.get('signal', 'WAIT')
+                        conf = result.get('confidence', 0)
+                        st.caption(f"📋 Showing last recorded signal · {result.get('outcome', 'UNKNOWN')}")
+
                 if result:
                     pred = result.get('signal', 'WAIT')
                     conf = result.get('confidence', 0)
