@@ -207,6 +207,57 @@ class ExecutiveEngine:
             logger.error(f"Failed lot calculation for {symbol}: {e}")
             return 0.01
 
+    def _check_drawdown_limits(self) -> bool:
+        """
+        Check if account is near daily 3% loss limit or 6% max trailing loss limit. 
+        Returns True if safe to trade, False if blocked.
+        """
+        try:
+            if not self.mt5:
+                return True
+                
+            account = self.mt5.account_info()
+            if not account:
+                return True
+                
+            now_utc = datetime.now(timezone.utc)
+            # Use UTC midnight as the safest anchor for daily drawdown start 
+            midnight_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            deals = self.mt5.history_deals_get(midnight_utc, now_utc + timedelta(days=1))
+            
+            realized_profit_today = 0.0
+            if deals:
+                realized_profit_today = sum(d.profit + d.swap + d.commission for d in deals)
+                
+            # Active Daily PnL = Realized Profit Today + Current Floating Profit
+            floating_profit = account.equity - account.balance
+            active_daily_pnl = realized_profit_today + floating_profit
+            
+            start_of_day_balance = account.balance - realized_profit_today
+            
+            if start_of_day_balance <= 0: 
+                return True
+            
+            # 1. Daily Drawdown Check (3% Rule)
+            if active_daily_pnl < 0:
+                daily_dd_pct = (abs(active_daily_pnl) / start_of_day_balance) * 100
+                if daily_dd_pct >= 2.5:
+                    logger.critical(f"🛑 DRAWDOWN SHIELD: Daily loss is {daily_dd_pct:.2f}% (Limit 3.0%). Blocking all Live Trades!")
+                    return False
+            
+            # 2. Maximum Trailing Drawdown Check (6% Rule)
+            # For a 10k account, hard floor is $9400. We block at $9450 (5.5%).
+            # (Allows 0.5% margin of safety against slippage)
+            if account.equity <= 9450.0:
+                logger.critical(f"🛑 DRAWDOWN SHIELD: Equity (${account.equity:.2f}) is crossing 5.5% Max Trailing wall. Blocking all Live Trades!")
+                return False
+            
+            return True
+        except Exception as e:
+            logger.error(f"Drawdown calculation failed: {e}")
+            return True
+
     def place_mt5_trade(self, signal: Dict[str, Any]):
         """Place a live trade on MT5 terminal."""
         try:
@@ -216,6 +267,12 @@ class ExecutiveEngine:
                 
             if not self.config.get('trading', {}).get('execute_trades', True):
                 logger.info("Trading Disabled in config. Skipping MT5 execution.")
+                return False
+
+            # --- PROP FIRM DRAWDOWN SAFETY GATE ---
+            if not self._check_drawdown_limits():
+                logger.error(f"BLOCK: {signal['symbol']} trade canceled by Drawdown Safety Shield. Saving as SHADOW instead.")
+                signal['is_hidden'] = 1 # Force it into shadow log
                 return False
 
             symbol = signal['symbol']
