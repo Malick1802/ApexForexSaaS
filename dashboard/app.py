@@ -71,7 +71,7 @@ def load_inference_v2():
 
 
 # ── Chart Renderer (TradingView Lightweight Charts – blink-free) ───
-def render_chart(df, symbol):
+def render_chart(df, symbol, key=None):
     if df.empty:
         st.warning("Chart unavailable.")
         return
@@ -542,8 +542,8 @@ def show_trading_terminal():
         st.slider("Confidence Filter", 50, 95, key='confidence_thresh')
         confidence_thresh = st.session_state['confidence_thresh']
 
-    # ── Live Data Fragment (reruns every 15s WITHOUT full page blink) ──
-    @st.fragment(run_every=timedelta(seconds=15))
+    # ── Live Data Fragment (reruns every 5s WITHOUT full page blink) ──
+    @st.fragment(run_every=timedelta(seconds=5))
     def _live_terminal_data():
         result = None
         pred = "WAIT"
@@ -562,8 +562,8 @@ def show_trading_terminal():
                 </div>
                 """, unsafe_allow_html=True)
 
-                # 0. Fetch Data (CRITICAL FIX)
-                df = inf_engine.data_engine.fetch(symbol, interval=timeframe, days=7)
+                # 0. Fetch Data (REAL TIME SYNC)
+                df = inf_engine.data_engine.fetch(symbol, interval=timeframe, days=7, use_cache=False)
                 if df.empty:
                     raise Exception(f"No candlestick data received for {symbol}")
 
@@ -685,7 +685,7 @@ def show_trading_terminal():
                 else:
                     st.warning("Insufficient data for header calculation.")
 
-                render_chart(df, symbol)
+                render_chart(df, symbol, key=time.time())
             else:
                 st.warning("No chart data available. Check API connection.")
 
