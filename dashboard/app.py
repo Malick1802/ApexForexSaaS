@@ -384,32 +384,88 @@ def show_market_overview():
             for i, symbol in enumerate(symbols):
                 sig_data = sig_map.get(symbol)
                 with cols[i % 4]:
+                    # Wrap tile in a link to the terminal (relative path matches st.Page url_path)
+                    # MUST include nav=true to persist authentication state on reload
                     link = f'terminal?nav=true&symbol={symbol}'
+                    
                     if not sig_data:
-                        tile_html = f'<div class="signal-tile tile-wait"><div class="tile-symbol">{symbol}</div><div class="tile-signal tile-signal-wait">—</div><div class="tile-conf">Awaiting Data</div></div>'
-                    else:
-                        sig = sig_data.get('signal', 'WAIT')
-                        regime = sig_data.get('regime') or ''
-                        r_upper = str(regime).upper()
-                        is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
-                        conf = sig_data.get('confidence', 0)
-                        
-                        regime_badge = ""
-                        if regime:
-                            if is_crisis: regime_badge = '<div class="regime-badge-crisis">⚡ CRISIS</div>'
-                            elif "TRENDING" in r_upper: regime_badge = '<div class="regime-badge-trending">TRENDING</div>'
-                            else: regime_badge = f'<div class="regime-badge-neutral">{r_upper}</div>'
-                        
-                        display_sig = "SAFE" if is_crisis else sig
                         tile_html = (
-                            f'<div class="signal-tile {"tile-wait" if is_crisis else "tile-active"}" style="position: relative;">'
-                            f'{regime_badge}'
+                            f'<div class="signal-tile tile-wait">'
                             f'<div class="tile-symbol">{symbol}</div>'
-                            f'<div class="tile-signal {"tile-signal-wait" if is_crisis else "tile-signal-active"}">{display_sig}</div>'
-                            f'<div class="tile-conf">{conf:.0%}</div>'
+                            f'<div class="tile-signal tile-signal-wait">—</div>'
+                            f'<div class="tile-conf">Awaiting Data</div>'
                             f'</div>'
                         )
-                    st.markdown(f'<a href="{link}" target="_parent" style="text-decoration: none; color: inherit;">{tile_html}</a>', unsafe_allow_html=True)
+                    else:
+                        sig = sig_data.get('signal', 'WAIT')
+                        conf = sig_data.get('confidence', 0)
+                        outcome = sig_data.get('outcome', 'ACTIVE')
+                        regime = sig_data.get('regime') or ''
+
+                        regime_badge = ""
+                        r_upper = str(regime).upper()
+                        is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
+                        
+                        if regime:
+                            if is_crisis:
+                                regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #FF4466; background: rgba(255,68,102,0.15); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(255,68,102,0.3); box-shadow: 0 0 10px rgba(255,68,102,0.2);">⚡ CRISIS</div>'
+                            elif "TRENDING" in r_upper:
+                                regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #00FF88; background: rgba(0,255,136,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(0,255,136,0.2);">TRENDING</div>'
+                            elif "RANGING" in r_upper:
+                                regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">RANGING</div>'
+
+                        display_sig = sig
+                        css_tile = "tile-wait"
+                        css_signal = "tile-signal-wait"
+                        conf_display = "Monitoring..."
+                        conf_bar = ""
+                        
+                        is_hidden = bool(sig_data.get('is_hidden', False))
+
+                        extra_styles = ""
+                        if is_crisis:
+                            display_sig = "SAFE"
+                            css_tile = "tile-wait"
+                            css_signal = "tile-signal-wait"
+                            # Use raw_confidence if available to show why it's a crisis (overextended)
+                            f_conf = sig_data.get('raw_confidence', conf)
+                            conf_display = f"{(f_conf or 0.0):.0%}" if (f_conf or 0.0) > 0 else "Blocked"
+                            # Force red border for crisis tiles
+                            extra_styles = "border: 1px solid rgba(255,68,102,0.4); background: rgba(255,68,102,0.03); box-shadow: inset 0 0 20px rgba(255,68,102,0.05);"
+                        elif outcome == 'ACTIVE':
+                            if is_hidden:
+                                # Shadow / Watch Only signal
+                                display_sig = "WATCH"
+                                css_tile = "tile-wait" # Neutral background
+                                css_signal = "tile-signal-wait" 
+                                conf_display = f"{sig_data.get('raw_confidence', conf):.0%}"
+                                conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar" style="width: {conf if conf else 0.0:.1%}; background: var(--text-muted);"></div></div>'
+                            elif sig == "BUY":
+                                css_tile = "tile-buy"
+                                css_signal = "tile-signal-buy"
+                                conf_display = f"{conf:.0%}"
+                                conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-buy" style="width: {conf:.1%}"></div></div>'
+                            elif sig == "SELL":
+                                css_tile = "tile-sell"
+                                css_signal = "tile-signal-sell"
+                                conf_display = f"{conf:.0%}"
+                                conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-sell" style="width: {conf:.1%}"></div></div>'
+                        else:
+                            display_sig = "WAIT"
+                            conf_display = f"{(sig_data.get('raw_confidence') or 0.0):.0%}" if (sig_data.get('raw_confidence') or 0.0) > 0 else "Monitoring..."
+
+                        tile_html = (
+                            f'<div class="signal-tile {css_tile}" '
+                            f'style="position: relative; {"opacity: 0.7;" if is_hidden else ""} {extra_styles}">'
+                            f'{regime_badge}'
+                            f'<div class="tile-symbol">{symbol}</div>'
+                            f'<div class="tile-signal {css_signal}">{display_sig}</div>'
+                            f'<div class="tile-conf">{conf_display}</div>'
+                            f'{conf_bar}'
+                            f'</div>'
+                        )
+
+                    st.markdown(f'<a href="{link}" target="_parent" style="text-decoration: none; color: inherit; display: block;">{tile_html}</a>', unsafe_allow_html=True)
 
     # Initial Pulse Trigger
     _market_overview_pulse()
@@ -434,121 +490,7 @@ def show_market_overview():
 
         st.caption(f"**{accuracy_target}** accuracy · **{confidence_thresh}%** min confidence")
 
-    # Build sig_map in outer scope so the detailed tile loop can access it
-    # (The @st.fragment inner function has its own copy for auto-refresh)
-    _all_signals = db.get_recent_signals(limit=1000, include_hidden=True)
-    sig_map = {}
-    if _all_signals:
-        for s in sorted(_all_signals, key=lambda x: x['timestamp']):
-            sig_map[s['symbol']] = s
-    _active_signals = db.get_active_signals(include_hidden=True)
-    if _active_signals:
-        for s in sorted(_active_signals, key=lambda x: x['timestamp']):
-            sig_map[s['symbol']] = s
-
-    categories = {
-        "⚡ Majors": config_pairs.get('majors', []),
-        "🔷 Minors": config_pairs.get('minors', []),
-        "🔶 Crosses": config_pairs.get('crosses', []),
-    }
-
-    for cat_name, pair_list in categories.items():
-        if not pair_list:
-            continue
-        symbols = [p['symbol'] for p in pair_list]
-
-        st.markdown(f"""
-        <div class="section-header">
-            <span class="section-header-text">{cat_name}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        cols = st.columns(4)
-        for i, symbol in enumerate(symbols):
-            sig_data = sig_map.get(symbol)
-            with cols[i % 4]:
-                # Wrap tile in a link to the terminal (relative path matches st.Page url_path)
-                # MUST include nav=true to persist authentication state on reload
-                link = f'terminal?nav=true&symbol={symbol}'
-                
-                if not sig_data:
-                    tile_html = (
-                        f'<div class="signal-tile tile-wait">'
-                        f'<div class="tile-symbol">{symbol}</div>'
-                        f'<div class="tile-signal tile-signal-wait">—</div>'
-                        f'<div class="tile-conf">Awaiting Data</div>'
-                        f'</div>'
-                    )
-                else:
-                    sig = sig_data.get('signal', 'WAIT')
-                    conf = sig_data.get('confidence', 0)
-                    outcome = sig_data.get('outcome', 'ACTIVE')
-                    regime = sig_data.get('regime') or ''
-
-                    regime_badge = ""
-                    r_upper = str(regime).upper()
-                    is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
-                    
-                    if regime:
-                        if is_crisis:
-                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #FF4466; background: rgba(255,68,102,0.15); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(255,68,102,0.3); box-shadow: 0 0 10px rgba(255,68,102,0.2);">⚡ CRISIS</div>'
-                        elif "TRENDING" in r_upper:
-                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #00FF88; background: rgba(0,255,136,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(0,255,136,0.2);">TRENDING</div>'
-                        elif "RANGING" in r_upper:
-                            regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">RANGING</div>'
-
-                    display_sig = sig
-                    css_tile = "tile-wait"
-                    css_signal = "tile-signal-wait"
-                    conf_display = "Monitoring..."
-                    conf_bar = ""
-                    
-                    is_hidden = bool(sig_data.get('is_hidden', False))
-
-                    extra_styles = ""
-                    if is_crisis:
-                        display_sig = "SAFE"
-                        css_tile = "tile-wait"
-                        css_signal = "tile-signal-wait"
-                        # Use raw_confidence if available to show why it's a crisis (overextended)
-                        f_conf = sig_data.get('raw_confidence', conf)
-                        conf_display = f"{(f_conf or 0.0):.0%}" if (f_conf or 0.0) > 0 else "Blocked"
-                        # Force red border for crisis tiles
-                        extra_styles = "border: 1px solid rgba(255,68,102,0.4); background: rgba(255,68,102,0.03); box-shadow: inset 0 0 20px rgba(255,68,102,0.05);"
-                    elif outcome == 'ACTIVE':
-                        if is_hidden:
-                            # Shadow / Watch Only signal
-                            display_sig = "WATCH"
-                            css_tile = "tile-wait" # Neutral background
-                            css_signal = "tile-signal-wait" 
-                            conf_display = f"{sig_data.get('raw_confidence', conf):.0%}"
-                            conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar" style="width: {conf:.1%}; background: var(--text-muted);"></div></div>'
-                        elif sig == "BUY":
-                            css_tile = "tile-buy"
-                            css_signal = "tile-signal-buy"
-                            conf_display = f"{conf:.0%}"
-                            conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-buy" style="width: {conf:.1%}"></div></div>'
-                        elif sig == "SELL":
-                            css_tile = "tile-sell"
-                            css_signal = "tile-signal-sell"
-                            conf_display = f"{conf:.0%}"
-                            conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-sell" style="width: {conf:.1%}"></div></div>'
-                    else:
-                        display_sig = "WAIT"
-                        conf_display = f"{(sig_data.get('raw_confidence') or 0.0):.0%}" if (sig_data.get('raw_confidence') or 0.0) > 0 else "Monitoring..."
-
-                    tile_html = (
-                        f'<div class="signal-tile {css_tile}" '
-                        f'style="position: relative; {"opacity: 0.7;" if is_hidden else ""} {extra_styles}">'
-                        f'{regime_badge}'
-                        f'<div class="tile-symbol">{symbol}</div>'
-                        f'<div class="tile-signal {css_signal}">{display_sig}</div>'
-                        f'<div class="tile-conf">{conf_display}</div>'
-                        f'{conf_bar}'
-                        f'</div>'
-                    )
-
-                st.markdown(f'<a href="{link}" target="_parent" style="text-decoration: none; color: inherit; display: block;">{tile_html}</a>', unsafe_allow_html=True)
+    # --- REMOVED REDUNDANT OUTER LOOP ---
 
 
 # =============================================================================
@@ -614,6 +556,11 @@ def show_trading_terminal():
                     <span style="font-size: 0.7rem; font-family: var(--font-mono); color: #00FF88; letter-spacing: 0.1em;">LIVE ANALYSIS PULSE: {datetime.now().strftime('%H:%M:%S')}</span>
                 </div>
                 """, unsafe_allow_html=True)
+
+                # 0. Fetch Data (CRITICAL FIX)
+                df = inf_engine.get_data(symbol, interval=timeframe)
+                if df.empty:
+                    raise Exception(f"No candlestick data received for {symbol}")
 
                 # 1. Check for EXISTING ACTIVE SIGNAL first (High Priority)
                 active_signals = db.get_active_signals(symbol=symbol, include_hidden=True)
