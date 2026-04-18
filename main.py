@@ -58,7 +58,7 @@ def job(engine, notifier):
                 signal = res['signal']
                 conf = res['confidence'] or 0.0
                 regime = res.get('regime', 'UNKNOWN')
-                target = res.get('regime_threshold') or 0.70
+                target = res.get('regime_threshold') or 0.60
                 
                 is_valid_entry = conf >= target and signal in ["BUY", "SELL"]
                 
@@ -73,7 +73,7 @@ def job(engine, notifier):
                     engine.db.update_signal_status(res['id'], 'WATCH')
 
         # ── 2. Precise Signal Resolution ──────────────────────────────
-        active_signals = engine.db.get_active_signals()
+        active_signals = engine.db.get_active_signals(include_hidden=True)
         if active_signals:
             logger.info(f"⚖️ Resolving {len(active_signals)} active trades...")
             price_map = {}

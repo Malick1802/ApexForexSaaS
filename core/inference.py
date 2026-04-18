@@ -1226,7 +1226,7 @@ class InferenceEngine:
                     s for s in recent_db_signals 
                     if s.get('outcome') in unresolved_outcomes
                     and s.get('signal') == signal
-                    and s.get('confidence_tier') == applicable_tier
+                    and s.get('confidence_tier') == target_int
                 ]
                 if active_signals:
                     logger.info(f"🔒 {symbol} has unresolved signal {active_signals[0]['id']} (Outcome: {active_signals[0].get('outcome')}). Blocking new generation.")
@@ -1236,7 +1236,7 @@ class InferenceEngine:
 
                 for recent in recent_db_signals:
                     # Deduplication now respects both Signal AND Tier
-                    if recent['signal'] == signal and recent.get('confidence_tier') == applicable_tier:
+                    if recent['signal'] == signal and recent.get('confidence_tier') == target_int:
                         try:
                             sig_time = datetime.fromisoformat(recent['timestamp'])
                             if sig_time.tzinfo is None:
@@ -1246,7 +1246,7 @@ class InferenceEngine:
                             # Deduplication: If a matching signal (BUY/SELL at the same tier) is already ACTIVE, N/A, or NEW,
                             # we must NEVER save a duplicate, even if it is 'Proven'.
                             if signal in ('BUY', 'SELL') and recent.get('outcome') in unresolved_outcomes:
-                                logger.info(f"🔒 {symbol} {signal} {applicable_tier}% is already {recent.get('outcome')}. Blocking duplicate.")
+                                logger.info(f"🔒 {symbol} {signal} {target_int}% is already {recent.get('outcome')}. Blocking duplicate.")
                                 should_save = False
                                 break
 

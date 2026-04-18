@@ -183,11 +183,13 @@ def show_command_center():
 
     all_pairs = engine.get_all_pairs()
     
-    # 1. Active Signals (Source of Truth)
-    raw_active = db.get_active_signals(include_hidden=True)
-    # Filter: ONLY show BUY/SELL as "Active Signals" in the live table
-    # but still track hidden status for labels
-    active_signals = [s for s in raw_active if s.get('signal') in ['BUY', 'SELL']]
+    # Filter: Show signals ≥ 60% as "Active Signals" (matching Telegram strategy)
+    # but still track BUY/SELL specifically for trades vs monitoring
+    active_signals = [
+        s for s in raw_active 
+        if (s.get('signal') in ['BUY', 'SELL']) 
+        or (s.get('confidence_tier') or 0) >= 60
+    ]
     active_count = len(active_signals)
 
     # 2. Expired/Closed Signals (Historical - Last 48h Window)
@@ -222,12 +224,11 @@ def show_command_center():
             if 'outcome' not in df_sig.columns:
                 df_sig['outcome'] = 'ACTIVE'
             
-            # Expired = Actionable signals (BUY/SELL) that are NOT active
-            # We filter out 'WAIT' signals from the count entirely as requested ("A wait signal should not be counted")
+            # Expired = Qualified signals (≥ 60%) that are NOT active
             expired_signals = [
                 s for s in recent_window 
                 if s.get('outcome') != 'ACTIVE' 
-                and s.get('signal') in ['BUY', 'SELL']
+                and (s.get('signal') in ['BUY', 'SELL'] or (s.get('confidence_tier') or 0) >= 60)
             ]
             
             # Closed for KPI = SUCCESS or FAIL (User requested strict adherence to TP/SL logic)
