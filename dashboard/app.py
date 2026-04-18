@@ -183,6 +183,11 @@ def show_command_center():
 
     all_pairs = engine.get_all_pairs()
     
+    # 1. Active Signals Pool
+    # We fetch ALL signals marked as ACTIVE (Success/Fail/Wait intent)
+    # including hidden/shadow signals so we can filter/show them correctly.
+    raw_active = db.get_active_signals(include_hidden=True)
+    
     # Filter: Show signals ≥ 60% as "Active Signals" (matching Telegram strategy)
     # but still track BUY/SELL specifically for trades vs monitoring
     active_signals = [
@@ -232,7 +237,7 @@ def show_command_center():
             ]
             
             # Closed for KPI = SUCCESS or FAIL (User requested strict adherence to TP/SL logic)
-            # We exclude "EXPIRED" from the main "Closed Trades" count as they represent timeouts/legacy logic
+            # We exclude \"EXPIRED\" from the main \"Closed Trades\" count as they represent timeouts/legacy logic
             # and the user considers them invalid if they haven't hit TP/SL.
             completed = df_sig[df_sig['outcome'].isin(['SUCCESS', 'FAIL'])]
             completed_count = len(completed)
@@ -252,8 +257,8 @@ def show_command_center():
     with c3:
         st.markdown(kpi_card("Win Rate (Week)", f"{success_rate:.1f}%", f"{completed_count} closed trades", "accent-green", link_url="/analytics?nav=true"), unsafe_allow_html=True)
     with c4:
-        # Show "Closed Trades" (TP/SL hit) as primary metric count.
-        # BUT link to 'expired' filter so user can see "trades that did not complete" as requested.
+        # Show \"Closed Trades\" (TP/SL hit) as primary metric count.
+        # BUT link to 'expired' filter so user can see \"trades that did not complete\" as requested.
         st.markdown(kpi_card("Closed Trades (Week)", completed_count, "Hit TP or SL", "accent-cyan", link_url="/analytics?nav=true&filter=expired"), unsafe_allow_html=True)
     with c5:
         st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan"), unsafe_allow_html=True)
@@ -266,7 +271,7 @@ def show_command_center():
         # Convert list of dicts to DF for display
         df_active = pd.DataFrame(active_signals)
         # Filter for display (optional, depending on what we want to show)
-        # Assuming all active signals are "opportunities"
+        # Assuming all active signals are \"opportunities\"
         
         if not df_active.empty:
              # Select cols
@@ -530,8 +535,8 @@ def show_trading_terminal():
 
         # Check for navigation from Market Overview
         qp = st.query_params
-        if "symbol" in qp:
-            target_sym = qp["symbol"]
+        if \"symbol\" in qp:
+            target_sym = qp[\"symbol\"]
             if target_sym in all_pairs:
                 st.session_state['pair_selector'] = target_sym
 
@@ -573,17 +578,17 @@ def show_trading_terminal():
         with col_main:
             try:
                 # Add a pulsing heartbeat to indicate scanning is active
-                st.markdown(f"""
-                <div style="background: rgba(0,255,136,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.1); display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-                    <div style="width: 8px; height: 8px; background: #00FF88; border-radius: 50%; box-shadow: 0 0 10px #00FF88;"></div>
-                    <span style="font-size: 0.7rem; font-family: var(--font-mono); color: #00FF88; letter-spacing: 0.1em;">LIVE ANALYSIS PULSE: {datetime.now().strftime('%H:%M:%S')}</span>
+                st.markdown(f\"\"\"
+                <div style=\"background: rgba(0,255,136,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.1); display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;\">
+                    <div style=\"width: 8px; height: 8px; background: #00FF88; border-radius: 50%; box-shadow: 0 0 10px #00FF88;\"></div>
+                    <span style=\"font-size: 0.7rem; font-family: var(--font-mono); color: #00FF88; letter-spacing: 0.1em;\">LIVE ANALYSIS PULSE: {datetime.now().strftime('%H:%M:%S')}</span>
                 </div>
-                """, unsafe_allow_html=True)
+                \"\"\", unsafe_allow_html=True)
 
                 # 0. Fetch Data (REAL TIME SYNC)
                 df = inf_engine.data_engine.fetch(symbol, interval=timeframe, days=7, use_cache=False)
                 if df.empty:
-                    raise Exception(f"No candlestick data received for {symbol}")
+                    raise Exception(f\"No candlestick data received for {symbol}\")
 
                 # 1. Check for EXISTING ACTIVE SIGNAL first (High Priority)
                 active_signals = db.get_active_signals(symbol=symbol, include_hidden=True)
@@ -595,9 +600,9 @@ def show_trading_terminal():
                     is_hidden = bool(result.get('is_hidden', False))
                     
                     if is_hidden:
-                        st.info(f"👀 WATCH ONLY: Shadow Certification in Progress (Conviction: {conf:.1%})")
+                        st.info(f\"👀 WATCH ONLY: Shadow Certification in Progress (Conviction: {conf:.1%})\")
                     else:
-                        st.success(f"🚀 LIVE SIGNAL: {symbol} {pred} Active in Terminal")
+                        st.success(f\"🚀 LIVE SIGNAL: {symbol} {pred} Active in Terminal\")
                 else:
                     # 2. No active signal? Run FRESH INFERENCE
                     result = inf_engine.predict_symbol(
@@ -612,7 +617,7 @@ def show_trading_terminal():
                         result = sym_signals[0]
                         pred = result.get('signal', 'WAIT')
                         conf = result.get('confidence', 0)
-                        st.caption(f"📋 Showing last recorded signal · {result.get('outcome', 'UNKNOWN')}")
+                        st.caption(f\"📋 Showing last recorded signal · {result.get('outcome', 'UNKNOWN')}\")
 
                 if result:
                     pred = result.get('signal', 'WAIT')
@@ -621,12 +626,12 @@ def show_trading_terminal():
                 # Removed raw JSON dump to clean UI
                 pass
             except Exception as e:
-                logger.error(f"Inference error: {e}")
-                st.error(f"⚠️ API Rate Limit or Network Error: {e}")
+                logger.error(f\"Inference error: {e}\")
+                st.error(f\"⚠️ API Rate Limit or Network Error: {e}\")
 
             is_market_closed = False
             if not df.empty:
-                # Check for "Market Closed" (Stale Data > 4h)
+                # Check for \"Market Closed\" (Stale Data > 4h)
                 try:
                     last_ts = df.index[-1]
                     if last_ts.tzinfo is None:
@@ -637,7 +642,7 @@ def show_trading_terminal():
                     diff_hours = (pd.Timestamp.now(tz='UTC') - last_ts).total_seconds() / 3600.0
                     if diff_hours > 4.0:
                         is_market_closed = True
-                        st.warning(f"⛔ MARKET CLOSED · Displaying analysis from last close ({last_ts.strftime('%d %b %H:%M UTC')})")
+                        st.warning(f\"⛔ MARKET CLOSED · Displaying analysis from last close ({last_ts.strftime('%d %b %H:%M UTC')})\")
                 except:
                     pass
 
@@ -664,7 +669,7 @@ def show_trading_terminal():
                         volatility = float(volatility) if not np.isnan(float(volatility)) else 0.0
 
                         # Calculate real-time PnL if active trade
-                        pnl_html = ""
+                        pnl_html = \"\"
                         if result and result.get('price_at_signal'):
                             try:
                                 entry_price = float(result['price_at_signal'])
@@ -672,43 +677,43 @@ def show_trading_terminal():
                                 pip_size = 0.01 if ('JPY' in symbol or 'GOLD' in symbol or 'XAU' in symbol) else 0.0001
                                 pnl_pips = (last_price - entry_price) / pip_size * direction
                                 
-                                pnl_color = "#00FF88" # Fallback green
-                                if pnl_pips < 0: pnl_color = "#FF4466" # Fallback red
+                                pnl_color = \"#00FF88\" # Fallback green
+                                if pnl_pips < 0: pnl_color = \"#FF4466\" # Fallback red
                                 
-                                pnl_sign = "+" if pnl_pips >= 0 else ""
-                                pnl_html = f'<span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">{pnl_sign}{pnl_pips:.1f} pips</span>'
+                                pnl_sign = \"+\" if pnl_pips >= 0 else \"\"
+                                pnl_html = f'<span style=\"font-family: monospace; font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);\">{pnl_sign}{pnl_pips:.1f} pips</span>'
                             except:
-                                pnl_html = ""
+                                pnl_html = \"\"
 
                         # Render Header (with hardcoded fallbacks for CSS variables)
-                        st.markdown(f"""
-                        <div style="margin-bottom: 16px;">
-                            <span style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">{symbol}</span>
-                            <span style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
-                            <span style="font-family: monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 8px;">
+                        st.markdown(f\"\"\"
+                        <div style=\"margin-bottom: 16px;\">
+                            <span style=\"font-size: 1.5rem; font-weight: 800; color: #ffffff;\">{symbol}</span>
+                            <span style=\"font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;\">{last_price:.5f}</span>
+                            <span style=\"font-family: monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 8px;\">
                                 {'▲' if change >= 0 else '▼'} {abs(change):.2%}
                             </span>
                             {pnl_html}
                         </div>
-                        """, unsafe_allow_html=True)
+                        \"\"\", unsafe_allow_html=True)
 
                         m1, m2, m3 = st.columns(3)
-                        m1.metric("Price", f"{last_price:.5f}", f"{change:+.2%}")
-                        m2.metric("Volatility", f"{volatility:.3f}%")
-                        m3.metric("RSI (14)", f"{current_rsi:.1f}",
-                                  "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
+                        m1.metric(\"Price\", f\"{last_price:.5f}\", f\"{change:+.2%}\")
+                        m2.metric(\"Volatility\", f\"{volatility:.3f}%\")
+                        m3.metric(\"RSI (14)\", f\"{current_rsi:.1f}\",
+                                  \"Overbought\" if current_rsi > 70 else \"Oversold\" if current_rsi < 30 else \"Neutral\")
                     except Exception as e:
-                        logger.error(f"Header rendering failed for {symbol}: {e}")
-                        st.caption("Header metrics currently unavailable.")
+                        logger.error(f\"Header rendering failed for {symbol}: {e}\")
+                        st.caption(\"Header metrics currently unavailable.\")
                 else:
-                    st.warning("Insufficient data for header calculation.")
+                    st.warning(\"Insufficient data for header calculation.\")
 
                 render_chart(df, symbol)
             else:
-                st.warning("No chart data available. Check API connection.")
+                st.warning(\"No chart data available. Check API connection.\")
 
         with col_side:
-            section_header("🤖", "AI Verdict")
+            section_header(\"🤖\", \"AI Verdict\")
 
             if result:
                 p_buy = result.get('buy_prob') or 0.0
@@ -716,7 +721,7 @@ def show_trading_terminal():
                 p_wait = result.get('wait_prob') or 0.0
 
                 # --- 3. Multi-Tier Conviction Stack (NEW) ---
-                st.markdown('<div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Stacked Conviction View</div>', unsafe_allow_html=True)
+                st.markdown('<div style=\"font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;\">Stacked Conviction View</div>', unsafe_allow_html=True)
                 
                 # Fetch all active tiers for this symbol
                 all_active_tiers = db.get_active_signals(symbol=symbol, include_hidden=True)
@@ -730,29 +735,29 @@ def show_trading_terminal():
                         t_live = not bool(tier_data.get('is_hidden', 0))
                         
                         # Create a unique key for the stack (Live/Shadow + Tier)
-                        tier_key = f"{'LIVE' if t_live else 'SHADOW'}-{t_val}"
+                        tier_key = f\"{'LIVE' if t_live else 'SHADOW'}-{t_val}\"
                         if tier_key in seen_tiers:
                             continue
                         seen_tiers.add(tier_key)
                         
                         t_sig = tier_data.get('signal', 'WAIT')
-                        item_class = "tier-stack-live" if t_live else "tier-stack-shadow"
-                        badge_label = "LIVE" if t_live else "SHADOW"
+                        item_class = \"tier-stack-live\" if t_live else \"tier-stack-shadow\"
+                        badge_label = \"LIVE\" if t_live else \"SHADOW\"
                         
-                        st.markdown(f"""
-                        <div class="tier-stack-item {item_class}">
-                            <div style="font-weight: 600; font-family: var(--font-mono); color: {'var(--signal-buy)' if t_sig == 'BUY' else 'var(--signal-sell)' if t_sig == 'SELL' else 'var(--text-muted)'};">
+                        st.markdown(f\"\"\"
+                        <div class=\"tier-stack-item {item_class}\">
+                            <div style=\"font-weight: 600; font-family: var(--font-mono); color: {'var(--signal-buy)' if t_sig == 'BUY' else 'var(--signal-sell)' if t_sig == 'SELL' else 'var(--text-muted)'};\">
                                 {t_val}% {t_sig}
                             </div>
-                            <div class="tier-stack-badge" style="background: { 'rgba(0,255,136,0.1)' if t_live else 'rgba(255,255,255,0.05)' }; color: { 'var(--signal-buy)' if t_live else 'var(--text-muted)' }; border: 1px solid { 'var(--signal-buy-border)' if t_live else 'var(--border-glass)' };">
+                            <div class=\"tier-stack-badge\" style=\"background: { 'rgba(0,255,136,0.1)' if t_live else 'rgba(255,255,255,0.05)' }; color: { 'var(--signal-buy)' if t_live else 'var(--text-muted)' }; border: 1px solid { 'var(--signal-buy-border)' if t_live else 'var(--border-glass)' };\">
                                 {badge_label}
                             </div>
                         </div>
-                        """, unsafe_allow_html=True)
+                        \"\"\", unsafe_allow_html=True)
                 else:
-                    st.caption("No secondary convictions detected.")
+                    st.caption(\"No secondary convictions detected.\")
 
-                st.markdown('<div style="margin-top: 24px;"></div>', unsafe_allow_html=True)
+                st.markdown('<div style=\"margin-top: 24px;\"></div>', unsafe_allow_html=True)
 
                 try:
                     # Clean the tier string (handles cases like '70%70%' or None)
@@ -772,176 +777,176 @@ def show_trading_terminal():
                     regime = str(result.get('regime') or 'RANGING').upper()
                     is_crisis = 'CRISIS' in regime
                     
-                    status_text = "PASSED" if (conf > 0 and pred != "WAIT") else "FILTERED (Caution)" if (pred == "WAIT" and conf > 0.1) else "FILTERED"
-                    status_color = "var(--text-muted)" # Initial fallback
+                    status_text = \"PASSED\" if (conf > 0 and pred != \"WAIT\") else \"FILTERED (Caution)\" if (pred == \"WAIT\" and conf > 0.1) else \"FILTERED\"
+                    status_color = \"var(--text-muted)\" # Initial fallback
                     
                     # Dynamic override for Crisis/Safety blocks
                     if is_crisis:
-                        status_text = "⚠️ CRISIS BLOCK (Safety)"
-                        status_color = "#FF4466" # Bright Red
-                        pred = "WAIT"
+                        status_text = \"⚠️ CRISIS BLOCK (Safety)\"
+                        status_color = \"#FF4466\" # Bright Red
+                        pred = \"WAIT\"
                     elif is_market_closed:
-                        status_text = "HISTORICAL ANALYSIS"
-                        status_color = "var(--text-muted)"
-                        if pred in ('BUY', 'SELL'): pred = "WAIT"
+                        status_text = \"HISTORICAL ANALYSIS\"
+                        status_color = \"var(--text-muted)\"
+                        if pred in ('BUY', 'SELL'): pred = \"WAIT\"
                     elif pred in ('BUY', 'SELL'):
                         is_hidden = bool(result.get('is_hidden', 0))
                         if not is_actively_trading:
-                            status_text = f"RESTING (AI Conviction: {pred})"
-                            status_color = "var(--text-muted)"
-                            pred = "WAIT"
+                            status_text = f\"RESTING (AI Conviction: {pred})\"
+                            status_color = \"var(--text-muted)\"
+                            pred = \"WAIT\"
                         elif is_hidden or not is_approved:
-                            status_text = "CERTIFICATION PHASE (Shadow)"
-                            status_color = "var(--accent-gold)"
+                            status_text = \"CERTIFICATION PHASE (Shadow)\"
+                            status_color = \"var(--accent-gold)\"
                         else:
-                            status_color = "var(--signal-buy)" if pred == "BUY" else "var(--signal-sell)"
+                            status_color = \"var(--signal-buy)\" if pred == \"BUY\" else \"var(--signal-sell)\"
                     else:
-                        status_color = "var(--accent-gold)" if (pred == "WAIT" and conf > 0.1) else "var(--text-muted)"
+                        status_color = \"var(--accent-gold)\" if (pred == \"WAIT\" and conf > 0.1) else \"var(--text-muted)\"
                 except Exception as e:
-                    logger.warning(f"Status calculation failed: {e}")
-                    status_text = "INITIALIZING..."
-                    status_color = "var(--text-muted)"
-                    winning_tier = "60"
+                    logger.warning(f\"Status calculation failed: {e}\")
+                    status_text = \"INITIALIZING...\"
+                    status_color = \"var(--text-muted)\"
+                    winning_tier = \"60\"
 
                 # --- 4. Main Verdict Display (Legacy Refactored) ---
-                st.markdown(f"""
-                <div style="padding: 16px; background: {status_color if '#000' in status_color else 'rgba(255,255,255,0.02)'}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">SYSTEM STATUS</div>
-                    <div style="font-weight: 700; color: {status_color}; font-size: 0.9rem;">{status_text}</div>
+                st.markdown(f\"\"\"
+                <div style=\"padding: 16px; background: {status_color if '#000' in status_color else 'rgba(255,255,255,0.02)'}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;\">
+                    <div style=\"font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;\">SYSTEM STATUS</div>
+                    <div style=\"font-weight: 700; color: {status_color}; font-size: 0.9rem;\">{status_text}</div>
                 </div>
-                """, unsafe_allow_html=True)
+                \"\"\", unsafe_allow_html=True)
                 
                 # --- 3. Render AI Verdict Card ---
                 try:
-                    ts_display = "Just Now"
+                    ts_display = \"Just Now\"
                     try:
                         ts_obj = datetime.fromisoformat(result.get('timestamp', datetime.now().isoformat()))
-                        ts_display = ts_obj.strftime("%d %b %H:%M")
+                        ts_display = ts_obj.strftime(\"%d %b %H:%M\")
                     except: pass
 
                     display_conf = result.get('raw_confidence', conf) or 0.0
                     vol_trades = result.get('model_trades', 0) or 0
                     
-                    css = f"signal-{pred.lower()}"
+                    css = f\"signal-{pred.lower()}\"
                     
-                    st.markdown(f"""
-<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
+                    st.markdown(f\"\"\"
+<div class=\"glass-card\" style=\"padding: 24px; text-align: center; border-top: 3px solid {status_color};\">
 <!-- 1. DECISION LAYER -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase;">
+<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;\">
+    <div style=\"font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase;\">
     Target: {winning_tier}%
     </div>
-    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);">
+    <div style=\"font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);\">
     🕒 {ts_display}
     </div>
 </div>
-<div class="signal-badge {css}" style="margin-bottom: 20px;">{pred}</div>
-{f'<div style="font-family: var(--font-mono); font-size: 0.6rem; color: #00FF88; margin-top: -15px; margin-bottom: 15px;">AI INTENT: {result.get("expert_intent")}</div>' if (pred == "WAIT" and result.get("expert_intent") and result.get("expert_intent") != "WAIT") else ''}
+<div class=\"signal-badge {css}\" style=\"margin-bottom: 20px;\">{pred}</div>
+{f'<div style=\"font-family: var(--font-mono); font-size: 0.6rem; color: #00FF88; margin-top: -15px; margin-bottom: 15px;\">AI INTENT: {result.get(\"expert_intent\")}</div>' if (pred == \"WAIT\" and result.get(\"expert_intent\") and result.get(\"expert_intent\") != \"WAIT\") else ''}
 <!-- 2. EXPERT CONVICTION vs HURDLE -->
-<div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-glass);">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-<span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expert Conviction</span>
-<span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{display_conf:.1%}</span>
+<div style=\"background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-glass); text-align: left;\">
+<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;\">
+<span style=\"font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;\">Expert Conviction</span>
+<span style=\"font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);\">{display_conf:.1%}</span>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-<span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Precision Hurdle</span>
-<span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">{f"{result.get('regime_threshold', 0):.0%}" if result.get('regime_threshold') else f"{winning_tier}%"}</span>
+<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;\">
+<span style=\"font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;\">Precision Hurdle</span>
+<span style=\"font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);\">{f\"{result.get('regime_threshold', 0):.0%}\" if result.get('regime_threshold') else f\"{winning_tier}%\"}</span>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: center;">
-<span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Expertise Volume</span>
-<span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-cyan);">{vol_trades} Trades</span>
+<div style=\"display: flex; justify-content: space-between; align-items: center;\">
+<span style=\"font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;\">Expertise Volume</span>
+<span style=\"font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-cyan);\">{vol_trades} Trades</span>
 </div>
-<div style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.6rem; color: {status_color}; font-weight: 700; letter-spacing: 0.1em;">
+<div style=\"margin-top: 10px; font-family: var(--font-mono); font-size: 0.6rem; color: {status_color}; font-weight: 700; letter-spacing: 0.1em;\">
 STATUS: {status_text}
 </div>
 </div>
 <!-- 3. MARKET HEATMAP -->
-<div style="padding-top: 10px; border-top: 1px solid var(--border-glass);">
-<div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">Market Sentiment Heatmap</div>
-<div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.05); margin-bottom: 10px;">
-<div style="width: {(p_buy or 0.0):.1%}; background: var(--signal-buy);"></div>
-<div style="width: {(p_wait or 0.0):.1%}; background: var(--signal-wait);"></div>
-<div style="width: {(p_sell or 0.0):.1%}; background: var(--signal-sell);"></div>
+<div style=\"padding-top: 10px; border-top: 1px solid var(--border-glass);\">
+<div style=\"font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;\">Market Sentiment Heatmap</div>
+<div style=\"display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.05); margin-bottom: 10px;\">
+<div style=\"width: {(p_buy or 0.0):.1%}; background: var(--signal-buy);\"></div>
+<div style=\"width: {(p_wait or 0.0):.1%}; background: var(--signal-wait);\"></div>
+<div style=\"width: {(p_sell or 0.0):.1%}; background: var(--signal-sell);\"></div>
 </div>
-<div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.65rem;">
-<div style="color: var(--signal-buy);">B {(p_buy or 0.0):.0%}</div>
-<div style="color: var(--signal-wait);">W {(p_wait or 0.0):.0%}</div>
-<div style="color: var(--signal-sell);">S {(p_sell or 0.0):.0%}</div>
+<div style=\"display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.65rem;\">
+<div style=\"color: var(--signal-buy);\">B {(p_buy or 0.0):.0%}</div>
+<div style=\"color: var(--signal-wait);\">W {(p_wait or 0.0):.0%}</div>
+<div style=\"color: var(--signal-sell);\">S {(p_sell or 0.0):.0%}</div>
 </div>
 </div>
 <!-- 4. SAFETY EXPLAINER -->
-<div style="margin-top: 15px; padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);">
-<div style="font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;">Safety Intelligence Audit</div>
-<p style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
-                            {"Setup validated by core logic, but filtered by the 15% Heatmap Caution gate to protect against fake breakouts." if (pred == "WAIT" and conf > 0.5) else 
-                             "AI is currently monitoring institutional flows. High-conviction entry pending institutional surge." if (pred == "WAIT" and conf <= 0.5) else
-                             "High-conviction institutional entry detected. Precision targeting active."}
+<div style=\"margin-top: 15px; padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);\">
+<div style=\"font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;\">Safety Intelligence Audit</div>
+<p style=\"font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;\">
+                            {\"Setup validated by core logic, but filtered by the 15% Heatmap Caution gate to protect against fake breakouts.\" if (pred == \"WAIT\" and conf > 0.5) else 
+                             \"AI is currently monitoring institutional flows. High-conviction entry pending institutional surge.\" if (pred == \"WAIT\" and conf <= 0.5) else
+                             \"High-conviction institutional entry detected. Precision targeting active.\"}
 </p>
 </div>
 </div>
-""", unsafe_allow_html=True)
+\"\"\", unsafe_allow_html=True)
                 except Exception as e:
-                    logger.error(f"Card rendering failed: {e}")
-                    st.error("AI Verdict Card: Initialization in Progress...")
+                    logger.error(f\"Card rendering failed: {e}\")
+                    st.error(\"AI Verdict Card: Initialization in Progress...\")
 
-                if pred in ["BUY", "SELL"] and result.get('tp_price'):
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    section_header("📍", "Trading Levels")
+                if pred in [\"BUY\", \"SELL\"] and result.get('tp_price'):
+                    st.markdown(\"<br>\", unsafe_allow_html=True)
+                    section_header(\"📍\", \"Trading Levels\")
                     tp_pips = result.get('tp_pips') or 0
                     sl_pips = result.get('sl_pips') or 0
                     rr = tp_pips / max(sl_pips, 1)
 
-                    st.markdown(f"""
-                    <div class="glass-card" style="padding: 16px;">
-                        <div class="level-row level-tp">
-                            <span class="level-label">TP</span>
-                            <span class="level-price">{result['tp_price']:.5f}</span>
-                            <span class="level-pips">+{tp_pips}p</span>
+                    st.markdown(f\"\"\"
+                    <div class=\"glass-card\" style=\"padding: 16px;\">
+                        <div class=\"level-row level-tp\">
+                            <span class=\"level-label\">TP</span>
+                            <span class=\"level-price\">{result['tp_price']:.5f}</span>
+                            <span class=\"level-pips\">+{tp_pips}p</span>
                         </div>
-                        <div class="level-row level-entry">
-                            <span class="level-label">Entry</span>
-                            <span class="level-price">{result['price_at_signal']:.5f}</span>
+                        <div class=\"level-row level-entry\">
+                            <span class=\"level-label\">Entry</span>
+                            <span class=\"level-price\">{result['price_at_signal']:.5f}</span>
                         </div>
-                        <div class="level-row level-sl">
-                            <span class="level-label">SL</span>
-                            <span class="level-price">{result['sl_price']:.5f}</span>
-                            <span class="level-pips">-{sl_pips}p</span>
+                        <div class=\"level-row level-sl\">
+                            <span class=\"level-label\">SL</span>
+                            <span class=\"level-price\">{result['sl_price']:.5f}</span>
+                            <span class=\"level-pips\">-{sl_pips}p</span>
                         </div>
-                        <div style="text-align: center; margin-top: 12px;">
-                            <span class="rr-badge">R:R 1:{rr:.1f}</span>
+                        <div style=\"text-align: center; margin-top: 12px;\">
+                            <span class=\"rr-badge\">R:R 1:{rr:.1f}</span>
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    \"\"\", unsafe_allow_html=True)
             else:
                 # No result yet — show an informative monitoring card
                 # (either model not trained for this pair, or inference is still loading)
-                last_price_display = ""
+                last_price_display = \"\"
                 try:
                     if not df.empty:
-                        last_price_display = f"{df['close'].iloc[-1]:.5f}"
+                        last_price_display = f\"{df['close'].iloc[-1]:.5f}\"
                 except: pass
 
-                st.markdown(f"""
-<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid var(--text-muted);">
-  <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">
+                st.markdown(f\"\"\"
+<div class=\"glass-card\" style=\"padding: 24px; text-align: center; border-top: 3px solid var(--text-muted);\">
+  <div style=\"font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;\">
     {symbol} · Monitoring
   </div>
-  <div class="signal-badge signal-wait" style="margin-bottom: 20px;">WAIT</div>
-  <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-glass);">
-    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">Last Price</div>
-    <div style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{last_price_display or "—"}</div>
+  <div class=\"signal-badge signal-wait\" style=\"margin-bottom: 20px;\">WAIT</div>
+  <div style=\"background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-glass);\">
+    <div style=\"font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;\">Last Price</div>
+    <div style=\"font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);\">{last_price_display or \"—\"}</div>
   </div>
-  <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;">
+  <div style=\"font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;\">
     STATUS: SCANNING...
   </div>
-  <div style="padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);">
-    <div style="font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;">AI Status</div>
-    <p style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+  <div style=\"padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);\">
+    <div style=\"font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;\">AI Status</div>
+    <p style=\"font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;\">
       No specialist model is currently certified for {symbol}. The engine is monitoring for high-conviction setups.
     </p>
   </div>
 </div>
-""", unsafe_allow_html=True)
+\"\"\", unsafe_allow_html=True)
 
     # Invoke the fragment — first call renders, subsequent calls auto-rerun every 15s
     _live_terminal_data()
@@ -950,7 +955,7 @@ STATUS: {status_text}
 # VIEW 4: Analytics (Performance Audit)
 # =============================================================================
 def show_analytics():
-    hero_banner("Analytics Suite", "Signal history, outcomes, and win rate analytics")
+    hero_banner(\"Analytics Suite\", \"Signal history, outcomes, and win rate analytics\")
 
     db = get_db()
     
@@ -958,7 +963,7 @@ def show_analytics():
     signals = db.get_recent_signals(limit=2000)
 
     if not signals:
-        st.info("📊 No signal history. Start the Sentinel to collect data.")
+        st.info(\"📊 No signal history. Start the Sentinel to collect data.\")
         return
 
     # REMOVED 48h Filter (User requested full history visibility)
@@ -969,7 +974,7 @@ def show_analytics():
         recent_signals.append(s)
             
     if not recent_signals:
-        st.info("📊 No data found.")
+        st.info(\"📊 No data found.\")
         return
 
     df = pd.DataFrame(recent_signals)
@@ -988,39 +993,39 @@ def show_analytics():
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(kpi_card("Win Rate", f"{win_rate:.1f}%", f"{wins} wins", "accent-green"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Win Rate\", f\"{win_rate:.1f}%\", f\"{wins} wins\", \"accent-green\"), unsafe_allow_html=True)
     with c2:
-        st.markdown(kpi_card("Closed Trades", str(len(completed)), "Resolved", "accent-cyan"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Closed Trades\", str(len(completed)), \"Resolved\", \"accent-cyan\"), unsafe_allow_html=True)
     with c3:
-        st.markdown(kpi_card("Active Trades", str(active_count), "Currently open", "accent-gold"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Active Trades\", str(active_count), \"Currently open\", \"accent-gold\"), unsafe_allow_html=True)
     with c4:
-        best = ""
+        best = \"\"
         if not completed.empty:
             ps = completed.groupby('symbol').apply(lambda x: (x['outcome']=='SUCCESS').sum()/len(x)*100)
             if not ps.empty:
-                best = f"{ps.idxmax()} ({ps.max():.0f}%)"
-        st.markdown(kpi_card("Best Pair", best or "N/A", "Highest win rate", "accent-cyan"), unsafe_allow_html=True)
+                best = f\"{ps.idxmax()} ({ps.max():.0f}%)\"
+        st.markdown(kpi_card(\"Best Pair\", best or \"N/A\", \"Highest win rate\", \"accent-cyan\"), unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(\"<br>\", unsafe_allow_html=True)
     # 3. Check for external filters (e.g. from KPI card)
-    default_outcomes = ["ACTIVE", "SUCCESS", "FAIL"]
+    default_outcomes = [\"ACTIVE\", \"SUCCESS\", \"FAIL\"]
     
-    # "closed" filter = Only TP/SL outcomes (ignore expired timeouts)
-    if st.query_params.get("filter") == "closed":
-        default_outcomes = ["SUCCESS", "FAIL"]
-        st.info("🎯 Showing Completed Trades (TP/SL Hit Only)")
+    # \"closed\" filter = Only TP/SL outcomes (ignore expired timeouts)
+    if st.query_params.get(\"filter\") == \"closed\":
+        default_outcomes = [\"SUCCESS\", \"FAIL\"]
+        st.info(\"🎯 Showing Completed Trades (TP/SL Hit Only)\")
         
-    elif st.query_params.get("filter") == "expired":
-        default_outcomes = ["SUCCESS", "FAIL", "EXPIRED", "N/A"]
-        st.info("🔍 Showing All History (Including Timeouts)")
+    elif st.query_params.get(\"filter\") == \"expired\":
+        default_outcomes = [\"SUCCESS\", \"FAIL\", \"EXPIRED\", \"N/A\"]
+        st.info(\"🔍 Showing All History (Including Timeouts)\")
 
     fc1, fc2, fc3 = st.columns(3)
     with fc1:
-        sym_filter = st.multiselect("Filter Pair", sorted(df['symbol'].unique()))
+        sym_filter = st.multiselect(\"Filter Pair\", sorted(df['symbol'].unique()))
     with fc2:
-        sig_filter = st.multiselect("Filter Signal", ["BUY", "SELL", "WAIT"], default=["BUY", "SELL"])
+        sig_filter = st.multiselect(\"Filter Signal\", [\"BUY\", \"SELL\", \"WAIT\"], default=[\"BUY\", \"SELL\"])
     with fc3:
-        out_filter = st.multiselect("Filter Outcome", ["ACTIVE", "SUCCESS", "FAIL", "EXPIRED", "N/A"],
+        out_filter = st.multiselect(\"Filter Outcome\", [\"ACTIVE\", \"SUCCESS\", \"FAIL\", \"EXPIRED\", \"N/A\"],
                                      default=default_outcomes)
 
     filtered = df.copy()
@@ -1033,12 +1038,12 @@ def show_analytics():
 
     st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True,
                  column_config={
-                     "timestamp": "Time", "symbol": "Pair", "signal": "Direction",
-                     "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
-                     "tp_price": st.column_config.NumberColumn("TP", format="%.5f"),
-                     "sl_price": st.column_config.NumberColumn("SL", format="%.5f"),
-                     "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=1),
-                     "outcome": "Outcome"
+                     \"timestamp\": \"Time\", \"symbol\": \"Pair\", \"signal\": \"Direction\",
+                     \"price_at_signal\": st.column_config.NumberColumn(\"Entry\", format=\"%.5f\"),
+                     \"tp_price\": st.column_config.NumberColumn(\"TP\", format=\"%.5f\"),
+                     \"sl_price\": st.column_config.NumberColumn(\"SL\", format=\"%.5f\"),
+                     \"confidence\": st.column_config.ProgressColumn(\"Confidence\", format=\"%.0f%%\", min_value=0, max_value=1),
+                     \"outcome\": \"Outcome\"
                  })
 
 
@@ -1052,67 +1057,67 @@ def show_model_audit():
     except:
         px = None
 
-    hero_banner("Specialist Model Audit", "Transparency report — only validated models are deployed")
+    hero_banner(\"Specialist Model Audit\", \"Transparency report — only validated models are deployed\")
 
-    models_dir = PROJECT_ROOT / "models" / "specialist"
+    models_dir = PROJECT_ROOT / \"models\" / \"specialist\"
 
     if not models_dir.exists():
-        st.info("⏳ No specialist models found. Run training first.")
+        st.info(\"⏳ No specialist models found. Run training first.\")
         return
 
     records = []
     for sym_dir in models_dir.iterdir():
         if sym_dir.is_dir():
-            for sig_type in ["BUY", "SELL"]:
-                mpath = sym_dir / sig_type / "metrics.json"
+            for sig_type in [\"BUY\", \"SELL\"]:
+                mpath = sym_dir / sig_type / \"metrics.json\"
                 if mpath.exists():
                     try:
                         with open(mpath) as f:
                             m = json.load(f)
                         records.append({
-                            "Symbol": sym_dir.name, "Type": sig_type,
-                            "Win Rate": m.get("accuracy", 0.0),
-                            "Params": str(m.get("params", {})),
-                            "Certified": m.get("created_at", "")[:16]
+                            \"Symbol\": sym_dir.name, \"Type\": sig_type,
+                            \"Win Rate\": m.get(\"accuracy\", 0.0),
+                            \"Params\": str(m.get(\"params\", {})),
+                            \"Certified\": m.get(\"created_at\", \"\")[:16]
                         })
                     except:
                         pass
 
     if not records:
-        st.info("⏳ No certified models yet.")
+        st.info(\"⏳ No certified models yet.\")
         return
 
     df = pd.DataFrame(records)
-    avg = df["Win Rate"].mean()
+    avg = df[\"Win Rate\"].mean()
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(kpi_card("Certified Models", str(len(df)), "Deployed", "accent-cyan"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Certified Models\", str(len(df)), \"Deployed\", \"accent-cyan\"), unsafe_allow_html=True)
     with c2:
-        st.markdown(kpi_card("Avg Win Rate", f"{avg:.1%}", "Fleet average", "accent-green"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Avg Win Rate\", f\"{avg:.1%}\", \"Fleet average\", \"accent-green\"), unsafe_allow_html=True)
     with c3:
-        st.markdown(kpi_card("Threshold", "60.0%", "Min requirement", "accent-gold"), unsafe_allow_html=True)
+        st.markdown(kpi_card(\"Threshold\", \"60.0%\", \"Min requirement\", \"accent-gold\"), unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(\"<br>\", unsafe_allow_html=True)
 
     if px:
-        fig = px.bar(df, x="Symbol", y="Win Rate", color="Type", barmode="group",
-                     color_discrete_map={"BUY": "#00FF88", "SELL": "#FF4466"})
-        fig.add_hline(y=0.6, line_dash="dash", line_color="rgba(255,215,0,0.4)",
-                      annotation_text="60% Threshold", annotation_font_color="#FFD700")
+        fig = px.bar(df, x=\"Symbol\", y=\"Win Rate\", color=\"Type\", barmode=\"group\",
+                     color_discrete_map={\"BUY\": \"#00FF88\", \"SELL\": \"#FF4466\"})
+        fig.add_hline(y=0.6, line_dash=\"dash\", line_color=\"rgba(255,215,0,0.4)\",
+                      annotation_text=\"60% Threshold\", annotation_font_color=\"#FFD700\")
         fig.update_layout(
             template='plotly_dark',
             plot_bgcolor='rgba(10,14,26,0)', paper_bgcolor='rgba(10,14,26,0)',
             font=dict(family='Inter, sans-serif', color='#8b95a8'),
-            yaxis_tickformat=".0%", height=380, margin=dict(l=0,r=0,t=30,b=0),
+            yaxis_tickformat=\".0%\", height=380, margin=dict(l=0,r=0,t=30,b=0),
             yaxis=dict(gridcolor='rgba(255,255,255,0.03)'),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            legend=dict(orientation=\"h\", yanchor=\"bottom\", y=1.02, xanchor=\"right\", x=1)
         )
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-    section_header("📋", "Model Registry")
-    sorted_df = df.sort_values("Win Rate", ascending=False).copy()
-    sorted_df["Win Rate"] = sorted_df["Win Rate"].apply(lambda x: f"{x:.1%}")
+    section_header(\"📋\", \"Model Registry\")
+    sorted_df = df.sort_values(\"Win Rate\", ascending=False).copy()
+    sorted_df[\"Win Rate\"] = sorted_df[\"Win Rate\"].apply(lambda x: f\"{x:.1%}\")
     st.dataframe(sorted_df, use_container_width=True, hide_index=True)
 
 
@@ -1122,57 +1127,57 @@ def show_model_audit():
 def show_control_panel():
     import yaml
 
-    hero_banner("Control Panel", "API configuration, notifications, and system preferences")
+    hero_banner(\"Control Panel\", \"API configuration, notifications, and system preferences\")
 
-    t1, t2 = st.tabs(["🔌 Data Provider", "📲 Notifications"])
+    t1, t2 = st.tabs([\"🔌 Data Provider\", \"📲 Notifications\"])
 
-    config_path = PROJECT_ROOT / "config.yaml"
+    config_path = PROJECT_ROOT / \"config.yaml\"
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, \"r\") as f:
             config = yaml.safe_load(f)
     except Exception as e:
-        st.error(f"Failed to load config: {e}")
+        st.error(f\"Failed to load config: {e}\")
         return
 
     with t1:
-        section_header("📡", "Data Provider")
+        section_header(\"📡\", \"Data Provider\")
         active = config.get('data_provider', {}).get('active', 'yfinance')
 
-        st.markdown(f"""
-        <div class="glass-card" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px;">
-            <div class="status-dot"></div>
-            <span style="font-weight: 600;">Active Provider:</span>
-            <span style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">{active.upper()}</span>
+        st.markdown(f\"\"\"
+        <div class=\"glass-card\" style=\"display: flex; align-items: center; gap: 12px; padding: 16px 20px;\">
+            <div class=\"status-dot\"></div>
+            <span style=\"font-weight: 600;\">Active Provider:</span>
+            <span style=\"font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;\">{active.upper()}</span>
         </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+        \"\"\", unsafe_allow_html=True)
+        st.markdown(\"<br>\", unsafe_allow_html=True)
 
-        api_key = st.text_input("TwelveData API Key",
+        api_key = st.text_input(\"TwelveData API Key\",
                                  value=config.get('data_provider', {}).get('twelvedata', {}).get('api_key', ''),
-                                 type="password")
+                                 type=\"password\")
 
         bc1, bc2 = st.columns(2)
         with bc1:
-            if st.button("💾 Save & Switch to TwelveData", use_container_width=True):
+            if st.button(\"💾 Save & Switch to TwelveData\", use_container_width=True):
                 if api_key:
                     config.setdefault('data_provider', {}).setdefault('twelvedata', {})['api_key'] = api_key
                     config['data_provider']['active'] = 'twelvedata'
-                    with open(config_path, "w") as f:
+                    with open(config_path, \"w\") as f:
                         yaml.dump(config, f, default_flow_style=False)
-                    st.toast("Provider switched to TwelveData", icon="🚀")
+                    st.toast(\"Provider switched to TwelveData\", icon=\"🚀\")
                     time.sleep(1)
                     st.rerun()
         with bc2:
-            if st.button("🔄 Revert to Yahoo Finance", use_container_width=True):
+            if st.button(\"🔄 Revert to Yahoo Finance\", use_container_width=True):
                 config['data_provider']['active'] = 'yfinance'
-                with open(config_path, "w") as f:
+                with open(config_path, \"w\") as f:
                     yaml.dump(config, f, default_flow_style=False)
-                st.toast("Reverted to Yahoo Finance", icon="🔄")
+                st.toast(\"Reverted to Yahoo Finance\", icon=\"🔄\")
                 time.sleep(1)
                 st.rerun()
 
     with t2:
-        section_header("🔔", "Telegram Bot")
+        section_header(\"🔔\", \"Telegram Bot\")
 
         notif = config.get('notifications', {}).get('telegram', {})
         enabled = notif.get('enabled', False)
@@ -1180,33 +1185,33 @@ def show_control_panel():
         chat = notif.get('chat_id', '')
 
         if enabled and token and chat:
-            st.markdown("""
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px;">
-                <div class="status-dot"></div>
-                <span style="font-weight: 600; color: var(--success);">Telegram Connected</span>
+            st.markdown(\"\"\"
+            <div class=\"glass-card\" style=\"display: flex; align-items: center; gap: 12px; padding: 16px 20px;\">
+                <div class=\"status-dot\"></div>
+                <span style=\"font-weight: 600; color: var(--success);\">Telegram Connected</span>
             </div>
-            """, unsafe_allow_html=True)
+            \"\"\", unsafe_allow_html=True)
         else:
-            st.markdown("""
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:var(--signal-sell);"></div>
-                <span style="color: var(--text-secondary);">Telegram Not Configured</span>
+            st.markdown(\"\"\"
+            <div class=\"glass-card\" style=\"display: flex; align-items: center; gap: 12px; padding: 16px 20px;\">
+                <div style=\"width:8px;height:8px;border-radius:50%;background:var(--signal-sell);\"></div>
+                <span style=\"color: var(--text-secondary);\">Telegram Not Configured</span>
             </div>
-            """, unsafe_allow_html=True)
+            \"\"\", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔔 Send Test Alert", use_container_width=True):
+        st.markdown(\"<br>\", unsafe_allow_html=True)
+        if st.button(\"🔔 Send Test Alert\", use_container_width=True):
             try:
                 import requests
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                resp = requests.post(url, data={"chat_id": chat, "text": "⚡ ApexForex: Test alert!"})
+                url = f\"https://api.telegram.org/bot{token}/sendMessage\"
+                resp = requests.post(url, data={\"chat_id\": chat, \"text\": \"⚡ ApexForex: Test alert!\"})
                 if resp.status_code == 200:
                     st.balloons()
-                    st.success("Test message sent!")
+                    st.success(\"Test message sent!\")
                 else:
-                    st.error(f"Error: {resp.text}")
+                    st.error(f\"Error: {resp.text}\")
             except Exception as e:
-                st.error(f"Failed: {e}")
+                st.error(f\"Failed: {e}\")
 
 
 # =============================================================================
@@ -1215,7 +1220,7 @@ def show_control_panel():
 def show_fleet_status():
     import re
 
-    hero_banner("Fleet Status", "Real-time training monitor for Specialist and Foundation models")
+    hero_banner(\"Fleet Status\", \"Real-time training monitor for Specialist and Foundation models\")
 
     def strip_ansi(text):
         return re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])').sub('', text)
@@ -1232,12 +1237,12 @@ def show_fleet_status():
                 content = f.read().decode('utf-8', errors='ignore')
         lines = content.splitlines()
         status = {
-            "symbols_processed": [], "total_symbols": 31,
-            "current_symbol": "None", "phase": "Preparing Fleet",
-            "keras_progress": None, "last_update": None,
-            "metrics": {"accuracy": 0.0, "loss": 0.0},
-            "history": {"step": [], "accuracy": [], "loss": []},
-            "eta": "Calculating..."
+            \"symbols_processed\": [], \"total_symbols\": 31,
+            \"current_symbol\": \"None\", \"phase\": \"Preparing Fleet\",
+            \"keras_progress\": None, \"last_update\": None,
+            \"metrics\": {\"accuracy\": 0.0, \"loss\": 0.0},
+            \"history\": {\"step\": [], \"accuracy\": [], \"loss\": []},
+            \"eta\": \"Calculating...\"
         }
         log_time_p = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
         fold_p = re.compile(r'Fold\s+(\d+):\s+Acc=([\d\.]+)%,\s+Loss=([\d\.]+)')
@@ -1245,83 +1250,83 @@ def show_fleet_status():
         for line in lines:
             line = strip_ansi(line)
             m = log_time_p.match(line)
-            if m: status["last_update"] = m.group(1)
-            if "Starting expert training for" in line:
-                sym = line.split("Starting expert training for")[-1].split()[0].strip()
-                status["current_symbol"] = sym
-                status["phase"] = f"Training {sym}"
-            if "Worker" in line and "Completed" in line:
-                sym = line.split("Completed")[-1].strip().split()[0].strip()
-                if sym not in status["symbols_processed"] and len(sym) <= 7:
-                    status["symbols_processed"].append(sym)
+            if m: status[\"last_update\"] = m.group(1)
+            if \"Starting expert training for\" in line:
+                sym = line.split(\"Starting expert training for\")[-1].split()[0].strip()
+                status[\"current_symbol\"] = sym
+                status[\"phase\"] = f\"Training {sym}\"
+            if \"Worker\" in line and \"Completed\" in line:
+                sym = line.split(\"Completed\")[-1].strip().split()[0].strip()
+                if sym not in status[\"symbols_processed\"] and len(sym) <= 7:
+                    status[\"symbols_processed\"].append(sym)
             m2 = fold_p.search(line)
             if m2:
                 fold_idx = int(m2.group(1))
                 acc = float(m2.group(2)) / 100.0
                 loss = float(m2.group(3))
-                status["metrics"] = {"accuracy": acc, "loss": loss}
-                status["phase"] = f"WFCV Fold {fold_idx}/5"
-                status["keras_progress"] = (fold_idx, 5)
+                status[\"metrics\"] = {\"accuracy\": acc, \"loss\": loss}
+                status[\"phase\"] = f\"WFCV Fold {fold_idx}/5\"
+                status[\"keras_progress\"] = (fold_idx, 5)
                 step += 1
-                status["history"]["step"].append(step)
-                status["history"]["accuracy"].append(acc)
-                status["history"]["loss"].append(loss)
+                status[\"history\"][\"step\"].append(step)
+                status[\"history\"][\"accuracy\"].append(acc)
+                status[\"history\"][\"loss\"].append(loss)
         return status
 
-    log_dir = PROJECT_ROOT / "logs"
-    log_file = log_dir / "specialist_progressive.log"
+    log_dir = PROJECT_ROOT / \"logs\"
+    log_file = log_dir / \"specialist_progressive.log\"
 
     if not log_file.exists():
-        st.info("⏳ No active training log found. Run specialist training to populate this view.")
-        st.markdown(f"Expected log at: `{log_file}`")
+        st.info(\"⏳ No active training log found. Run specialist training to populate this view.\")
+        st.markdown(f\"Expected log at: `{log_file}`\")
         return
 
     status = parse_specialist_log(str(log_file))
     if not status:
-        st.error("Could not parse log file.")
+        st.error(\"Could not parse log file.\")
         return
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.markdown(kpi_card("Phase", status["phase"], accent="accent-cyan"), unsafe_allow_html=True)
-    with c2: st.markdown(kpi_card("Fleet Progress", f"{len(status['symbols_processed'])}/31"), unsafe_allow_html=True)
-    with c3: st.markdown(kpi_card("Accuracy", f"{status['metrics']['accuracy']:.1%}", accent="accent-green"), unsafe_allow_html=True)
-    with c4: st.markdown(kpi_card("Last Sync", status["last_update"] or "--", accent="accent-gold"), unsafe_allow_html=True)
+    with c1: st.markdown(kpi_card(\"Phase\", status[\"phase\"], accent=\"accent-cyan\"), unsafe_allow_html=True)
+    with c2: st.markdown(kpi_card(\"Fleet Progress\", f\"{len(status['symbols_processed'])}/31\"), unsafe_allow_html=True)
+    with c3: st.markdown(kpi_card(\"Accuracy\", f\"{status['metrics']['accuracy']:.1%}\", accent=\"accent-green\"), unsafe_allow_html=True)
+    with c4: st.markdown(kpi_card(\"Last Sync\", status[\"last_update\"] or \"--\", accent=\"accent-gold\"), unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(\"<br>\", unsafe_allow_html=True)
 
-    if status["keras_progress"]:
-        curr, total = status["keras_progress"]
+    if status[\"keras_progress\"]:
+        curr, total = status[\"keras_progress\"]
         st.progress(min(1.0, curr / max(total, 1)))
 
-    if status["history"]["accuracy"]:
-        section_header("📊", "Accuracy Trend")
-        chart_df = pd.DataFrame(status["history"]).set_index("step")
-        st.line_chart(chart_df[["accuracy", "loss"]], use_container_width=True)
+    if status[\"history\"][\"accuracy\"]:
+        section_header(\"📊\", \"Accuracy Trend\")
+        chart_df = pd.DataFrame(status[\"history\"]).set_index(\"step\")
+        st.line_chart(chart_df[[\"accuracy\", \"loss\"]], use_container_width=True)
 
-    section_header("🛰️", "Symbol Grid")
+    section_header(\"🛰️\", \"Symbol Grid\")
     all_syms = [
-        "EURUSD","GBPUSD","USDJPY","AUDUSD","USDCHF","USDCAD","NZDUSD",
-        "EURGBP","EURJPY","GBPJPY","EURCAD","EURAUD","EURCHF","GBPCHF",
-        "GBPAUD","GBPCAD","AUDJPY","CADJPY","CHFJPY","AUDCAD","NZDJPY",
-        "AUDNZD","EURNZD","GBPNZD","AUDCHF","NZDCAD","CADCHF","NZDCHF",
-        "XAUUSD","USOIL","USDSGD"
+        \"EURUSD\",\"GBPUSD\",\"USDJPY\",\"AUDUSD\",\"USDCHF\",\"USDCAD\",\"NZDUSD\",
+        \"EURGBP\",\"EURJPY\",\"GBPJPY\",\"EURCAD\",\"EURAUD\",\"EURCHF\",\"GBPCHF\",
+        \"GBPAUD\",\"GBPCAD\",\"AUDJPY\",\"CADJPY\",\"CHFJPY\",\"AUDCAD\",\"NZDJPY\",
+        \"AUDNZD\",\"EURNZD\",\"GBPNZD\",\"AUDCHF\",\"NZDCAD\",\"CADCHF\",\"NZDCHF\",
+        \"XAUUSD\",\"USOIL\",\"USDSGD\"
     ]
     rows = [all_syms[i:i+6] for i in range(0, len(all_syms), 6)]
     for row in rows:
         cols = st.columns(6)
         for i, sym in enumerate(row):
-            done = sym in status["symbols_processed"]
-            active = sym == status["current_symbol"]
-            bg = "rgba(0,255,136,0.1)" if done else "rgba(0,229,255,0.05)" if active else "rgba(255,255,255,0.03)"
-            border = "1px solid var(--success)" if done else "2px solid var(--accent-cyan)" if active else "1px solid var(--border-glass)"
-            cols[i].markdown(f'<div style="padding:10px;border-radius:8px;background:{bg};border:{border};text-align:center;font-size:0.75rem;font-weight:600;">{sym}</div>', unsafe_allow_html=True)
+            done = sym in status[\"symbols_processed\"]
+            active = sym == status[\"current_symbol\"]
+            bg = \"rgba(0,255,136,0.1)\" if done else \"rgba(0,229,255,0.05)\" if active else \"rgba(255,255,255,0.03)\"
+            border = \"1px solid var(--success)\" if done else \"2px solid var(--accent-cyan)\" if active else \"1px solid var(--border-glass)\"
+            cols[i].markdown(f'<div style=\"padding:10px;border-radius:8px;background:{bg};border:{border};text-align:center;font-size:0.75rem;font-weight:600;\">{sym}</div>', unsafe_allow_html=True)
 
-    section_header("📜", "Log Tail (Last 50 Lines)")
+    section_header(\"📜\", \"Log Tail (Last 50 Lines)\")
     with open(str(log_file), 'r', encoding='utf-8', errors='ignore') as f:
         tail = f.readlines()[-50:]
-    st.code("".join([strip_ansi(l) for l in tail]), language="text")
+    st.code(\"\".join([strip_ansi(l) for l in tail]), language=\"text\")
 
-    if st.button("🔄 Refresh", type="primary"):
+    if st.button(\"🔄 Refresh\", type=\"primary\"):
         st.rerun()
 
 
@@ -1336,7 +1341,7 @@ if 'authenticated' not in st.session_state:
 # Deep Link Auth Bypass (for KPI Cards)
 # If a user clicks a link with ?nav=true, we auto-authenticate to allow the route to load.
 # In a production app, verify a token here. For local app, this is safe.
-if st.query_params.get("nav") == "true":
+if st.query_params.get(\"nav\") == \"true\":
     st.session_state['authenticated'] = True
 
 # Import Landing Page
@@ -1344,7 +1349,7 @@ from landing import show_landing
 
 if not st.session_state['authenticated']:
     # LANDING PAGE MODE
-    pg = st.navigation([st.Page(show_landing, title="ApexForex", icon="⚡")], position="hidden")
+    pg = st.navigation([st.Page(show_landing, title=\"ApexForex\", icon=\"⚡\")], position=\"hidden\")
     pg.run()
     
 else:
@@ -1353,33 +1358,33 @@ else:
     import os
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    pg_home = st.Page(show_command_center, title="Command Center", icon="⚡", default=True, url_path="home")
-    # Note: url_path="market" works if authenticated.
-    pg_market = st.Page(show_market_overview, title="Market Overview", icon="🌍", url_path="market")
-    pg_terminal = st.Page(show_trading_terminal, title="Trading Terminal", icon="📈", url_path="terminal")
-    pg_analytics = st.Page(show_analytics, title="Analytics Suite", icon="📊", url_path="analytics")
-    pg_models = st.Page(show_model_audit, title="Model Audit", icon="🛡️", url_path="audit")
-    pg_control = st.Page(show_control_panel, title="Control Panel", icon="⚙️", url_path="settings")
+    pg_home = st.Page(show_command_center, title=\"Command Center\", icon=\"⚡\", default=True, url_path=\"home\")
+    # Note: url_path=\"market\" works if authenticated.
+    pg_market = st.Page(show_market_overview, title=\"Market Overview\", icon=\"🌍\", url_path=\"market\")
+    pg_terminal = st.Page(show_trading_terminal, title=\"Trading Terminal\", icon=\"📈\", url_path=\"terminal\")
+    pg_analytics = st.Page(show_analytics, title=\"Analytics Suite\", icon=\"📊\", url_path=\"analytics\")
+    pg_models = st.Page(show_model_audit, title=\"Model Audit\", icon=\"🛡️\", url_path=\"audit\")
+    pg_control = st.Page(show_control_panel, title=\"Control Panel\", icon=\"⚙️\", url_path=\"settings\")
     
     # Fleet Monitor (inline — no external file dependency)
-    pg_fleet = st.Page(show_fleet_status, title="Fleet Status", icon="📊", url_path="fleet")
+    pg_fleet = st.Page(show_fleet_status, title=\"Fleet Status\", icon=\"📊\", url_path=\"fleet\")
 
     # External Pages (mapped from existing files)
     import os
     
-    path_profile = os.path.join(BASE_DIR, "pages", "1_User_Profile.py")
-    path_vault = os.path.join(BASE_DIR, "pages", "2_Financials_Vault.py")
-    path_settings = os.path.join(BASE_DIR, "pages", "3_System_Settings.py")
+    path_profile = os.path.join(BASE_DIR, \"pages\", \"1_User_Profile.py\")
+    path_vault = os.path.join(BASE_DIR, \"pages\", \"2_Financials_Vault.py\")
+    path_settings = os.path.join(BASE_DIR, \"pages\", \"3_System_Settings.py\")
 
-    pg_profile = st.Page(path_profile, title="User Profile", icon="👤", url_path="profile")
-    pg_vault = st.Page(path_vault, title="Financials Vault", icon="💳", url_path="vault")
-    pg_settings = st.Page(path_settings, title="System Settings", icon="⚙", url_path="advanced")
+    pg_profile = st.Page(path_profile, title=\"User Profile\", icon=\"👤\", url_path=\"profile\")
+    pg_vault = st.Page(path_vault, title=\"Financials Vault\", icon=\"💳\", url_path=\"vault\")
+    pg_settings = st.Page(path_settings, title=\"System Settings\", icon=\"⚙\", url_path=\"advanced\")
 
     # Build Navigation
     pg = st.navigation({
-        "Intelligence": [pg_home, pg_market, pg_terminal, pg_fleet],
-        "Analytics": [pg_analytics, pg_models],
-        "Management": [pg_control, pg_profile, pg_vault, pg_settings]
+        \"Intelligence\": [pg_home, pg_market, pg_terminal, pg_fleet],
+        \"Analytics\": [pg_analytics, pg_models],
+        \"Management\": [pg_control, pg_profile, pg_vault, pg_settings]
     })
 
     # Sidebar Logo/Footer (Stays constant)
@@ -1392,39 +1397,39 @@ else:
 
     # Sidebar Footer & Global Rerun (Native approach)
     with st.sidebar:
-        st.markdown("---")
+        st.markdown(\"---\")
         sidebar_footer()
         
         # --- SYSTEM MONITOR (FORENSIC DEBUG) ---
-        with st.expander("🛠️ System Monitor (Debug)", expanded=True):
+        with st.expander(\"🛠️ System Monitor (Debug)\", expanded=True):
             import os
             import json
             from pathlib import Path
             
             cwd = os.getcwd()
-            st.code(f"CWD: {cwd}", language="bash")
+            st.code(f\"CWD: {cwd}\", language=\"bash\")
             
             # Test Path Logic
             p_root = Path(cwd)
-            eur_conf = p_root / "models" / "EURUSD" / "90" / "SELL" / "config.json"
+            eur_conf = p_root / \"models\" / \"EURUSD\" / \"90\" / \"SELL\" / \"config.json\"
             
-            st.write(f"**Config Path:** `{eur_conf}`")
+            st.write(f\"**Config Path:** `{eur_conf}`\")
             if eur_conf.exists():
-                st.success("✅ Config File Found!")
+                st.success(\"✅ Config File Found!\")
                 try:
                     with open(eur_conf) as f:
                         data = json.load(f)
-                        trades = data.get("trades", 0)
-                        st.metric("Raw Volume", trades)
+                        trades = data.get(\"trades\", 0)
+                        st.metric(\"Raw Volume\", trades)
                 except:
-                    st.error("Read Failed")
+                    st.error(\"Read Failed\")
             else:
-                st.error("❌ Config NOT Found")
+                st.error(\"❌ Config NOT Found\")
         
         # Simple manual refresh button to bypass health-check lag
-        if st.button("🔄 Force Data Refresh"):
+        if st.button(\"🔄 Force Data Refresh\"):
             st.rerun()
 
     # Auto-refresh is now handled inline via st_autorefresh in show_trading_terminal().
     # Command Center and Market Overview use manual refresh via the sidebar button.
-# Force Reload: 2026-02-11 14:18
+    # Force Reload: 2026-02-11 14:18
