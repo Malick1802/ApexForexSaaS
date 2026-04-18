@@ -127,7 +127,25 @@ def inject_css():
         font-family: var(--font-ui);
         color: var(--text-primary);
     }
-    #MainMenu, footer, header { visibility: hidden; }
+    #MainMenu, footer { visibility: hidden; }
+    
+    /* Ensure sidebar toggle is always visible and styled for the theme */
+    [data-testid="stSidebarCollapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border-radius: 50% !important;
+        padding: 5px !important;
+        margin: 10px !important;
+        border: 1px solid var(--border-glass) !important;
+        transition: all 0.3s ease !important;
+    }
+    [data-testid="stSidebarCollapsedControl"]:hover {
+        background-color: rgba(0, 229, 255, 0.1) !important;
+        border-color: var(--accent-cyan) !important;
+        box-shadow: var(--shadow-glow-cyan) !important;
+    }
+    
     .stDeployButton { display: none; }
 
     /* ── Typography ────────────────────────────────── */

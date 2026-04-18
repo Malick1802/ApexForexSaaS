@@ -6,6 +6,7 @@ SQLite database manager for persisting forex signals.
 
 Schema:
 - signals: Stores generated AI signals
+- audit_logs: Stores platform interactions and system events
 """
 
 import sqlite3
@@ -56,6 +57,17 @@ class SignalDatabase:
                     model_trades INTEGER,
                     raw_probabilities TEXT,
                     outcome TEXT DEFAULT 'ACTIVE' -- ACTIVE, SUCCESS, FAIL
+                )
+                """)
+
+                # Audit Logs table (NEW)
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    level TEXT DEFAULT 'INFO',
+                    details TEXT
                 )
                 """)
                 
@@ -109,6 +121,23 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
+
+    def log_event(self, action: str, level: str = "INFO", details: Optional[str] = None):
+        """
+        Record a platform or system event in the audit_logs table.
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                now = datetime.now(timezone.utc).isoformat()
+                cursor.execute(
+                    "INSERT INTO audit_logs (timestamp, action, level, details) VALUES (?, ?, ?, ?)",
+                    (now, action, level, details)
+                )
+                conn.commit()
+                logger.debug(f"Audit log: [{level}] {action}")
+        except Exception as e:
+            logger.error(f"Failed to log event: {e}")
 
     def save_signal(self, data: Dict[str, Any]) -> int:
         """
@@ -487,4 +516,3 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Failed to clear signals: {e}")
             return False
-
