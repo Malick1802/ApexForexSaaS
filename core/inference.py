@@ -175,7 +175,7 @@ class InferenceEngine:
             _mt5 = get_mt5()
             if not _mt5:
                 return 0.01
-
+            
             account = _mt5.account_info()
             if not account:
                 return 0.01
@@ -491,8 +491,6 @@ class InferenceEngine:
                     logger.error(f"Failed to load model for {symbol} from {base_dir}: {e}")
                     continue
         
-        return None
-
         return None
 
     def load_models(self, symbol: str, win_rate: Optional[int] = None) -> Optional[Dict]:
@@ -1115,9 +1113,12 @@ class InferenceEngine:
                 expert_intent = "BUY" if buy_prob > sell_prob else "SELL"
             
             if not tradeable:
-                logger.warning(f"BLOCK: {symbol} in {regime_label} regime. Forcing WAIT state.")
-                signal = "WAIT"
+                logger.warning(f"REGIME BLOCK: {symbol} in {regime_label} regime. Restricting LIVE signal.")
                 is_authorized = False
+                # BUG FIX: Only force WAIT for Live signals. 
+                # For Shadow signals (intended for certification), preserve the directional intent.
+                if not is_hidden:
+                    signal = "WAIT"
                 is_hidden = 1
             
             current_price = float(df['close'].iloc[-1])
