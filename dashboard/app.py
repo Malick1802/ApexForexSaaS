@@ -1048,77 +1048,117 @@ def show_analytics():
 
 
 # =============================================================================
-# VIEW 5: Model Audit (Backtest)
+# VIEW 5: Performance Matrix (Real-Time Audit)
 # =============================================================================
-def show_model_audit():
-    import json
-    try:
-        import plotly.express as px
-    except:
-        px = None
+def show_performance_matrix():
+    from core.performance_gate import get_performance_gate
+    db = get_db()
+    gate = get_performance_gate()
 
-    hero_banner("Specialist Model Audit", "Transparency report — only validated models are deployed")
+    hero_banner("Performance Matrix", "Real-time AI surveillance, rolling window analytics, and certification status")
 
-    models_dir = PROJECT_ROOT / "models" / "specialist"
+    @st.fragment(run_every=timedelta(minutes=5))
+    def _matrix_grid():
+        # 1. Active Surveillance (Live vs Shadow)
+        section_header("🛰️", "Active Signal Surveillance")
+        active = db.get_active_signals(include_hidden=True)
+        if active:
+            df_active = pd.DataFrame(active)
+            # Add Display columns
+            df_active['Type'] = df_active['is_hidden'].apply(lambda x: "🛸 SHADOW" if x else "🚀 REAL")
+            df_active['Conviction'] = df_active['confidence'].apply(lambda x: f"{x:.1%}")
+            
+            show_cols = ['symbol', 'signal', 'Type', 'Conviction', 'confidence_tier', 'timestamp']
+            st.dataframe(
+                df_active[show_cols],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "symbol": "Pair", "signal": "Signal", "confidence_tier": "Tier %",
+                    "timestamp": "Detected"
+                }
+            )
+        else:
+            st.info("No active signals currently under surveillance.")
 
-    if not models_dir.exists():
-        st.info("⏳ No specialist models found. Run training first.")
-        return
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 2. Performance Thresholds (14-Day Window)
+        section_header("📊", "14-Day Performance Matrix")
+        stats_14 = db.get_performance_matrix_stats(14)
+        if stats_14:
+            df_14 = pd.DataFrame(stats_14)
+            df_14['Win Rate'] = df_14.apply(lambda row: (row['wins'] / row['total_trades']) if row['total_trades'] > 0 else 0, axis=1)
+            
+            st.dataframe(
+                df_14[['symbol', 'total_trades', 'Win Rate', 'wins', 'losses', 'last_trade']],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "symbol": "Pair", "total_trades": "Volume", 
+                    "Win Rate": st.column_config.ProgressColumn("Win Rate", format="%.0f%%", min_value=0, max_value=1),
+                    "last_trade": "Last Activity"
+                }
+            )
+        else:
+            st.info("Insufficient trading data in the 14-day window.")
 
-    records = []
-    for sym_dir in models_dir.iterdir():
-        if sym_dir.is_dir():
-            for sig_type in ["BUY", "SELL"]:
-                mpath = sym_dir / sig_type / "metrics.json"
-                if mpath.exists():
-                    try:
-                        with open(mpath) as f:
-                            m = json.load(f)
-                        records.append({
-                            "Symbol": sym_dir.name, "Type": sig_type,
-                            "Win Rate": m.get("accuracy", 0.0),
-                            "Params": str(m.get("params", {})),
-                            "Certified": m.get("created_at", "")[:16]
-                        })
-                    except:
-                        pass
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    if not records:
-        st.info("⏳ No certified models yet.")
-        return
+        # 3. Institutional Certification (Whitelist)
+        section_header("🛡️", "Institutional Certification Status")
+        # Try-catch sync to prevent crashing if DB is locked
+        try:
+            gate.recompute_from_db(lookback_days=14)
+        except:
+            pass
+            
+        matrix = gate.performance_matrix
+        cert_records = []
+        if matrix:
+            for sym, directions in matrix.items():
+                for direct, tiers in directions.items():
+                    for t_str, data in tiers.items():
+                        if data.get('status') == 'APPROVED':
+                            cert_records.append({
+                                "Symbol": sym, "Direction": direct, "Tier": f"{t_str}%",
+                                "Acc": data.get('accuracy', 0.0), "Trades": data.get('trades', 0),
+                                "Source": data.get('source', 'System')
+                            })
+        
+        if cert_records:
+            df_cert = pd.DataFrame(cert_records)
+            st.dataframe(
+                df_cert, use_container_width=True, hide_index=True,
+                column_config={
+                    "Acc": st.column_config.NumberColumn("Realized Acc", format="%.1%"),
+                    "Tier": "Strategy Tier"
+                }
+            )
+        else:
+            st.warning("No pairs currently meet the 70% institutional certification threshold.")
 
-    df = pd.DataFrame(records)
-    avg = df["Win Rate"].mean()
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(kpi_card("Certified Models", str(len(df)), "Deployed", "accent-cyan"), unsafe_allow_html=True)
-    with c2:
-        st.markdown(kpi_card("Avg Win Rate", f"{avg:.1%}", "Fleet average", "accent-green"), unsafe_allow_html=True)
-    with c3:
-        st.markdown(kpi_card("Threshold", "60.0%", "Min requirement", "accent-gold"), unsafe_allow_html=True)
+        # 4. Model Registry (All-Time Models)
+        section_header("📋", "Historical Model Registry")
+        registry = db.get_model_registry_stats()
+        if registry:
+            df_reg = pd.DataFrame(registry)
+            df_reg['All-Time WR'] = df_reg.apply(lambda row: (row['all_time_wins'] / row['all_time_trades']) if row['all_time_trades'] > 0 else 0, axis=1)
+            st.dataframe(
+                df_reg, use_container_width=True, hide_index=True,
+                column_config={
+                    "All-Time WR": st.column_config.ProgressColumn("All-Time WR", format="%.0f%%", min_value=0, max_value=1),
+                    "all_time_confidence": st.column_config.NumberColumn("Avg Conf", format="%.1%"),
+                    "last_seen": "Last Active"
+                }
+            )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    _matrix_grid()
 
-    if px:
-        fig = px.bar(df, x="Symbol", y="Win Rate", color="Type", barmode="group",
-                     color_discrete_map={"BUY": "#00FF88", "SELL": "#FF4466"})
-        fig.add_hline(y=0.6, line_dash="dash", line_color="rgba(255,215,0,0.4)",
-                      annotation_text="60% Threshold", annotation_font_color="#FFD700")
-        fig.update_layout(
-            template='plotly_dark',
-            plot_bgcolor='rgba(10,14,26,0)', paper_bgcolor='rgba(10,14,26,0)',
-            font=dict(family='Inter, sans-serif', color='#8b95a8'),
-            yaxis_tickformat=".0%", height=380, margin=dict(l=0,r=0,t=30,b=0),
-            yaxis=dict(gridcolor='rgba(255,255,255,0.03)'),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-    section_header("📋", "Model Registry")
-    sorted_df = df.sort_values("Win Rate", ascending=False).copy()
-    sorted_df["Win Rate"] = sorted_df["Win Rate"].apply(lambda x: f"{x:.1%}")
-    st.dataframe(sorted_df, use_container_width=True, hide_index=True)
+    if st.button("🔄 Force Refresh Matrix"):
+        st.rerun()
 
 
 # =============================================================================
@@ -1363,7 +1403,7 @@ else:
     pg_market = st.Page(show_market_overview, title="Market Overview", icon="🌍", url_path="market")
     pg_terminal = st.Page(show_trading_terminal, title="Trading Terminal", icon="📈", url_path="terminal")
     pg_analytics = st.Page(show_analytics, title="Analytics Suite", icon="📊", url_path="analytics")
-    pg_models = st.Page(show_model_audit, title="Model Audit", icon="🛡️", url_path="audit")
+    pg_models = st.Page(show_performance_matrix, title="Performance Matrix", icon="🛡️", url_path="audit")
     pg_control = st.Page(show_control_panel, title="Control Panel", icon="⚙️", url_path="settings")
     
     # Fleet Monitor (inline — no external file dependency)

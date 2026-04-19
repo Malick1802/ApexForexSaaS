@@ -504,6 +504,59 @@ class SignalDatabase:
             logger.error(f"Failed to get stats: {e}")
             return {}
 
+    def get_performance_matrix_stats(self, lookback_days: int = 14) -> List[Dict]:
+        """
+        Aggregate performance metrics for all symbols within a lookback window.
+        """
+        try:
+            from datetime import timedelta
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        symbol,
+                        COUNT(*) as total_trades,
+                        SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses,
+                        AVG(confidence) as avg_confidence,
+                        MAX(timestamp) as last_trade
+                    FROM signals
+                    WHERE timestamp >= ? AND outcome IN ('SUCCESS', 'FAIL')
+                    GROUP BY symbol
+                    ORDER BY wins DESC
+                """, (cutoff,))
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to fetch performance matrix stats: {e}")
+            return []
+
+    def get_model_registry_stats(self) -> List[Dict]:
+        """
+        Aggregate all-time performance metrics per symbol (model).
+        """
+        try:
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        symbol,
+                        COUNT(*) as all_time_trades,
+                        SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as all_time_wins,
+                        AVG(confidence) as all_time_confidence,
+                        MAX(timestamp) as last_seen
+                    FROM signals
+                    WHERE outcome IN ('SUCCESS', 'FAIL')
+                    GROUP BY symbol
+                    ORDER BY symbol ASC
+                """)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to fetch model registry stats: {e}")
+            return []
+
     def clear_signals(self):
         """Clear all signals from the database."""
         try:
