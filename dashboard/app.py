@@ -1472,4 +1472,4 @@ else:
 
     # Auto-refresh is now handled inline via st_autorefresh in show_trading_terminal().
     # Command Center and Market Overview use manual refresh via the sidebar button.
-# Force Reload: 2026-02-11 14:18
+# Force Reload: 2026-04-19 21:30 — Performance Matrix
