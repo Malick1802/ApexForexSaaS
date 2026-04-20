@@ -150,15 +150,17 @@ class InferenceEngine:
         self._last_global_update = None
         self._max_cached_models = 20
 
-        if not _TF_AVAILABLE:
-            raise ImportError(
-                f"TensorFlow initialization failed. The application cannot load AI models.\n"
-                f"Likely missing Microsoft C++ Redistributable on this VM.\n"
-                f"Original Error: {_TF_ERROR}\n"
-                f"Fix: Download and install from https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        # --- 4.6 Library Stability Check ---
+        self.limited_mode = not _TF_AVAILABLE
+        if self.limited_mode:
+            logger.error(
+                "CRITICAL: TensorFlow initialization failed. THE SENTINEL IS IN LIMITED MODE.\n"
+                f"Dashboard will remain online, but AI Signal Generation is DISABLED.\n"
+                f"Reason: {_TF_ERROR}\n"
+                "Fix: Contact support or repair the VM environment (Protobuf/Redistributable)."
             )
-
-        logger.info(f"InferenceEngine initialized with model_dir={model_dir}")
+        else:
+            logger.info(f"InferenceEngine initialized with model_dir={model_dir}")
 
         
     def calculate_lots_precision(self, symbol: str, entry: float, sl: float) -> float:
@@ -1007,7 +1009,12 @@ class InferenceEngine:
             else:
                 # 3.1 Run Model Prediction with Crash Safety
                 try:
-                    proba = models['model'].predict(X_scaled, verbose=0)[0]
+                    if self.limited_mode:
+                        # Skip AI inference in limited mode
+                        proba = [0.34, 0.33, 0.33] # Forced neutral
+                    else:
+                        proba = models['model'].predict(X_scaled, verbose=0)[0]
+                    
                     # Robust NaN/Inf safety cast
                     wait_prob = float(proba[0]) if not np.isnan(float(proba[0])) else 0.33
                     buy_prob = float(proba[1]) if not np.isnan(float(proba[1])) else 0.33
