@@ -404,9 +404,16 @@ class SignalDatabase:
                 signal_type = sig['signal']
                 tp = sig.get('tp_price')
                 sl = sig.get('sl_price')
+
+                # Safety Flush: Clear out corrupted legacy trades missing proper limits
+                if tp is None or sl is None or tp == 0.0 or sl == 0.0:
+                    logger.warning(f"EXPIRED: {symbol} (ID {sig['id']}) has missing TP/SL. Flushed to prevent deadlock.")
+                    self.update_signal_outcome(sig['id'], 'EXPIRED')
+                    resolved[symbol] = 'EXPIRED'
+                    continue
                 
                 price_data = price_map.get(symbol)
-                if not price_data or tp is None or sl is None:
+                if not price_data:
                     continue
                 if signal_type not in ('BUY', 'SELL'):
                     continue
