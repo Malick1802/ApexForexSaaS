@@ -585,7 +585,7 @@ def sidebar_footer():
         db = get_db()
         latest = db.get_recent_signals(limit=1)
         if latest:
-            # Check if updated in last 20 mins
+            # Check if updated in last 75 mins (Cooldown blocks save for 60m)
             last_ts = datetime.fromisoformat(latest[0]['timestamp'])
             # Ensure TZ awareness
             if last_ts.tzinfo is None:
@@ -593,7 +593,7 @@ def sidebar_footer():
                 last_ts = last_ts.replace(tzinfo=timezone.utc)
             
             now = datetime.now(last_ts.tzinfo)
-            if (now - last_ts) < timedelta(minutes=20):
+            if (now - last_ts) < timedelta(minutes=75):
                 status_class = "health-online"
                 status_text = "SENTINEL ACTIVE"
     except:
