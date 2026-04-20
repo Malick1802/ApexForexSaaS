@@ -538,23 +538,30 @@ class ExecutiveEngine:
                 direction = sig['signal']
                 outcome = None
                 
+                # Check for corrupted or legacy signals without proper TP/SL levels
+                if not tp or not sl or tp == 0.0 or sl == 0.0:
+                    logger.warning(f"EXPIRED: {symbol} (ID {sig['id']}) has missing TP/SL. Flushed to prevent deadlock.")
+                    self.db.update_signal_outcome(sig['id'], 'EXPIRED')
+                    resolutions_found = True
+                    continue
+                
                 if direction == 'BUY':
                     # Check SL (Low) - Any candle hitting SL?
-                    if sl and (relevant['low'] <= sl).any():
+                    if (relevant['low'] <= sl).any():
                         outcome = 'FAIL'
                         logger.info(f"FAIL: {symbol} hit SL {sl}")
                     # Check TP (High) - Any candle hitting TP?
-                    elif tp and (relevant['high'] >= tp).any():
+                    elif (relevant['high'] >= tp).any():
                         outcome = 'SUCCESS'
                         logger.info(f"SUCCESS: {symbol} hit TP {tp}")
                         
                 elif direction == 'SELL':
                     # Check SL (High)
-                    if sl and (relevant['high'] >= sl).any():
+                    if (relevant['high'] >= sl).any():
                         outcome = 'FAIL'
                         logger.info(f"FAIL: {symbol} hit SL {sl}")
                     # Check TP (Low)
-                    elif tp and (relevant['low'] <= tp).any():
+                    elif (relevant['low'] <= tp).any():
                         outcome = 'SUCCESS'
                         logger.info(f"SUCCESS: {symbol} hit TP {tp}")
                         
