@@ -47,13 +47,10 @@ def get_inference():
     """Get InferenceEngine instance (cached)."""
     try:
         from core.inference import InferenceEngine
-        inject_css()
-        render_system_monitor()
         engine = InferenceEngine()
         return engine
     except Exception as e:
         st.error(f"⚠️ InferenceEngine Initialization Error: {e}")
-        # Return a shell or another fallback if possible, but minimal for now
         raise e
 
 
@@ -609,23 +606,25 @@ def sidebar_footer():
     """, unsafe_allow_html=True)
 
 def render_system_monitor():
-    """Render the diagnostic expander once to avoid duplication."""
-    # ── SYSTEM DOCTOR (Debug Visibility) ────────────────
+    """Render the diagnostic expander in the sidebar. Call once from main app layout."""
     with st.sidebar.expander("🛠️ System Monitor (Debug)"):
         st.caption("Environment Truth")
         st.code(f"CWD: {os.getcwd()}")
         st.code(f"DB: {DB_PATH}")
         
         try:
-            from dashboard.theme import get_db
-            db = get_db()
+            db = get_db()  # Already defined in this module - no circular import
             latest = db.get_recent_signals(limit=1, include_hidden=True)
             if latest:
                 ts = datetime.fromisoformat(latest[0]['timestamp'])
                 if ts.tzinfo is None: ts = ts.replace(tzinfo=timezone.utc)
                 age = (datetime.now(timezone.utc) - ts).total_seconds() / 60
-                st.write(f"📝 Last Sync: {age:.1f}m ago")
-                st.write(f"📊 Signal Count: {db.get_signal_count()}")
+                symbol = latest[0].get('symbol', '?')
+                sig = latest[0].get('signal', '?')
+                st.write(f"📝 Last Record: **{symbol}** ({sig}) — {age:.1f}m ago")
+                st.write(f"📊 Total Signals: {db.get_signal_count()}")
+            else:
+                st.warning("No signals in database yet.")
         except Exception as e:
             st.error(f"Diagnostic Error: {e}")
 

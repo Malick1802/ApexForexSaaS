@@ -25,7 +25,7 @@ from datetime import timedelta
 from theme import (
     inject_css, get_db, get_engine, get_inference,
     kpi_card, hero_banner, sidebar_logo, sidebar_footer, section_header,
-    PROJECT_ROOT
+    PROJECT_ROOT, render_system_monitor
 )
 
 logger = logging.getLogger(__name__)
@@ -1440,31 +1440,8 @@ else:
         st.markdown("---")
         sidebar_footer()
         
-        # --- SYSTEM MONITOR (FORENSIC DEBUG) ---
-        with st.expander("🛠️ System Monitor (Debug)", expanded=True):
-            import os
-            import json
-            from pathlib import Path
-            
-            cwd = os.getcwd()
-            st.code(f"CWD: {cwd}", language="bash")
-            
-            # Test Path Logic
-            p_root = Path(cwd)
-            eur_conf = p_root / "models" / "EURUSD" / "90" / "SELL" / "config.json"
-            
-            st.write(f"**Config Path:** `{eur_conf}`")
-            if eur_conf.exists():
-                st.success("✅ Config File Found!")
-                try:
-                    with open(eur_conf) as f:
-                        data = json.load(f)
-                        trades = data.get("trades", 0)
-                        st.metric("Raw Volume", trades)
-                except:
-                    st.error("Read Failed")
-            else:
-                st.error("❌ Config NOT Found")
+        # Use the unified system monitor diagnostic
+        render_system_monitor()
         
         # Simple manual refresh button to bypass health-check lag
         if st.button("🔄 Force Data Refresh"):

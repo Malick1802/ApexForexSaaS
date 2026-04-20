@@ -36,7 +36,12 @@ from data_pipeline.features import FeatureEngineer
 from core.database import SignalDatabase
 from core.inference import InferenceEngine
 from core.notifications import NotificationManager
-from tensorflow import keras
+try:
+    from tensorflow import keras
+    _KERAS_AVAILABLE = True
+except Exception as _keras_err:
+    keras = None
+    _KERAS_AVAILABLE = False
 import joblib
 
 
@@ -463,9 +468,8 @@ class ExecutiveEngine:
                 self._recent_signals[symbol] = datetime.now(timezone.utc)
                 return result
             else:
-                # WAIT signals: save with N/A outcome (for dashboard timestamp tracking)
-                result['outcome'] = 'N/A'
-                self.db.save_signal(result)
+                # WAIT signal — already saved above at line 423, nothing more to do.
+                pass
             
             return None
 
@@ -603,12 +607,13 @@ class ExecutiveEngine:
         try:
             while True:
                 self._run_daily_maintenance()
-                self.run_scan(symbols)
                 
-                # ── HEARTBEAT (New) ───────────────────────────
-                # Updates the DB timestamp even if no trades are found
-                # This prevents the "SENTINEL STALLED" indicator on the dashboard.
+                # ── HEARTBEAT (Start of cycle) ──────────────
+                # Written BEFORE the scan so dashboard shows ACTIVE immediately.
+                # The scan can take 5-15 min — we don't want to look stalled.
                 self.db.save_heartbeat()
+                
+                self.run_scan(symbols)
                 
                 # Sleep until next scan
                 sleep_time = self.scan_interval_minutes * 60
