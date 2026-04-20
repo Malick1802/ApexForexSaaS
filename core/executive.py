@@ -477,8 +477,9 @@ class ExecutiveEngine:
                 self._recent_signals[symbol] = datetime.now(timezone.utc)
                 return result
             else:
-                # WAIT signal — already saved above at line 423, nothing more to do.
-                pass
+                # Update dashboard display with continuous convictions even when waiting
+                result['outcome'] = 'N/A'
+                self.db.save_signal(result)
             
             return None
 

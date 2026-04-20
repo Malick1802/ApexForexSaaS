@@ -8,11 +8,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.notifications import NotificationManager
 
 def send_mock_notification():
-    print("🚀 Sending Mock Restoration Notification...")
+    print("Sending Mock Restoration Notification...")
     nm = NotificationManager()
     
     if not nm.enabled:
-        print("❌ Telegram is disabled. Check config.yaml.")
+        print("Telegram is disabled. Check config.yaml.")
         return
 
     mock_data = {
@@ -32,9 +32,9 @@ def send_mock_notification():
 
     success = nm.send_signal_alert(mock_data)
     if success:
-        print("✅ Mock notification sent successfully!")
+        print("Mock notification sent successfully!")
     else:
-        print("❌ Failed to send mock notification.")
+        print("Failed to send mock notification.")
 
 if __name__ == "__main__":
     send_mock_notification()
