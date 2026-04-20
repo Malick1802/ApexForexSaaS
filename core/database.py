@@ -244,8 +244,8 @@ class SignalDatabase:
             logger.error(f"Failed to fetch signal {signal_id}: {e}")
             return None
 
-    def get_recent_signals(self, limit: int = 20, include_hidden: bool = False) -> List[Dict[str, Any]]:
-        """Get all signals currently marked as ACTIVE, optionally filtered by symbol and hidden status."""
+    def get_recent_signals(self, limit: int = 50, symbol: Optional[str] = None, include_hidden: bool = False, **kwargs) -> List[Dict[str, Any]]:
+        """Get recent signals, optionally filtered by symbol and hidden status."""
         try:
             with self._get_connection() as conn:
                 conn.row_factory = sqlite3.Row
@@ -253,12 +253,16 @@ class SignalDatabase:
                 
                 sql = "SELECT * FROM signals "
                 params = []
-                
-                # Filter by hidden status (UI default: only show visible)
                 where_clauses = []
                 
+                # Filter by hidden status
                 if not include_hidden:
                     where_clauses.append("(is_hidden IS NULL OR is_hidden = 0)")
+                
+                # Filter by symbol
+                if symbol:
+                    where_clauses.append("symbol = ?")
+                    params.append(symbol)
                 
                 if where_clauses:
                     sql += " WHERE " + " AND ".join(where_clauses)
@@ -267,9 +271,12 @@ class SignalDatabase:
                 params.append(limit)
                 
                 cursor.execute(sql, tuple(params))
-                
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch signals: {e}")
+            return []
                 
         except Exception as e:
             logger.error(f"Failed to fetch signals: {e}")
