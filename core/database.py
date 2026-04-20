@@ -14,16 +14,22 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from pathlib import Path
+import os
 
 logger = logging.getLogger(__name__)
+
+# Guarantee Absolute Pathing for background services starting in System32
+_CORE_DIR = Path(__file__).resolve().parent
+_ROOT_DIR = _CORE_DIR.parent
+DEFAULT_DB_PATH = str(_ROOT_DIR / "signals.db")
 
 class SignalDatabase:
     """
     Manages persistence of trading signals.
     """
     
-    def __init__(self, db_path: str = "signals.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        self.db_path = db_path if db_path else DEFAULT_DB_PATH
         self._init_db()
         
     def _get_connection(self):
