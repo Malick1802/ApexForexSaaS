@@ -214,7 +214,7 @@ class ExecutiveEngine:
 
     def _check_drawdown_limits(self) -> bool:
         """
-        Check if account is near daily 3% loss limit or 6% max trailing loss limit. 
+        Check if account is near daily loss limit, max trailing loss limit, or max open trades limit. 
         Returns True if safe to trade, False if blocked.
         """
         try:
@@ -224,6 +224,14 @@ class ExecutiveEngine:
             account = self.mt5.account_info()
             if not account:
                 return True
+                
+            # 0. Max Open Trades Check
+            max_open = self.config.get('mt5', {}).get('max_open_trades', 5)
+            if max_open > 0:
+                open_positions = self.mt5.positions_total()
+                if open_positions >= max_open:
+                    logger.critical(f"🛑 RISK SHIELD: Maximum open trades reached ({open_positions}/{max_open}). Blocking all Live Trades!")
+                    return False
                 
             now_utc = datetime.now(timezone.utc)
             # Use UTC midnight as the safest anchor for daily drawdown start 
@@ -245,10 +253,11 @@ class ExecutiveEngine:
                 return True
             
             # 1. Daily Drawdown Check (3% Rule)
+            max_daily_dd = float(self.config.get('safety', {}).get('max_daily_drawdown_pct', 2.0))
             if active_daily_pnl < 0:
                 daily_dd_pct = (abs(active_daily_pnl) / start_of_day_balance) * 100
-                if daily_dd_pct >= 2.5:
-                    logger.critical(f"🛑 DRAWDOWN SHIELD: Daily loss is {daily_dd_pct:.2f}% (Limit 3.0%). Blocking all Live Trades!")
+                if daily_dd_pct >= max_daily_dd:
+                    logger.critical(f"🛑 DRAWDOWN SHIELD: Daily loss is {daily_dd_pct:.2f}% (Limit {max_daily_dd}% limit reached). Blocking all Live Trades!")
                     return False
             
             # 2. Maximum Trailing Drawdown Check (6% Rule)
