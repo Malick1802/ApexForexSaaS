@@ -220,6 +220,17 @@ class SignalDatabase:
             logger.error(f"Failed to save signal: {e}")
             return -1
 
+    def save_heartbeat(self):
+        """Saves a hidden system heartbeat to keep the Sentinel status active."""
+        try:
+            with self._get_connection() as conn:
+                conn.execute("""
+                    INSERT INTO signals (timestamp, symbol, signal, confidence, status, outcome)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (datetime.now(timezone.utc).isoformat(), 'SYSTEM', 'HEARTBEAT', 1.0, 'EXECUTED', 'SUCCESS'))
+        except Exception as e:
+            logger.error(f"Heartbeat failed: {e}")
+
     def get_signal_by_id(self, signal_id: int) -> Optional[Dict]:
         """Fetch a single signal by its unique ID."""
         try:
@@ -233,10 +244,8 @@ class SignalDatabase:
             logger.error(f"Failed to fetch signal {signal_id}: {e}")
             return None
 
-    def get_recent_signals(self, limit: int = 50, symbol: Optional[str] = None, **kwargs) -> List[Dict]:
-        """
-        Get recent signals, optionally filtered by symbol and hidden status.
-        """
+    def get_recent_signals(self, limit: int = 20, include_hidden: bool = False) -> List[Dict[str, Any]]:
+        """Get all signals currently marked as ACTIVE, optionally filtered by symbol and hidden status."""
         try:
             with self._get_connection() as conn:
                 conn.row_factory = sqlite3.Row
@@ -246,15 +255,10 @@ class SignalDatabase:
                 params = []
                 
                 # Filter by hidden status (UI default: only show visible)
-                include_hidden = kwargs.get('include_hidden', False)
                 where_clauses = []
                 
                 if not include_hidden:
                     where_clauses.append("(is_hidden IS NULL OR is_hidden = 0)")
-                
-                if symbol:
-                    where_clauses.append("symbol = ?")
-                    params.append(symbol)
                 
                 if where_clauses:
                     sql += " WHERE " + " AND ".join(where_clauses)

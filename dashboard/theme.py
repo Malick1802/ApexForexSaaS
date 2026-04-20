@@ -47,6 +47,8 @@ def get_inference():
     """Get InferenceEngine instance (cached)."""
     try:
         from core.inference import InferenceEngine
+        inject_css()
+        render_system_monitor()
         engine = InferenceEngine()
         return engine
     except Exception as e:
@@ -606,6 +608,8 @@ def sidebar_footer():
     </div>
     """, unsafe_allow_html=True)
 
+def render_system_monitor():
+    """Render the diagnostic expander once to avoid duplication."""
     # ── SYSTEM DOCTOR (Debug Visibility) ────────────────
     with st.sidebar.expander("🛠️ System Monitor (Debug)"):
         st.caption("Environment Truth")
@@ -613,8 +617,9 @@ def sidebar_footer():
         st.code(f"DB: {DB_PATH}")
         
         try:
+            from dashboard.theme import get_db
             db = get_db()
-            latest = db.get_recent_signals(limit=1)
+            latest = db.get_recent_signals(limit=1, include_hidden=True)
             if latest:
                 ts = datetime.fromisoformat(latest[0]['timestamp'])
                 if ts.tzinfo is None: ts = ts.replace(tzinfo=timezone.utc)

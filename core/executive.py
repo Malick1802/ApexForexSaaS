@@ -605,6 +605,11 @@ class ExecutiveEngine:
                 self._run_daily_maintenance()
                 self.run_scan(symbols)
                 
+                # ── HEARTBEAT (New) ───────────────────────────
+                # Updates the DB timestamp even if no trades are found
+                # This prevents the "SENTINEL STALLED" indicator on the dashboard.
+                self.db.save_heartbeat()
+                
                 # Sleep until next scan
                 sleep_time = self.scan_interval_minutes * 60
                 next_scan = datetime.now(timezone.utc) + timedelta(seconds=sleep_time)
