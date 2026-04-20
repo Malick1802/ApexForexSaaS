@@ -171,7 +171,7 @@ class SignalDatabase:
                     data['confidence'],
                     data.get('confidence_tier', 0),
                     data.get('model_version', 'v1'),
-                    'NEW',
+                    data.get('status', 'NEW'),
                     data.get('price_at_signal', 0.0),
                     data.get('tp_price'),
                     data.get('sl_price'),

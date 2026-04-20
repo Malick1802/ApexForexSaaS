@@ -1261,16 +1261,19 @@ class InferenceEngine:
                             pass
                 
                 if should_save:
-                    logger.info(f"🎯 SAVING ISOLATED SIGNAL: {symbol} {signal} from {target_int}% Expert (Vol: {trades})")
-                    self.db.save_signal(result)
-                    
-                    # Ensure telegram fires natively if we bypass the executive loop
-                    # Send Telegram alerts for BOTH Certified and Shadow signals
+                    # Send Telegram alerts natively before saving to DB
+                    # This prevents double-fires from the global poller
                     if result.get('signal') in ('BUY', 'SELL'):
                         # Mark as shadow if not proven
                         if not is_tier_proven:
                             result['is_shadow_alert'] = True
-                        self.notifier.send_signal_alert(result)
+                        
+                        sent = self.notifier.send_signal_alert(result)
+                        if sent:
+                            result['status'] = 'SENT'
+                            
+                    logger.info(f"🎯 SAVING ISOLATED SIGNAL: {symbol} {signal} from {target_int}% Expert (Vol: {trades})")
+                    self.db.save_signal(result)
                         
                     return result
                 else:
