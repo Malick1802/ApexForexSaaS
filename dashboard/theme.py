@@ -12,11 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Try dashboard/ folder first, then project root (Flexible pathing for Azure)
-local_db = Path(__file__).resolve().parent / "signals.db"
-root_db = PROJECT_ROOT / "signals.db"
-DB_PATH = str(local_db if local_db.exists() else root_db)
-
+# Strict Database Pathing: Ensure frontend and backend never split.
+DB_PATH = str(PROJECT_ROOT / "signals.db")
 
 def init_page(title: str, icon: str = "⚡"):
     """Shared page initializer — call SECOND in every page after navigation."""
