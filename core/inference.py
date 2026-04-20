@@ -1005,9 +1005,18 @@ class InferenceEngine:
                 # Hard gate for strictly approved pairs
                 is_tier_proven = buy_proven if signal == 'BUY' else sell_proven if signal == 'SELL' else False
             else:
-                # 3-Class Foundation Model
-                proba = models['model'].predict(X_scaled, verbose=0)[0]
-                wait_prob, buy_prob, sell_prob = float(proba[0]), float(proba[1]), float(proba[2])
+                # 3.1 Run Model Prediction with Crash Safety
+                try:
+                    proba = models['model'].predict(X_scaled, verbose=0)[0]
+                    # Robust NaN/Inf safety cast
+                    wait_prob = float(proba[0]) if not np.isnan(float(proba[0])) else 0.33
+                    buy_prob = float(proba[1]) if not np.isnan(float(proba[1])) else 0.33
+                    sell_prob = float(proba[2]) if not np.isnan(float(proba[2])) else 0.33
+                except Exception as e:
+                    logger.error(f"CRITICAL MODEL ERROR for {symbol}: {e}. Defaulting to safety wait.")
+                    # If model is broken (e.g. ProtoBuf DecodeError), force a neutral state
+                    wait_prob, buy_prob, sell_prob = 1.0, 0.0, 0.0
+
                 dominant_prob = max(buy_prob, sell_prob)
                 
                 # Initialize state variables
@@ -1066,9 +1075,14 @@ class InferenceEngine:
             # Map raw model conviction to real-world win rate (The "Real" Number)
             try:
                 final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
+                # Fail-safe: If calibrator returns NaN or invalid number
+                if final_confidence is None or np.isnan(final_confidence):
+                    logger.warning(f"Calibrator returned NaN/None for {symbol}. Falling back to raw score.")
+                    final_confidence = raw_confidence
+                    
                 logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} (Raw) -> {final_confidence:.1%} (Real)")
             except Exception as e:
-                logger.warning(f"Calibration failed for {symbol}: {e}")
+                logger.warning(f"Calibration crash for {symbol}: {e}")
                 final_confidence = raw_confidence
 
             # --- PHASE 4.5: Calibrated Tier Validation ---

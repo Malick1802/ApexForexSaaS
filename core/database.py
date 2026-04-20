@@ -18,10 +18,10 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Guarantee Absolute Pathing for background services starting in System32
-_CORE_DIR = Path(__file__).resolve().parent
-_ROOT_DIR = _CORE_DIR.parent
-DEFAULT_DB_PATH = str(_ROOT_DIR / "signals.db")
+# ── ROOT DIRECTORY RESOLUTION ────────────────────────────────
+# Finding the root ApexForexSaaS folder from the core/database.py file
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = str(PROJECT_ROOT / "signals.db")
 
 class SignalDatabase:
     """
@@ -31,6 +31,15 @@ class SignalDatabase:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path if db_path else DEFAULT_DB_PATH
         self._init_db()
+
+    def get_signal_count(self) -> int:
+        """Returns the total number of signals in the database."""
+        try:
+            with self._get_connection() as conn:
+                count = conn.execute("SELECT COUNT(*) FROM signals").fetchone()[0]
+                return int(count)
+        except Exception:
+            return 0
         
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path, timeout=30) # Increase timeout for server concurrency

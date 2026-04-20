@@ -606,6 +606,24 @@ def sidebar_footer():
     </div>
     """, unsafe_allow_html=True)
 
+    # ── SYSTEM DOCTOR (Debug Visibility) ────────────────
+    with st.sidebar.expander("🛠️ System Monitor (Debug)"):
+        st.caption("Environment Truth")
+        st.code(f"CWD: {os.getcwd()}")
+        st.code(f"DB: {DB_PATH}")
+        
+        try:
+            db = get_db()
+            latest = db.get_recent_signals(limit=1)
+            if latest:
+                ts = datetime.fromisoformat(latest[0]['timestamp'])
+                if ts.tzinfo is None: ts = ts.replace(tzinfo=timezone.utc)
+                age = (datetime.now(timezone.utc) - ts).total_seconds() / 60
+                st.write(f"📝 Last Sync: {age:.1f}m ago")
+                st.write(f"📊 Signal Count: {db.get_signal_count()}")
+        except Exception as e:
+            st.error(f"Diagnostic Error: {e}")
+
 
 def section_header(icon, text):
     """Render section divider header."""
