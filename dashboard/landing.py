@@ -63,11 +63,15 @@ def show_landing():
             status_text = "SUCCESS" if outcome == 'SUCCESS' else "FAILED" if outcome == 'FAIL' else "LIVE"
             time_str = "Recent" # Simple for landing
             
+            price = s.get('price_at_signal')
+            if price is None:
+                price = 0.0
+                
             signal_html += f"""
             <div style="display: flex; align-items: center; justify-content: space-between; background: {bg_color}; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid {color};">
                 <div>
                     <div style="font-weight: 700; color: #FFFFFF;">{s['symbol']}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">{s['signal']} @ {s.get('price_at_signal', 0.0):.5f}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">{s['signal']} @ {price:.5f}</div>
                 </div>
                 <div style="text-align: right;">
                     <div style="color: {color}; font-weight: 700;">{status_text}</div>
