@@ -184,7 +184,7 @@ data:
   - 4h
   - 1d
 data_provider:
-  active: mt5
+  active: yfinance
   twelvedata:
     api_key: 91d80548bd2a4c7689b21f07043cfaa5
     base_url: https://api.twelvedata.com
