@@ -115,6 +115,11 @@ class ExecutiveEngine:
         # Recent signals tracker (deduplication)
         self._recent_signals: Dict[str, datetime] = {}
         self._cooldown_minutes = 20  # Reduced for dynamic trading (User requested)
+        
+        # Loss cooldown tracker (anti-revenge trading)
+        # Maps symbol -> datetime when the last SL hit occurred
+        self._loss_cooldowns: Dict[str, datetime] = {}
+        self._loss_cooldown_minutes = 240  # 4 hours
         self.last_bayesian_update = datetime.now(timezone.utc).date()
         
         logger.info(f"Target Win Rate: {target_win_rate}")
@@ -408,6 +413,29 @@ class ExecutiveEngine:
                         logger.info(f"SKIP: {symbol}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min), skipping duplicate.")
                         return None
 
+                # 1b. Loss Cooldown Check (Anti-Revenge Trading)
+                # If the last resolved signal for this symbol was a FAIL, block new entries for 4 hours.
+                if symbol not in self._loss_cooldowns:
+                    # Lazily populate from DB on first encounter
+                    recent_fail = self.db.get_recent_signals(limit=1, symbol=symbol)
+                    if recent_fail and recent_fail[0].get('outcome') == 'FAIL':
+                        try:
+                            fail_ts = datetime.fromisoformat(recent_fail[0]['timestamp'])
+                            if fail_ts.tzinfo is None:
+                                fail_ts = fail_ts.replace(tzinfo=timezone.utc)
+                            self._loss_cooldowns[symbol] = fail_ts
+                        except Exception:
+                            pass
+
+                if symbol in self._loss_cooldowns:
+                    elapsed_loss = (datetime.now(timezone.utc) - self._loss_cooldowns[symbol]).total_seconds() / 60
+                    if elapsed_loss < self._loss_cooldown_minutes:
+                        logger.info(f"🛡️ LOSS COOLDOWN: {symbol}: SL hit {elapsed_loss:.0f} min ago — blocked for {self._loss_cooldown_minutes - elapsed_loss:.0f} more min (4h anti-revenge guard).")
+                        return None
+                    else:
+                        # Cooldown expired — remove it
+                        del self._loss_cooldowns[symbol]
+
                 # 2. Active Trade Check & Escalation Logic
                 active_signals = self.db.get_active_signals(symbol=symbol, include_hidden=True)
                 
@@ -582,6 +610,10 @@ class ExecutiveEngine:
                 if outcome:
                     self.db.update_signal_outcome(sig['id'], outcome)
                     resolutions_found = True
+                    # Immediately register loss cooldown so next scan is blocked without DB lookup
+                    if outcome == 'FAIL':
+                        self._loss_cooldowns[symbol] = datetime.now(timezone.utc)
+                        logger.info(f"🛡️ LOSS COOLDOWN ACTIVATED: {symbol} — no new signals for 4 hours.")
                         
             except Exception as e:
                 logger.error(f"Watchdog failed for {symbol}: {e}")
