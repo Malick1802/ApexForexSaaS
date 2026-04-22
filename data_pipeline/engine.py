@@ -176,9 +176,9 @@ class DataEngine:
             if provider_name == "yfinance":
                 raise # If fallback itself fails, we crash
             
-            logger.warning(f"⚠️ {provider_name} initialization FAILED: {e}. Falling back to yfinance.")
-            # Recursive fallback to yfinance (guaranteed baseline)
-            return self._create_provider("yfinance")
+            logger.warning(f"⚠️ {provider_name} initialization FAILED: {e}. Falling back to mt5.")
+            # Recursive fallback to mt5 (guaranteed baseline)
+            return self._create_provider("mt5")
     
     def _build_pairs_lookup(self) -> Dict[str, dict]:
         """Build a lookup dictionary for currency pair configurations."""
@@ -451,7 +451,7 @@ class DataEngine:
 
 
 def create_engine(
-    provider: str = "yfinance",
+    provider: str = "mt5",
     config_path: Optional[str] = None
 ) -> DataEngine:
     """

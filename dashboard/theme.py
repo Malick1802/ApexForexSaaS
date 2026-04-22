@@ -38,8 +38,8 @@ def get_engine():
     except Exception as e:
         st.error(f"⚠️ DataEngine Initialization Error: {e}")
         from data_pipeline import DataEngine
-        # Fallback to yfinance if initialization fails
-        return DataEngine(provider_name="yfinance")
+        # Fallback to mt5 if initialization fails
+        return DataEngine(provider_name="mt5")
 
 
 @st.cache_resource

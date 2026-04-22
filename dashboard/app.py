@@ -1181,7 +1181,7 @@ def show_control_panel():
 
     with t1:
         section_header("📡", "Data Provider")
-        active = config.get('data_provider', {}).get('active', 'yfinance')
+        active = config.get('data_provider', {}).get('active', 'mt5')
 
         st.markdown(f"""
         <div class="glass-card" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px;">
@@ -1208,11 +1208,11 @@ def show_control_panel():
                     time.sleep(1)
                     st.rerun()
         with bc2:
-            if st.button("🔄 Revert to Yahoo Finance", use_container_width=True):
-                config['data_provider']['active'] = 'yfinance'
+            if st.button("🔄 Revert to MT5", use_container_width=True):
+                config['data_provider']['active'] = 'mt5'
                 with open(config_path, "w") as f:
                     yaml.dump(config, f, default_flow_style=False)
-                st.toast("Reverted to Yahoo Finance", icon="🔄")
+                st.toast("Reverted to MT5", icon="🔄")
                 time.sleep(1)
                 st.rerun()
 
