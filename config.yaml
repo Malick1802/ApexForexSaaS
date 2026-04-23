@@ -226,3 +226,10 @@ safety:
   max_daily_drawdown_pct: 2.0  # Stop trading for the day if hits
   close_friday_hour_est: 16    # Close all trades on Friday (EST)
   enabled: true
+
+# Temporarily blocked pairs (0% win rate - re-enable after model retraining)
+blocked_symbols:
+  - GOLD       # Win rate: 0% (0/4 last 7 days) - model bias toward BUY in downtrend
+  - XAUUSD     # Alias for GOLD
+  - CrudeOIL   # Win rate: 29% (4/14 last 7 days) - repeated false BUY signals
+  - USOIL      # Alias for CrudeOIL

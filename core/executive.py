@@ -120,6 +120,11 @@ class ExecutiveEngine:
         # Maps symbol -> datetime when the last SL hit occurred
         self._loss_cooldowns: Dict[str, datetime] = {}
         self._loss_cooldown_minutes = 240  # 4 hours
+        
+        # Blocked symbols (temporarily disabled due to poor win rate)
+        self._blocked_symbols = set(self.config.get('blocked_symbols', []))
+        if self._blocked_symbols:
+            logger.info(f"🚫 BLOCKED SYMBOLS (disabled): {sorted(self._blocked_symbols)}")
         self.last_bayesian_update = datetime.now(timezone.utc).date()
         
         logger.info(f"Target Win Rate: {target_win_rate}")
@@ -529,6 +534,11 @@ class ExecutiveEngine:
         signals_generated = 0
         
         for i, symbol in enumerate(symbols):
+            # Skip blocked symbols (poor win rate / temporarily disabled)
+            if symbol in self._blocked_symbols:
+                logger.debug(f"SKIP: {symbol} is in blocked_symbols list.")
+                continue
+            
             result = self.analyze_symbol(symbol)
             if result:
                 signals_generated += 1
