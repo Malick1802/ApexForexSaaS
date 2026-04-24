@@ -451,7 +451,9 @@ class ExecutiveEngine:
                         del self._loss_cooldowns[symbol]
 
                 # 2. Smart Stacking & Promotion Logic
-                active_signals = self.db.get_active_signals(symbol=symbol, include_hidden=True)
+                # Only count real trades (BUY/SELL) as active signals. Ignore 'WAIT'.
+                active_signals = [s for s in self.db.get_active_signals(symbol=symbol, include_hidden=True) 
+                                 if s['signal'] in ('BUY', 'SELL')]
                 
                 existing_live = any(not bool(s.get('is_hidden', 0)) for s in active_signals)
                 new_tier = int(result.get('confidence_tier', 0))
