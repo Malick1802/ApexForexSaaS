@@ -732,6 +732,12 @@ def show_trading_terminal():
                     seen_tiers = set()
                     for tier_data in all_active_tiers:
                         t_val = tier_data.get('confidence_tier', 0)
+                        t_sig = tier_data.get('signal', 'WAIT')
+                        
+                        # FILTER: Skip neutral 'WAIT' signals or junk '0% Tier' data
+                        if t_sig == 'WAIT' or int(t_val or 0) == 0:
+                            continue
+                        
                         t_live = not bool(tier_data.get('is_hidden', 0))
                         
                         # Create a unique key for the stack (Live/Shadow + Tier)
@@ -739,8 +745,6 @@ def show_trading_terminal():
                         if tier_key in seen_tiers:
                             continue
                         seen_tiers.add(tier_key)
-                        
-                        t_sig = tier_data.get('signal', 'WAIT')
                         item_class = "tier-stack-live" if t_live else "tier-stack-shadow"
                         badge_label = "LIVE" if t_live else "SHADOW"
                         
