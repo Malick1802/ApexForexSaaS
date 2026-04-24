@@ -1097,6 +1097,12 @@ class InferenceEngine:
             tier_status = self.perf_gate.get_tier_status(symbol, signal, final_confidence)
             is_tier_proven = (tier_status == "APPROVED")
             is_tier_benched = (tier_status == "BENCHED")
+            
+            # Calculate the ACTUAL tier this signal belongs to (Floor to nearest 10)
+            # Used for DB tagging and Market Overview sorting.
+            actual_tier = int(final_confidence * 10) * 10
+            if actual_tier < 60: actual_tier = 60
+            if actual_tier > 100: actual_tier = 100
 
             # --- PHASE 5: Authorization & Safety Hurdles ---
             # Strict 60% REAL win rate floor check.
@@ -1169,7 +1175,7 @@ class InferenceEngine:
                 'signal': signal,
                 'expert_signal': expert_signal, # NEW: The original bias for Sentinel/Shadow monitor
                 'confidence': final_confidence,
-                'confidence_tier': target_int,
+                'confidence_tier': actual_tier,
                 'raw_confidence': raw_confidence,
                 'expert_intent': expert_intent,
                 'buy_prob': float(buy_prob),
@@ -1180,7 +1186,7 @@ class InferenceEngine:
                 'sl_price': levels['sl_price'],
                 'tp_pips': levels['tp_pips'],
                 'sl_pips': levels['sl_pips'],
-                'winning_tier': f"{target_int}%",
+                'winning_tier': f"{actual_tier}%",
                 'model_trades': trades,
                 'model_version': models.get('model_type', 'foundation_tft'),
                 'regime': regime_label,
@@ -1248,7 +1254,7 @@ class InferenceEngine:
                     s for s in recent_db_signals 
                     if s.get('outcome') in unresolved_outcomes
                     and s.get('signal') == signal
-                    and s.get('confidence_tier') == target_int
+                    and s.get('confidence_tier') == actual_tier
                 ]
                 if active_signals:
                     logger.info(f"🔒 {symbol} has unresolved signal {active_signals[0]['id']} (Outcome: {active_signals[0].get('outcome')}). Blocking new generation.")
@@ -1258,7 +1264,7 @@ class InferenceEngine:
 
                 for recent in recent_db_signals:
                     # Deduplication now respects both Signal AND Tier
-                    if recent['signal'] == signal and recent.get('confidence_tier') == target_int:
+                    if recent['signal'] == signal and recent.get('confidence_tier') == actual_tier:
                         try:
                             sig_time = datetime.fromisoformat(recent['timestamp'])
                             if sig_time.tzinfo is None:
@@ -1268,7 +1274,7 @@ class InferenceEngine:
                             # Deduplication: If a matching signal (BUY/SELL at the same tier) is already ACTIVE, N/A, or NEW,
                             # we must NEVER save a duplicate, even if it is 'Proven'.
                             if signal in ('BUY', 'SELL') and recent.get('outcome') in unresolved_outcomes:
-                                logger.info(f"🔒 {symbol} {signal} {target_int}% is already {recent.get('outcome')}. Blocking duplicate.")
+                                logger.info(f"🔒 {symbol} {signal} {actual_tier}% is already {recent.get('outcome')}. Blocking duplicate.")
                                 should_save = False
                                 break
 
@@ -1293,7 +1299,7 @@ class InferenceEngine:
                         if sent:
                             result['status'] = 'SENT'
                             
-                    logger.info(f"🎯 SAVING ISOLATED SIGNAL: {symbol} {signal} from {target_int}% Expert (Vol: {trades})")
+                    logger.info(f"🎯 SAVING ISOLATED SIGNAL: {symbol} {signal} from {actual_tier}% Expert (Vol: {trades})")
                     self.db.save_signal(result)
                         
                     return result

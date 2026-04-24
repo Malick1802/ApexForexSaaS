@@ -37,7 +37,20 @@ def report():
 
         row = f"{symbol:<12} {active_str:^12}"
         for t in tiers:
-            td = matrix[symbol].get(t, {})
+            # Check legacy format first
+            td = matrix[symbol].get(t)
+            
+            # If not found, aggregate BUY and SELL directions (or pick the best one)
+            if not td:
+                buy_td = matrix[symbol].get("BUY", {}).get(t, {})
+                sell_td = matrix[symbol].get("SELL", {}).get(t, {})
+                
+                # Pick the direction with the most trades for display purposes
+                if buy_td.get("trades", 0) >= sell_td.get("trades", 0):
+                    td = buy_td
+                else:
+                    td = sell_td
+
             acc = td.get("accuracy", 0.0)
             trades = td.get("trades", 0)
             status = td.get("status", "N/A")

@@ -1116,15 +1116,29 @@ def show_performance_matrix():
         matrix = gate.performance_matrix
         cert_records = []
         if matrix:
-            for sym, directions in matrix.items():
-                for direct, tiers in directions.items():
-                    for t_str, data in tiers.items():
-                        if data.get('status') == 'APPROVED':
+            for sym, contents in matrix.items():
+                for k, v in contents.items():
+                    if not isinstance(v, dict):
+                        continue
+                        
+                    # Check if this is a direct tier (Legacy) or a Direction dict (New)
+                    if 'status' in v:
+                        # Legacy Format: sym -> tier -> data
+                        if v.get('status') == 'APPROVED':
                             cert_records.append({
-                                "Symbol": sym, "Direction": direct, "Tier": f"{t_str}%",
-                                "Acc": data.get('accuracy', 0.0), "Trades": data.get('trades', 0),
-                                "Source": data.get('source', 'System')
+                                "Symbol": sym, "Direction": "ALL", "Tier": f"{k}%",
+                                "Acc": v.get('accuracy', 0.0), "Trades": v.get('trades', 0),
+                                "Source": v.get('source', 'Legacy')
                             })
+                    else:
+                        # New Format: sym -> direction -> tier -> data
+                        for t_str, data in v.items():
+                            if isinstance(data, dict) and data.get('status') == 'APPROVED':
+                                cert_records.append({
+                                    "Symbol": sym, "Direction": k, "Tier": f"{t_str}%",
+                                    "Acc": data.get('accuracy', 0.0), "Trades": data.get('trades', 0),
+                                    "Source": data.get('source', 'System')
+                                })
         
         if cert_records:
             df_cert = pd.DataFrame(cert_records)
