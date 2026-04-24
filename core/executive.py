@@ -465,9 +465,14 @@ class ExecutiveEngine:
                     
                     # RULE 2: Deduplication - Don't save the EXACT same tier if it's already active.
                     for active in active_signals:
-                        if active['signal'] == signal and int(active.get('confidence_tier', 0)) == new_tier:
-                            logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Already active. Skipping duplicate.")
-                            return None
+                        active_tier = active.get('confidence_tier', 0)
+                        # Use int(float()) to safely convert "90" or "90.0" strings/numbers to 90
+                        try:
+                            if active['signal'] == signal and int(float(active_tier)) == int(new_tier):
+                                logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Already active. Skipping duplicate.")
+                                return None
+                        except (ValueError, TypeError):
+                            continue
 
                     # RULE 3: Tier Promotion - If a benched shadow is running, and we hit a VALIDATED tier, allow it to go LIVE.
                     if not existing_live and is_approved:

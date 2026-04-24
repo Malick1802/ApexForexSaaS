@@ -29,7 +29,10 @@ class SignalDatabase:
     """
     
     def __init__(self, db_path: Optional[str] = None):
-        self.db_path = db_path if db_path else DEFAULT_DB_PATH
+        # Force absolute pathing to ensure all VM processes (Sentinel, Dashboard, Brain) sync
+        if not db_path:
+            db_path = DEFAULT_DB_PATH
+        self.db_path = os.path.abspath(db_path)
         self._init_db()
 
     def get_signal_count(self) -> int:
@@ -289,7 +292,7 @@ class SignalDatabase:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                sql = "SELECT * FROM signals WHERE outcome = 'ACTIVE'"
+                sql = "SELECT * FROM signals WHERE outcome IN ('ACTIVE', 'N/A')"
                 params = []
                 
                 if not include_hidden:
