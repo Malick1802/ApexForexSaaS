@@ -27,20 +27,23 @@ class PerformanceGate:
         self.db_path = db_path
         # matrix: { symbol: { direction: { tier_str: { accuracy, trades, status } } } }
         self.performance_matrix: Dict[str, Dict[str, Dict[str, Dict]]] = {}
+        self.last_disk_load = 0
         self.load_whitelist()
 
     def load_whitelist(self):
-        """Load performance matrix from disk."""
-        if WHITELIST_PATH.exists():
-            try:
+        """Load performance tiers from JSON with absolute path protection."""
+        try:
+            if WHITELIST_PATH.exists():
                 with open(WHITELIST_PATH, "r") as f:
                     data = json.load(f)
                     self.performance_matrix = data.get("performance_matrix", {})
-                logger.debug(f"Loaded performance matrix for {len(self.performance_matrix)} pairs.")
-            except Exception as e:
-                logger.error(f"Failed to load whitelist: {e}")
-        else:
-            logger.warning("No whitelist found. All trading restricted until audit/recompute.")
+                    self.last_disk_load = os.path.getmtime(WHITELIST_PATH)
+                    logger.info(f"Performance Matrix loaded from {WHITELIST_PATH}")
+            else:
+                logger.warning(f"Whitelist not found at {WHITELIST_PATH}. Using empty matrix.")
+                self.performance_matrix = {}
+        except Exception as e:
+            logger.error(f"Failed to load whitelist: {e}")
 
     def save_whitelist(self):
         """Persist performance matrix to disk."""
@@ -79,6 +82,15 @@ class PerformanceGate:
         Get the status (APPROVED/BENCHED) of a specific confidence tier for a pair and direction.
         Supports both float (0.70) and formatted strings ('70%').
         """
+        # Auto-Reload Check: If file on disk is newer than our memory, reload it.
+        try:
+            if WHITELIST_PATH.exists():
+                mtime = os.path.getmtime(WHITELIST_PATH)
+                if mtime > self.last_disk_load:
+                    self.load_whitelist()
+        except:
+            pass
+
         if symbol not in self.performance_matrix:
             return "⬜ No data"
             
