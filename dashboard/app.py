@@ -1108,10 +1108,9 @@ def show_performance_matrix():
         # 3. Institutional Certification (Whitelist)
         section_header("🛡️", "Institutional Certification Status")
         # Try-catch sync to prevent crashing if DB is locked
-        try:
-            gate.recompute_from_db(lookback_days=14)
-        except:
-            pass
+        # Recompute from DB to ensure we reflect the latest resolved trades
+        gate.recompute_from_db(lookback_days=14)
+        logger.info("Dashboard recomputed performance matrix from DB.")
             
         matrix = gate.performance_matrix
         cert_records = []

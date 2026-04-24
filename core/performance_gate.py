@@ -7,7 +7,11 @@ from typing import List, Dict, Set, Optional
 
 logger = logging.getLogger(__name__)
 
-WHITELIST_PATH = Path("config/trading_whitelist.json")
+# Root path resolution
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+WHITELIST_PATH = PROJECT_ROOT / "config" / "trading_whitelist.json"
+DEFAULT_DB_PATH = str(PROJECT_ROOT / "signals.db")
+
 DEFAULT_HURDLE = 0.70  # 70% win rate
 MIN_TRADES = 2        # Must have at least 2 resolved trades to be 'proven'
 TIERS = [60, 70, 80, 90, 100]
@@ -19,7 +23,7 @@ class PerformanceGate:
     Condition: Realized Accuracy >= 70% AND Resolved Trades >= 2 per tier.
     """
 
-    def __init__(self, db_path: str = "signals.db"):
+    def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self.db_path = db_path
         # matrix: { symbol: { direction: { tier_str: { accuracy, trades, status } } } }
         self.performance_matrix: Dict[str, Dict[str, Dict[str, Dict]]] = {}
