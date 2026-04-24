@@ -114,7 +114,7 @@ class ExecutiveEngine:
         
         # Recent signals tracker (deduplication)
         self._recent_signals: Dict[str, datetime] = {}
-        self._cooldown_minutes = 20  # Reduced for dynamic trading (User requested)
+        self._cooldown_minutes = 240  # 4-hour cooldown to prevent repetitive 'Machine Gun' alerts
         
         # Loss cooldown tracker (anti-revenge trading)
         # Maps symbol -> datetime when the last SL hit occurred
@@ -412,10 +412,19 @@ class ExecutiveEngine:
                 is_proven = bool(result.get('is_proven', False))
                 
                 # 1. Temporal Cooldown Check (Deduplication)
-                if symbol in self._recent_signals:
-                    elapsed = (datetime.now(timezone.utc) - self._recent_signals[symbol]).total_seconds() / 60
+                # Check if we already generated a signal for this specific candle
+                last_candle_time = result.get('timestamp_candle')
+                if last_candle_time:
+                    if self._is_duplicate_signal(symbol, pd.to_datetime(last_candle_time)):
+                        logger.info(f"SKIP: {symbol}: Signal for this candle already exists in DB.")
+                        return None
+
+                # Directional Cooldown: Only block if the NEW signal matches the LAST one
+                cooldown_key = f"{symbol}_{signal}"
+                if cooldown_key in self._recent_signals:
+                    elapsed = (datetime.now(timezone.utc) - self._recent_signals[cooldown_key]).total_seconds() / 60
                     if elapsed < self._cooldown_minutes:
-                        logger.info(f"SKIP: {symbol}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min), skipping duplicate.")
+                        logger.info(f"SKIP: {symbol} {signal}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min).")
                         return None
 
                 # 1b. Loss Cooldown Check (Anti-Revenge Trading)
@@ -507,7 +516,8 @@ class ExecutiveEngine:
                     logger.info(f"WATCH ONLY: {symbol} {signal} (Not yet certified in matrix)")
                 
                 # Update cooldown
-                self._recent_signals[symbol] = datetime.now(timezone.utc)
+                cooldown_key = f"{symbol}_{signal}"
+                self._recent_signals[cooldown_key] = datetime.now(timezone.utc)
                 return result
             else:
                 # Update dashboard display with continuous convictions even when waiting
