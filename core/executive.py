@@ -567,8 +567,8 @@ class ExecutiveEngine:
         for sig in active_signals:
             symbol = sig['symbol']
             try:
-                # Fetch detailed 1m data (Lookback 14 days to resolve older/slow trades)
-                df = self.inference_engine.data_engine.fetch(symbol, interval="1m", days=14, use_cache=False)
+                # Fetch detailed 1m data (Lookback 2 days for quick resolution)
+                df = self.inference_engine.data_engine.fetch(symbol, interval="1m", days=2, use_cache=False)
                 if df.empty:
                     continue
                     
