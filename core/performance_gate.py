@@ -116,13 +116,12 @@ class PerformanceGate:
 
             for symbol in symbols:
                 if symbol not in self.performance_matrix:
-                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}}
+                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}, "ALL": {}}
                 
-                # Make sure both directions exist in the dict
-                if "BUY" not in self.performance_matrix[symbol]:
-                    self.performance_matrix[symbol]["BUY"] = {}
-                if "SELL" not in self.performance_matrix[symbol]:
-                    self.performance_matrix[symbol]["SELL"] = {}
+                # Ensure all directions exist
+                for d in ["BUY", "SELL", "ALL"]:
+                    if d not in self.performance_matrix[symbol]:
+                        self.performance_matrix[symbol][d] = {}
                 
                 for direction in ["BUY", "SELL", "ALL"]:
                     for t in TIERS:
