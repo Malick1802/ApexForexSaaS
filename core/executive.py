@@ -450,14 +450,29 @@ class ExecutiveEngine:
                         # Cooldown expired — remove it
                         del self._loss_cooldowns[symbol]
 
-                # 2. Active Trade Check (One Signal, One Outcome)
+                # 2. Smart Stacking & Promotion Logic
                 active_signals = self.db.get_active_signals(symbol=symbol, include_hidden=True)
                 
-                # If ANY signal for this direction is active, skip entirely
-                for active in active_signals:
-                    if active['signal'] == signal:
-                        logger.info(f"SKIP: {symbol} {signal}: Already have an active trade in this direction. Waiting for outcome.")
-                        return None
+                existing_live = any(not bool(s.get('is_hidden', 0)) for s in active_signals)
+                new_tier = int(result.get('confidence_tier', 0))
+                is_approved = (result.get('is_proven', False) and not bool(result.get('is_hidden', 0)))
+
+                if active_signals:
+                    # RULE 1: If a LIVE trade is open, all new signals for this direction MUST be SHADOW.
+                    if existing_live and not bool(result.get('is_hidden', 0)):
+                        logger.info(f"STACKING: {symbol} {signal}: Live trade active. Downgrading {new_tier}% signal to SHADOW for data tracking.")
+                        result['is_hidden'] = 1
+                    
+                    # RULE 2: Deduplication - Don't save the EXACT same tier if it's already active.
+                    for active in active_signals:
+                        if active['signal'] == signal and int(active.get('confidence_tier', 0)) == new_tier:
+                            logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Already active. Skipping duplicate.")
+                            return None
+
+                    # RULE 3: Tier Promotion - If a benched shadow is running, and we hit a VALIDATED tier, allow it to go LIVE.
+                    if not existing_live and is_approved:
+                        logger.info(f"PROMOTION: {symbol} {signal} {new_tier}%: Approved tier found while shadows are active. Authorizing LIVE entry.")
+                        result['is_hidden'] = 0
 
             # ALWAYS persist the latest analysis outcome for the dashboard
             self.db.save_signal(result)
