@@ -57,6 +57,23 @@ class PerformanceGate:
         """Check if the specific confidence tier for a pair/direction is officially APPROVED."""
         return self.get_tier_status(symbol, direction, confidence) == "APPROVED"
 
+    def _normalize_tier(self, confidence) -> int:
+        """Handle both float (0.85) and formatted strings ('70%') / ints (85)."""
+        if isinstance(confidence, str):
+            try:
+                conf_int = int(confidence.replace('%', ''))
+            except:
+                return 0
+        else:
+            conf_int = int(confidence) if confidence >= 1 else int(confidence * 100)
+        
+        applicable_tier = 0
+        for t in reversed(TIERS):
+            if conf_int >= t:
+                applicable_tier = t
+                break
+        return applicable_tier
+
     def get_tier_status(self, symbol: str, direction: str, confidence) -> str:
         """
         Get the status (APPROVED/BENCHED) of a specific confidence tier for a pair and direction.
@@ -65,30 +82,21 @@ class PerformanceGate:
         if symbol not in self.performance_matrix:
             return "⬜ No data"
             
+        applicable_tier = self._normalize_tier(confidence)
+        if not applicable_tier:
+            return "⬜ No data"
+
         direction_data = self.performance_matrix[symbol].get(direction)
+        
+        # Fallback: If specific direction is missing or this tier isn't in it, check 'ALL'
+        if not direction_data or str(applicable_tier) not in direction_data:
+            if direction != "ALL":
+                direction_data = self.performance_matrix[symbol].get("ALL")
+        
         if not direction_data:
             return "⬜ No data"
             
-        # Normalize confidence to int (e.g. 70)
-        if isinstance(confidence, str):
-            try:
-                conf_int = int(confidence.replace('%', ''))
-            except:
-                return "⬜ No data"
-        else:
-            # Handle both 0.85 and 85
-            conf_int = int(confidence) if confidence >= 1 else int(confidence * 100)
-
-        applicable_tier = None
-        for t in reversed(TIERS):
-            if conf_int >= t:
-                applicable_tier = str(t)
-                break
-        
-        if not applicable_tier:
-            return "⬜ No data" # Below 60% is always restricted
-            
-        tier_data = direction_data.get(applicable_tier)
+        tier_data = direction_data.get(str(applicable_tier))
         if not tier_data:
             return "⬜ No data"
             
