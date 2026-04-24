@@ -35,4 +35,5 @@ echo ===================================================
 echo   RESTART COMPLETE
 echo   Three windows should now be open on your taskbar.
 echo ===================================================
-pause
+timeout /t 5
+exit
