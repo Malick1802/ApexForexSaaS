@@ -450,30 +450,14 @@ class ExecutiveEngine:
                         # Cooldown expired — remove it
                         del self._loss_cooldowns[symbol]
 
-                # 2. Active Trade Check & Escalation Logic
+                # 2. Active Trade Check (One Signal, One Outcome)
                 active_signals = self.db.get_active_signals(symbol=symbol, include_hidden=True)
                 
-                existing_live = any(not bool(s.get('is_hidden', 0)) for s in active_signals)
-                highest_active_tier = max([int(s.get('confidence_tier', 0)) for s in active_signals], default=0)
-                new_tier = int(result.get('confidence_tier', 0))
-
-                if active_signals:
-                    if existing_live and not bool(result.get('is_hidden', 0)):
-                        logger.info(f"LOCK: {symbol}: MT5 Position already open. New {new_tier}% signal will be tracked as SHADOW for certification only.")
-                        result['is_hidden'] = 1
-                        result['outcome'] = 'ACTIVE'
-                    elif existing_live and bool(result.get('is_hidden', 0)):
-                        # An active LIVE position already exists and this is a shadow — skip entirely
-                        # to prevent the exact duplicate accumulation bug
-                        logger.info(f"DEDUP: {symbol}: Live position open + shadow already logged. Suppressing duplicate shadow.")
+                # If ANY signal for this direction is active, skip entirely
+                for active in active_signals:
+                    if active['signal'] == signal:
+                        logger.info(f"SKIP: {symbol} {signal}: Already have an active trade in this direction. Waiting for outcome.")
                         return None
-                    elif not existing_live:
-                        # Check if a shadow already exists for the same direction
-                        existing_shadow_dirs = [s['signal'] for s in active_signals if bool(s.get('is_hidden', 0))]
-                        if result['signal'] in existing_shadow_dirs:
-                            logger.info(f"DEDUP: {symbol}: Shadow signal for {result['signal']} already active. Suppressing duplicate.")
-                            return None
-                        logger.info(f"GHOST: {symbol}: Overlapping SHADOW trade ({new_tier}%) allowed to accumulate volume towards minimums.")
 
             # ALWAYS persist the latest analysis outcome for the dashboard
             self.db.save_signal(result)
