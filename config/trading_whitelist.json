@@ -1,0 +1,1777 @@
+{
+  "last_updated": "2026-04-23T07:23:31.450057+00:00",
+  "performance_matrix": {
+    "EURUSD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 2,
+        "status": "APPROVED",
+        "last_updated": "2026-04-14T07:39:55.234637+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509646+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509652+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509654+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509657+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 2,
+          "status": "APPROVED",
+          "last_updated": "2026-04-15T10:28:17.930287+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 2,
+          "status": "APPROVED",
+          "last_updated": "2026-04-14T14:36:37.493468+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 2,
+          "status": "APPROVED",
+          "last_updated": "2026-04-14T14:36:37.493504+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPUSD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 2,
+        "status": "APPROVED",
+        "last_updated": "2026-04-14T07:39:55.235454+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509663+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509666+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509668+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509670+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 2,
+          "status": "APPROVED",
+          "last_updated": "2026-04-15T10:28:17.939638+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.434440+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "USDCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509672+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509675+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509678+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509682+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509685+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.945121+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "AUDUSD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 4.0,
+        "accuracy": 0.5,
+        "trades": 4,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.920516+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 3.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509692+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509695+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509699+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509702+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 4,
+          "status": "APPROVED",
+          "last_updated": "2026-04-23T07:23:31.423962+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.424203+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "USDCAD": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509706+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509710+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509713+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509719+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509722+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.436817+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "NZDUSD": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509791+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509796+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509801+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509804+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509806+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.942853+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.436497+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "EURGBP": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509810+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.509813+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510059+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510080+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510084+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "EURAUD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 2,
+        "status": "APPROVED",
+        "last_updated": "2026-04-14T07:39:55.233698+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510094+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510097+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510102+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510105+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "EURCAD": {
+      "60": {
+        "alpha": 3.0,
+        "beta": 3.0,
+        "accuracy": 0.5,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.922048+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510113+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510117+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510125+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510130+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.427042+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "EURCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510134+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510137+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510139+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510143+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510146+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.911381+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPAUD": {
+      "60": {
+        "alpha": 3.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510150+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510153+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510155+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510159+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510162+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.930698+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPCAD": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510165+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510168+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510171+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510174+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510177+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.432503+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510180+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510183+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510187+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510191+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510194+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.938263+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "AUDCAD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 3.0,
+        "accuracy": 0.6666666666666666,
+        "trades": 3,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.919450+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510201+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510204+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510207+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510210+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.778112+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "AUDNZD": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 4.0,
+        "accuracy": 0.0,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.920265+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510216+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510219+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510222+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510225+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.423459+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.423567+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.423736+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "USDJPY": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510228+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510231+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510234+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510237+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510240+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "EURJPY": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510243+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510246+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510284+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510290+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510364+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.929362+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPJPY": {
+      "60": {
+        "alpha": 5.0,
+        "beta": 5.0,
+        "accuracy": 0.5,
+        "trades": 6,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.235190+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 3.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510373+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510376+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510380+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510437+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.433334+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.938809+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "AUDJPY": {
+      "60": {
+        "alpha": 3.0,
+        "beta": 3.0,
+        "accuracy": 0.5,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.232627+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510448+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510452+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510456+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510459+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.779351+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "CADJPY": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510463+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510466+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510469+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510472+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510476+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.424801+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "CHFJPY": {
+      "60": {
+        "alpha": 5.0,
+        "beta": 4.0,
+        "accuracy": 0.6,
+        "trades": 5,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.921261+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 3.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510564+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510588+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510591+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510594+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.792967+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "NZDJPY": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 2,
+        "status": "APPROVED",
+        "last_updated": "2026-04-14T07:39:55.235795+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510602+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510605+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510608+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510611+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 2,
+          "status": "APPROVED",
+          "last_updated": "2026-04-15T10:28:17.942453+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "CrudeOIL": {
+      "60": {
+        "alpha": 7.0,
+        "beta": 6.0,
+        "accuracy": 0.5555555555555556,
+        "trades": 9,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.233500+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 4.0,
+        "beta": 4.0,
+        "accuracy": 0.5,
+        "trades": 4,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.233554+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "80": {
+        "alpha": 3.0,
+        "beta": 3.0,
+        "accuracy": 0.5,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.233601+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510640+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510643+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.2857142857142857,
+          "trades": 14,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.425611+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.09090909090909091,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.425671+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.425711+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "USDSGD": {
+      "60": {
+        "alpha": 3.0,
+        "beta": 2.0,
+        "accuracy": 1.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510647+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510653+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510656+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510659+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510663+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "CADCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510666+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510670+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510673+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510676+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510679+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "NZDCAD": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510682+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510685+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510689+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510692+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510695+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.435117+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "NZDCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510699+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510702+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510705+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510709+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510713+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "EURNZD": {
+      "60": {
+        "alpha": 3.0,
+        "beta": 4.0,
+        "accuracy": 0.3333333333333333,
+        "trades": 3,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.234531+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 4.0,
+        "accuracy": 0.0,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-07T12:31:24.923166+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 3.0,
+        "accuracy": 0.0,
+        "trades": 1,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510723+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510726+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510730+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.929816+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.929888+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.929944+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "GBPNZD": {
+      "60": {
+        "alpha": 4.0,
+        "beta": 4.0,
+        "accuracy": 0.5,
+        "trades": 4,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.235322+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "70": {
+        "alpha": 3.0,
+        "beta": 3.0,
+        "accuracy": 0.5,
+        "trades": 2,
+        "status": "BENCHED",
+        "last_updated": "2026-04-14T07:39:55.235371+00:00",
+        "source": "Live Bayesian (14d)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510739+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510742+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510745+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.939189+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-15T10:28:17.939249+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "AUDCHF": {
+      "60": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510749+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "70": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510752+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "80": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510754+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "90": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510757+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "100": {
+        "alpha": 2.0,
+        "beta": 2.0,
+        "accuracy": 0.0,
+        "trades": 0,
+        "status": "BENCHED",
+        "last_updated": "2026-04-06T13:24:14.510760+00:00",
+        "source": "Audit Baseline (Bayesian)"
+      },
+      "BUY": {},
+      "SELL": {}
+    },
+    "GOLD": {
+      "BUY": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.434741+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-23T07:23:31.434791+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "SYSTEM": {
+      "BUY": {},
+      "SELL": {}
+    }
+  }
+}

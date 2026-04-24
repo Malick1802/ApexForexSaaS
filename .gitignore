@@ -80,6 +80,7 @@ models/
 debug_*.txt
 verify_*.txt
 *.json
+!config/trading_whitelist.json
 db_status*.txt
 internal_log.txt
 *.bak
