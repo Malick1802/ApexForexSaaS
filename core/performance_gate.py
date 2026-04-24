@@ -120,19 +120,35 @@ class PerformanceGate:
                 if "SELL" not in self.performance_matrix[symbol]:
                     self.performance_matrix[symbol]["SELL"] = {}
                 
-                for direction in ["BUY", "SELL"]:
+                for direction in ["BUY", "SELL", "ALL"]:
                     for t in TIERS:
-                        # 2. Calculate tier accuracy BY DIRECTION (signals >= t confidence)
-                        cursor.execute("""
-                            SELECT outcome, COUNT(*) as count 
-                            FROM signals 
-                            WHERE symbol = ? 
-                            AND signal = ?
-                            AND timestamp >= ? 
-                            AND confidence >= ?
-                            AND outcome IN ('SUCCESS', 'FAIL')
-                            GROUP BY outcome
-                        """, (symbol, direction, cutoff_date, t / 100.0))
+                        # 2. Calculate tier accuracy
+                        # For 'ALL', we don't filter by signal type
+                        if direction == "ALL":
+                            query = """
+                                SELECT outcome, COUNT(*) as count 
+                                FROM signals 
+                                WHERE symbol = ? 
+                                AND timestamp >= ? 
+                                AND confidence >= ?
+                                AND outcome IN ('SUCCESS', 'FAIL')
+                                GROUP BY outcome
+                            """
+                            params = (symbol, cutoff_date, t / 100.0)
+                        else:
+                            query = """
+                                SELECT outcome, COUNT(*) as count 
+                                FROM signals 
+                                WHERE symbol = ? 
+                                AND signal = ?
+                                AND timestamp >= ? 
+                                AND confidence >= ?
+                                AND outcome IN ('SUCCESS', 'FAIL')
+                                GROUP BY outcome
+                            """
+                            params = (symbol, direction, cutoff_date, t / 100.0)
+
+                        cursor.execute(query, params)
                         
                         stats = {row['outcome']: row['count'] for row in cursor.fetchall()}
                         success = stats.get('SUCCESS', 0)
@@ -140,12 +156,16 @@ class PerformanceGate:
                         total = success + fail
                         
                         if total == 0:
+                            # If we previously had data for this tier but now have 0 trades in 14d,
+                            # we should mark it as BENCHED/No Data instead of leaving it stale.
+                            if direction in self.performance_matrix[symbol] and str(t) in self.performance_matrix[symbol][direction]:
+                                del self.performance_matrix[symbol][direction][str(t)]
                             continue 
                         
                         found_recent = True
                         win_rate = (success / total) if total > 0 else 0.0
                         
-                        # Apply Strict Approval Logic without Bayesian dampening
+                        # Apply Strict Approval Logic
                         approved = (total >= MIN_TRADES) and (win_rate >= DEFAULT_HURDLE)
                         
                         self.performance_matrix[symbol][direction][str(t)] = {
