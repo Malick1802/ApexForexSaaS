@@ -481,8 +481,25 @@ class ExecutiveEngine:
                         logger.info(f"PROMOTION: {symbol} {signal} {new_tier}%: Approved tier found while shadows are active. Authorizing LIVE entry.")
                         result['is_hidden'] = 0
 
+                # DEDUP GUARD: Final check to ensure we didn't just save an identical signal 
+                # in the last few seconds (prevents triplicate race conditions)
+                now = datetime.now(timezone.utc)
+                last_sig_key = f"{symbol}_{signal}_{new_tier}"
+                if last_sig_key in self._recent_signals:
+                    last_time = self._recent_signals[last_sig_key]
+                    if (now - last_time).total_seconds() < 10:
+                        logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Just processed this signal < 10s ago. Discarding duplicate.")
+                        return None
+
+                # VALIDATION GUARD: Discard junk '0% Tier' signals
+                if signal in ('BUY', 'SELL') and new_tier <= 0:
+                    logger.warning(f"SKIP: {symbol} {signal}: Invalid Tier (0%). This happens during whitelist sync. Discarding.")
+                    return None
+
             # ALWAYS persist the latest analysis outcome for the dashboard
             self.db.save_signal(result)
+            # Track in memory to block near-instant triplicates
+            self._recent_signals[f"{symbol}_{signal}_{new_tier}"] = datetime.now(timezone.utc)
 
             if signal in ('BUY', 'SELL'):
                 # 3. Certification Gate: Only alert and log as NEW if proven for MT5
