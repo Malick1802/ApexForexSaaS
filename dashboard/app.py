@@ -1069,7 +1069,10 @@ def show_performance_matrix():
     def _matrix_grid():
         # 1. Active Surveillance (Live vs Shadow)
         section_header("🛰️", "Active Signal Surveillance")
-        active = db.get_active_signals(include_hidden=True)
+        raw_active = db.get_active_signals(include_hidden=True)
+        # FILTER: Show only real trade signals (BUY/SELL). Skip neutral 'WAIT' noise.
+        active = [s for s in raw_active if s.get('signal') in ('BUY', 'SELL')]
+        
         if active:
             df_active = pd.DataFrame(active)
             # Add Display columns
