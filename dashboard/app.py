@@ -190,10 +190,10 @@ def show_command_center():
     
     # Filter: Show signals ≥ 60% as "Active Signals" (matching Telegram strategy)
     # but still track BUY/SELL specifically for trades vs monitoring
+    # Filter: Show ONLY real trade signals (BUY/SELL)
     active_signals = [
         s for s in raw_active 
-        if (s.get('signal') in ['BUY', 'SELL']) 
-        or (s.get('confidence_tier') or 0) >= 60
+        if s.get('signal') in ['BUY', 'SELL'] and int(s.get('confidence_tier', 0)) > 0
     ]
     active_count = len(active_signals)
 
