@@ -1096,10 +1096,9 @@ class InferenceEngine:
             # Now that we have the Real probability, check the corresponding tier in the whitelist
             tier_status = self.perf_gate.get_tier_status(symbol, signal, final_confidence)
             is_tier_proven = (tier_status == "APPROVED")
-            is_tier_benched = (tier_status == "BENCHED")
             
-            # Calculate the ACTUAL tier this signal belongs to (Floor to nearest 10)
-            # Used for DB tagging and Market Overview sorting.
+            # Calculate the ACTUAL mathematical tier (Floor to nearest 10)
+            # This MUST strictly match the conviction to avoid UI mismatches.
             actual_tier = int(final_confidence * 10) * 10
             if actual_tier < 60: actual_tier = 60
             if actual_tier > 100: actual_tier = 100
