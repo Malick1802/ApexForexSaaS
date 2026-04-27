@@ -211,9 +211,11 @@ def show_command_center():
         start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         cutoff_time = start_of_week
         
-        # Filter recent signals by time first
+        # Filter recent signals by time and remove WAIT noise
         recent_window = []
         for s in recent:
+            if s.get('signal') == 'WAIT':
+                continue
             try:
                 # Parse ISO timestamp
                 ts_str = s['timestamp']
@@ -594,33 +596,23 @@ def show_trading_terminal():
                 if df.empty:
                     raise Exception(f"No candlestick data received for {symbol}")
 
-                # 1. Check for EXISTING ACTIVE SIGNAL first (High Priority)
+                # 1. Check for EXISTING ACTIVE SIGNAL (to manage PnL and Locked state)
                 active_signals = db.get_active_signals(symbol=symbol, include_hidden=True)
+                locked_trade = active_signals[0] if active_signals else None
                 
-                if active_signals:
-                    result = active_signals[0]
-                    pred = result['signal']
-                    conf = result['confidence']
-                    is_hidden = bool(result.get('is_hidden', False))
-                    
-                    if is_hidden:
-                        st.info(f"👀 WATCH ONLY: Shadow Certification in Progress (Conviction: {conf:.1%})")
-                    else:
-                        st.success(f"🚀 LIVE SIGNAL: {symbol} {pred} Active in Terminal")
-                else:
-                    # 2. No active signal? Run FRESH INFERENCE
-                    result = inf_engine.predict_symbol(
-                        symbol, save_to_db=False, 
-                        win_rate=st.session_state['accuracy_target'], allow_stale=False
-                    )
+                # 2. ALWAYS Run FRESH INFERENCE for Live Pulse
+                live_result = inf_engine.predict_symbol(
+                    symbol, save_to_db=False, 
+                    win_rate=st.session_state['accuracy_target'], allow_stale=False
+                )
+
+                result = live_result
 
                 # 3. FALLBACK: If inference failed, show most recent DB signal for this symbol
                 if not result:
                     sym_signals = db.get_recent_signals(symbol=symbol, limit=1, include_hidden=True)
                     if sym_signals:
                         result = sym_signals[0]
-                        pred = result.get('signal', 'WAIT')
-                        conf = result.get('confidence', 0)
                         st.caption(f"📋 Showing last recorded signal · {result.get('outcome', 'UNKNOWN')}")
 
                 if result:
@@ -674,32 +666,40 @@ def show_trading_terminal():
 
                         # Calculate real-time PnL if active trade
                         pnl_html = ""
-                        if result and result.get('price_at_signal'):
+                        if locked_trade and locked_trade.get('signal') in ('BUY', 'SELL'):
                             try:
-                                entry_price = float(result['price_at_signal'])
-                                direction = 1 if result.get('signal') == 'BUY' else -1
-                                pip_size = 0.01 if ('JPY' in symbol or 'GOLD' in symbol or 'XAU' in symbol) else 0.0001
+                                entry_price = float(locked_trade['price_at_signal'])
+                                direction = 1 if locked_trade.get('signal') == 'BUY' else -1
+                                # ── Pip Size Resolution ─────────────────────────────────────
+                                is_commodity = any(x in symbol.upper() for x in ['XAU', 'GOLD', 'XAG', 'SILVER', 'OIL', 'WTI', 'BRENT'])
+                                pip_size = 0.01 if (is_commodity or 'JPY' in symbol.upper()) else 0.0001
                                 pnl_pips = (last_price - entry_price) / pip_size * direction
                                 
-                                pnl_color = "#00FF88" # Fallback green
-                                if pnl_pips < 0: pnl_color = "#FF4466" # Fallback red
-                                
-                                pnl_sign = "+" if pnl_pips >= 0 else ""
-                                pnl_html = f'<span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">{pnl_sign}{pnl_pips:.1f} pips</span>'
+                                pnl_color = "#00FF88" if pnl_pips >= 0 else "#FF4466"
+                                pnl_html = f'<span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: {pnl_color}; margin-left: 16px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">{pnl_pips:+.1f} pips</span>'
                             except:
-                                pnl_html = ""
+                                pass
 
-                        # Render Header (with hardcoded fallbacks for CSS variables)
+                        # High-Visibility LOCKED Badge
+                        lock_html = ""
+                        if locked_trade:
+                            lock_html = f"""
+<span style="background: #00E5FF; color: #000; padding: 4px 12px; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.05em; vertical-align: middle; margin-right: 15px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);">LOCKED</span>
+"""
+
                         st.markdown(f"""
-                        <div style="margin-bottom: 16px;">
-                            <span style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">{symbol}</span>
-                            <span style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
-                            <span style="font-family: monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 8px;">
-                                {'▲' if change >= 0 else '▼'} {abs(change):.2%}
-                            </span>
-                            {pnl_html}
-                        </div>
-                        """, unsafe_allow_html=True)
+<div style="display: flex; align-items: center; margin-bottom: 20px;">
+    {lock_html}
+    <div>
+        <span style="font-size: 1.6rem; font-weight: 800; color: #ffffff; line-height: 1;">{symbol}</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 10px;">
+            {'▲' if change >= 0 else '▼'} {abs(change):.2%}
+        </span>
+        {pnl_html}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
                         m1, m2, m3 = st.columns(3)
                         m1.metric("Price", f"{last_price:.5f}", f"{change:+.2%}")
@@ -986,6 +986,13 @@ def show_analytics():
         return
 
     df = pd.DataFrame(recent_signals)
+    if 'signal' in df.columns:
+        df = df[df['signal'] != 'WAIT']
+        
+    if df.empty:
+        st.info("📊 No actionable signals found in history.")
+        return
+        
     if 'outcome' not in df.columns:
         df['outcome'] = 'ACTIVE'
 

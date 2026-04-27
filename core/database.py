@@ -165,8 +165,12 @@ class SignalDatabase:
             data: Dictionary containing signal details
             
         Returns:
-            ID of the inserted row
         """
+        
+        # --- PERMANENT BAN: WAIT signals must never be saved ---
+        if data.get('signal') == 'WAIT':
+            return 0
+            
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
@@ -294,6 +298,9 @@ class SignalDatabase:
                 
                 sql = "SELECT * FROM signals WHERE outcome IN ('ACTIVE', 'N/A')"
                 params = []
+                
+                # Strict lock: NEVER return WAIT signals as an active position
+                sql += " AND signal != 'WAIT'"
                 
                 if not include_hidden:
                     sql += " AND (is_hidden IS NULL OR is_hidden = 0)"

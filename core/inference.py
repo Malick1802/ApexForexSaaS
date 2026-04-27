@@ -1154,8 +1154,9 @@ class InferenceEngine:
             # This is required for shadow certification tracking.
             target_signal = signal if signal != "WAIT" else expert_signal
             if target_signal in ("BUY", "SELL"):
-                # Pip size: 0.01 for Gold, 0.01 for JPY, 0.0001 for others
-                pip_size = 0.01 if ('XAU' in symbol or 'GOLD' in symbol or 'JPY' in symbol) else 0.0001
+                # Pip size: 0.01 for Gold, Silver, Oil, JPY, 0.0001 for others
+                is_commodity = any(x in symbol.upper() for x in ['XAU', 'GOLD', 'XAG', 'SILVER', 'OIL', 'WTI', 'BRENT'])
+                pip_size = 0.01 if (is_commodity or 'JPY' in symbol.upper()) else 0.0001
                 atr_val = features['atr_norm'].iloc[-1] if 'atr_norm' in features.columns else features['atr'].iloc[-1]
                 atr_pips = (float(atr_val) * current_price) / pip_size
                 levels = self.calculate_tp_sl(symbol, target_signal, current_price, atr_pips=atr_pips)
