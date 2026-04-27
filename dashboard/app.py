@@ -689,15 +689,15 @@ def show_trading_terminal():
 
                         st.markdown(f"""
 <div style="display: flex; align-items: center; margin-bottom: 20px;">
-    {lock_html}
-    <div>
-        <span style="font-size: 1.6rem; font-weight: 800; color: #ffffff; line-height: 1;">{symbol}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 10px;">
-            {'▲' if change >= 0 else '▼'} {abs(change):.2%}
-        </span>
-        {pnl_html}
-    </div>
+{lock_html}
+<div>
+<span style="font-size: 1.6rem; font-weight: 800; color: #ffffff; line-height: 1;">{symbol}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; color: #00E5FF; margin-left: 12px;">{last_price:.5f}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: {'#00FF88' if change >= 0 else '#FF4466'}; margin-left: 10px;">
+{'▲' if change >= 0 else '▼'} {abs(change):.2%}
+</span>
+{pnl_html}
+</div>
 </div>
 """, unsafe_allow_html=True)
 
