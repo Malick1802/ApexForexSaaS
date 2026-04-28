@@ -137,46 +137,22 @@ class GlobalFeatureEngineer:
     def add_global_features(self, symbol: str, pair_features: pd.DataFrame, aligned_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
         Enriches a single pair's features with global context.
+        Reduced to 2 features to match 34-feature brain (32 base + 2 global).
         """
-        # 1. Calculate Strength
-        strength = self.compute_currency_strength(aligned_data)
-        
         enriched = pair_features.copy()
         
-        # 2. Add the FULL Currency Strength Matrix
-        for curr in self.CURRENCIES:
-            enriched[f'{curr}_strength'] = strength[curr]
-            
-        # 3. Add DXY
-        dxy = self.compute_dxy_proxy(aligned_data)
-        enriched['dxy_proxy'] = dxy
-        enriched['dxy_ret'] = np.log(dxy / dxy.shift(1))
-        
-        # 4. Add Gold correlation (if present)
+        # 1. Add Gold Return (Critical for Volatility Perception)
         if "GOLD" in aligned_data:
             gold_df = aligned_data["GOLD"]
-            enriched['gold_ret'] = np.log(gold_df['close'] / gold_df['close'].shift(1))
+            enriched['gold_ret'] = np.log(gold_df['close'] / gold_df['close'].shift(1)).fillna(0)
+        else:
+            enriched['gold_ret'] = 0.0
             
-        # 5. Add Bond Yields (US 10-Year Treasury)
-        if "^TNX" in aligned_data:
-            tnx_df = aligned_data["^TNX"]
-            enriched['us10y_yield'] = tnx_df['close'] 
-            enriched['us10y_ret'] = np.log(tnx_df['close'] / tnx_df['close'].shift(1))
-
-        # 6. VIX Proxy — fear gauge from EURUSD realised volatility
-        anchor = aligned_data.get("EURUSD", aligned_data.get(symbol, pair_features))
-        if isinstance(anchor, pd.DataFrame) and 'close' in anchor.columns:
-            enriched['vix_proxy'] = self.compute_vix_proxy(anchor)
-        else:
-            enriched['vix_proxy'] = 0.0
-
-        # 7. Yield Curve Slope — recession/risk indicator
-        if "^TNX" in aligned_data:
-            irx_df = aligned_data.get("^IRX")   # 2Y yield (optional)
-            enriched['yield_curve_slope'] = self.compute_yield_curve_slope(
-                aligned_data["^TNX"], irx_df
-            )
-        else:
-            enriched['yield_curve_slope'] = 0.0
+        # 2. Add DXY Proxy (Critical for USD Sensitivity)
+        try:
+            dxy = self.compute_dxy_proxy(aligned_data)
+            enriched['dxy_ret'] = np.log(dxy / dxy.shift(1)).fillna(0)
+        except:
+            enriched['dxy_ret'] = 0.0
             
         return enriched.ffill().fillna(0)
