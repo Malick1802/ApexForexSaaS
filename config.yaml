@@ -189,6 +189,25 @@ currency_pairs:
   - symbol: JPN225
     pip_type: standard
     correlated_assets: [{symbol: USDJPY, correlation: 0.7}]
+  commodities:
+  - symbol: GOLD
+    pip_type: standard
+    correlated_assets: [{symbol: AUDUSD, correlation: 0.8}]
+  - symbol: SILVER
+    pip_type: standard
+    correlated_assets: [{symbol: GOLD, correlation: 0.9}]
+  - symbol: CrudeOIL
+    pip_type: standard
+    correlated_assets: [{symbol: USDCAD, correlation: -0.65}]
+  - symbol: COPPER
+    pip_type: standard
+    correlated_assets: [{symbol: AUDUSD, correlation: 0.65}]
+  - symbol: XPTUSD
+    pip_type: standard
+    correlated_assets: [{symbol: GOLD, correlation: 0.75}]
+  - symbol: XPDUSD
+    pip_type: standard
+    correlated_assets: [{symbol: XPTUSD, correlation: 0.8}]
 data:
   cache:
     directory: data_cache
