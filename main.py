@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Executive")
 
-def job(engine, notifier):
+def job(exec_engine, notifier):
     """The High-Frequency Job."""
     # ── 0. Safety Guardrail (Prop Firm Compliance) ─────────────────
     guard = get_guardrail()
@@ -48,65 +48,14 @@ def job(engine, notifier):
     logger.info(f"⏰ Tick! Starting High-Frequency Cycle (Memory: {mem_mb:.1f} MB)...")
     
     try:
-        # ── 1. Global Notification Poller (PRIORITY) ───────────────────────
-        # Handle NEW signals immediately (from Scan, Dashboard, or Manual)
-        all_new = [s for s in engine.db.get_recent_signals(limit=20) if s.get('status') == 'NEW']
-        if all_new:
-            logger.info(f"🔍 Poller found {len(all_new)} NEW signals to actuate.")
-            for res in all_new:
-                symbol = res['symbol']
-                signal = res['signal']
-                conf = res['confidence'] or 0.0
-                regime = res.get('regime', 'UNKNOWN')
-                target = res.get('regime_threshold') or 0.60
-                
-                is_valid_entry = conf >= target and signal in ["BUY", "SELL"]
-                
-                if is_valid_entry:
-                    logger.info(f"🔥 ACTUATING: {symbol} {signal} ({conf:.1%})")
-                    sent = notifier.send_signal_alert(res)
-                    if sent:
-                        engine.db.update_signal_status(res['id'], 'SENT')
-                elif signal != "WAIT":
-                    logger.info(f"👀 WATCH: {symbol} {signal} ({conf:.1%} | {regime}) (Hurdle: {target:.0%})")
-                    # Mark as WATCH so we don't spam the log every 5 mins with the same setup
-                    engine.db.update_signal_status(res['id'], 'WATCH')
+        # ── 1. Precise Signal Resolution (Watchdog) ───────────────────────
+        # We now use the ROBUST ExecutiveEngine logic for consistency
+        exec_engine.monitor_active_signals()
 
-        # ── 2. Precise Signal Resolution ──────────────────────────────
-        active_signals = engine.db.get_active_signals(include_hidden=True)
-        if active_signals:
-            logger.info(f"⚖️ Resolving {len(active_signals)} active trades...")
-            price_map = {}
-            # Group by symbol to fetch each only once
-            symbols_to_check = list(set([s['symbol'] for s in active_signals]))
-            
-            for symbol in symbols_to_check:
-                try:
-                    # Fetch 5m candles (2 days for buffer)
-                    df = engine.data_engine.fetch(symbol, interval="5m", days=2)
-                    if df is not None and not df.empty:
-                        # Find the oldest active signal for this symbol to slice the history
-                        oldest_sig = min([s for s in active_signals if s['symbol'] == symbol], key=lambda x: x['timestamp'])
-                        sig_time = datetime.fromisoformat(oldest_sig['timestamp'])
-                        
-                        history = df[df.index >= sig_time]
-                        if not history.empty:
-                            price_map[symbol] = {
-                                'high': float(history['high'].max()),
-                                'low': float(history['low'].min()),
-                                'close': float(history['close'].iloc[-1])
-                            }
-                except Exception as e:
-                    logger.error(f"Resolution fetch failed for {symbol}: {e}")
-            
-            resolved = engine.db.resolve_signals(price_map)
-            if resolved:
-                for s, r in resolved.items():
-                    logger.info(f"🏁 RESOLVED: {s} -> {r}")
-
-        # ── 3. Run New Inference Scan (Background) ──────────────────────
+        # ── 2. Run New Inference Scan (Background) ──────────────────────
         logger.info("🧠 Starting comprehensive 31-pair market scan...")
-        engine.run_all(win_rate="60%")
+        # Note: We use ExecutiveEngine's run_scan for full alert/cooldown support
+        exec_engine.run_scan()
         
     except Exception as e:
         logger.error(f"❌ Cycle Failed: {e}", exc_info=True)
@@ -116,16 +65,17 @@ def job(engine, notifier):
 def main():
     logger.info("🚀 ApexForex Executive Starting...")
     
-    # Global Persistence Layer (Loads models once at startup)
-    logger.info("🧠 Loading Expert Model Fleet (31 pairs)... Please wait (~4 mins).")
-    engine = InferenceEngine()
-    notifier = NotificationManager()
+    # Initialize the Unified Executive Engine
+    # This engine handles both the Inference and the Resolution
+    from core.executive import ExecutiveEngine
+    exec_engine = ExecutiveEngine(target_win_rate="60%")
+    notifier = exec_engine.notifier
     
     # Run once immediately for startup test
-    job(engine, notifier)
+    job(exec_engine, notifier)
     
-    # Schedule for every 2 minutes
-    schedule.every(2).minutes.do(job, engine, notifier)
+    # Schedule for every 5 minutes (Institutional Standard)
+    schedule.every(5).minutes.do(job, exec_engine, notifier)
     
     while True:
         schedule.run_pending()

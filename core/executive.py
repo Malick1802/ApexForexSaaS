@@ -88,7 +88,7 @@ class ExecutiveEngine:
         self,
         config_path: str = "config.yaml",
         target_win_rate: str = "70%",  # Set to user default (institutional floor)
-        scan_interval_minutes: int = 2
+        scan_interval_minutes: int = 5
     ):
         logger.info("="*70)
         logger.info("EXECUTIVE ENGINE - STARTING")
@@ -773,7 +773,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Executive Engine - Production Background Worker")
     parser.add_argument('--win-rate', type=str, default='90%', help='Target Win Rate e.g. 90%')
-    parser.add_argument('--interval', type=int, default=2, help='Scan interval in minutes (default: 2)')
+    parser.add_argument('--interval', type=int, default=15, help='Scan interval in minutes (default: 15)')
     parser.add_argument('--symbols', nargs='+', default=None, help='Specific symbols to monitor')
     
     args = parser.parse_args()

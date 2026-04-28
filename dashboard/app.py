@@ -391,13 +391,10 @@ def show_market_overview():
                 has_secondary_tier[sym] = len(real_sigs) > 1
 
         # Fallback for symbols with only historical signals (no active ones)
-        recent = db.get_recent_signals(limit=200, include_hidden=True)
+        recent = db.get_recent_signals(limit=100, include_hidden=True)
         for s in recent:
-            sym = s['symbol']
-            if sym == 'SYSTEM': continue # Ignore heartbeats in the grid
-            
-            if sym not in sig_map:
-                sig_map[sym] = s
+            if s['symbol'] not in sig_map:
+                sig_map[s['symbol']] = s
 
         # Signal grid categories
         categories = {
