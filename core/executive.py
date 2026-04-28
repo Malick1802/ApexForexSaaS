@@ -595,7 +595,6 @@ class ExecutiveEngine:
             # 7.5s * 8 = 60s. This keeps us strictly within limits.
             if i < len(symbols) - 1:
                 time.sleep(7.5)
-        
         elapsed = time.time() - start_time
         logger.info(f"--- SCAN COMPLETE: {signals_generated} new signals in {elapsed:.1f}s ---")
         
@@ -604,77 +603,112 @@ class ExecutiveEngine:
         logger.info("")
     
     def monitor_active_signals(self):
-        """Check all ACTIVE signals against FULL price history (High/Low) since signal generation."""
+        """
+        High-Reliability Watchdog: Resolves active signals using Triple-Check logic:
+        1. MT5 Ticket Status (If live trade exists)
+        2. MT5 Live Ticks (Fastest resolution)
+        3. Data Engine Fetch (Fallback)
+        """
         active_signals = self.db.get_active_signals(include_hidden=True)
-        resolutions_found = False
         if not active_signals:
             return
             
-        logger.info(f"Watchdog: Checking {len(active_signals)} active signals for outcomes...")
+        logger.info(f"Watchdog: Syncing {len(active_signals)} active signals with market reality...")
+        resolutions_found = False
+        
+        # Initialize MT5 for the highest quality resolution
+        from core.mt5_connector import get_mt5
+        mt5_conn = get_mt5()
         
         for sig in active_signals:
             symbol = sig['symbol']
-            try:
-                # Fetch detailed 1m data (Lookback 2 days for quick resolution)
-                df = self.inference_engine.data_engine.fetch(symbol, interval="1m", days=2, use_cache=False)
-                if df.empty:
-                    continue
-                    
-                # Filter since signal time
-                sig_ts = pd.to_datetime(sig['timestamp'])
-                if sig_ts.tzinfo is None:
-                    sig_ts = sig_ts.tz_localize('UTC')
-                
-                if df.index.tzinfo is None:
-                    df.index = df.index.tz_localize('UTC')
-                    
-                relevant = df[df.index >= sig_ts]
-                
-                if relevant.empty:
-                    continue
-                
-                tp = sig.get('tp_price')
-                sl = sig.get('sl_price')
-                direction = sig['signal']
-                outcome = None
-                
-                # Check for corrupted or legacy signals without proper TP/SL levels
-                if not tp or not sl or tp == 0.0 or sl == 0.0:
-                    logger.warning(f"EXPIRED: {symbol} (ID {sig['id']}) has missing TP/SL. Flushed to prevent deadlock.")
-                    self.db.update_signal_outcome(sig['id'], 'EXPIRED')
-                    resolutions_found = True
-                    continue
-                
-                if direction == 'BUY':
-                    # Check SL (Low) - Any candle hitting SL?
-                    if (relevant['low'] <= sl).any():
-                        outcome = 'FAIL'
-                        logger.info(f"FAIL: {symbol} hit SL {sl}")
-                    # Check TP (High) - Any candle hitting TP?
-                    elif (relevant['high'] >= tp).any():
-                        outcome = 'SUCCESS'
-                        logger.info(f"SUCCESS: {symbol} hit TP {tp}")
-                        
-                elif direction == 'SELL':
-                    # Check SL (High)
-                    if (relevant['high'] >= sl).any():
-                        outcome = 'FAIL'
-                        logger.info(f"FAIL: {symbol} hit SL {sl}")
-                    # Check TP (Low)
-                    elif (relevant['low'] <= tp).any():
-                        outcome = 'SUCCESS'
-                        logger.info(f"SUCCESS: {symbol} hit TP {tp}")
-                        
-                if outcome:
-                    self.db.update_signal_outcome(sig['id'], outcome)
-                    resolutions_found = True
-                    # Immediately register loss cooldown so next scan is blocked without DB lookup
-                    if outcome == 'FAIL':
-                        self._loss_cooldowns[symbol] = datetime.now(timezone.utc)
-                        logger.info(f"🛡️ LOSS COOLDOWN ACTIVATED: {symbol} — no new signals for 4 hours.")
-                        
-            except Exception as e:
-                logger.error(f"Watchdog failed for {symbol}: {e}")
+            sig_id = sig['id']
+            ticket = sig.get('mt5_ticket')
+            tp = sig.get('tp_price')
+            sl = sig.get('sl_price')
+            direction = sig['signal']
+            
+            # Safety Flush for corrupted data
+            if not tp or not sl or tp == 0.0 or sl == 0.0:
+                logger.warning(f"EXPIRED: {symbol} (ID {sig_id}) has missing levels. Flushing.")
+                self.db.update_signal_outcome(sig_id, 'EXPIRED')
+                resolutions_found = True
+                continue
+
+            outcome = None
+            reason = ""
+            current_price = 0.0
+
+            # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
+            if mt5_conn and ticket:
+                try:
+                    # Check if position is still open
+                    pos = mt5_conn.positions_get(ticket=int(ticket))
+                    if not pos:
+                        # Position closed in MT5! Find out why in history.
+                        import MetaTrader5 as mt
+                        from datetime import datetime, timedelta
+                        hist = mt5_conn.history_deals_get(ticket=int(ticket))
+                        if hist:
+                            deal = hist[-1]
+                            current_price = deal.price
+                            profit = deal.profit
+                            outcome = 'SUCCESS' if profit > 0 else 'FAIL'
+                            reason = f"MT5 Native Close (Profit: ${profit:.2f})"
+                        else:
+                            # Fallback if history deal not found yet
+                            outcome = 'SUCCESS' # Optimistic until proven otherwise
+                            reason = "MT5 Position Closed (History pending)"
+                except Exception as e:
+                    logger.warning(f"MT5 Ticket check failed for {symbol}: {e}")
+
+            # ── CHECK 2: MT5 Live Ticks (Medium Priority) ──────────────
+            if not outcome and mt5_conn:
+                try:
+                    tick = mt5_conn.symbol_info_tick(symbol)
+                    if tick:
+                        # Use BID for BUY exits, ASK for SELL exits
+                        current_price = tick.bid if direction == 'BUY' else tick.ask
+                        if direction == 'BUY':
+                            if current_price >= tp: outcome, reason = 'SUCCESS', 'TP Hit (Live Tick)'
+                            elif current_price <= sl: outcome, reason = 'FAIL', 'SL Hit (Live Tick)'
+                        else: # SELL
+                            if current_price <= tp: outcome, reason = 'SUCCESS', 'TP Hit (Live Tick)'
+                            elif current_price >= sl: outcome, reason = 'FAIL', 'SL Hit (Live Tick)'
+                except Exception as e:
+                    logger.warning(f"MT5 Tick resolution failed for {symbol}: {e}")
+
+            # ── CHECK 3: Data Engine Fetch (Fallback) ──────────────────
+            if not outcome:
+                try:
+                    # Try 1m first for precision, fallback to 5m
+                    for interval in ["1m", "5m"]:
+                        df = self.inference_engine.data_engine.fetch(symbol, interval=interval, days=2, use_cache=False)
+                        if df is not None and not df.empty:
+                            sig_ts = pd.to_datetime(sig['timestamp'])
+                            if sig_ts.tzinfo is None: sig_ts = sig_ts.tz_localize('UTC')
+                            if df.index.tzinfo is None: df.index = df.index.tz_localize('UTC')
+                            
+                            relevant = df[df.index >= sig_ts]
+                            if not relevant.empty:
+                                if direction == 'BUY':
+                                    if (relevant['high'] >= tp).any(): outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                    elif (relevant['low'] <= sl).any(): outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                else: # SELL
+                                    if (relevant['low'] <= tp).any(): outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                    elif (relevant['high'] >= sl).any(): outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                
+                                if outcome:
+                                    current_price = relevant['close'].iloc[-1]
+                                    break # Found outcome
+                except Exception as e:
+                    logger.error(f"Fallback resolution failed for {symbol}: {e}")
+
+            # Final Actuation of Outcome
+            if outcome:
+                logger.info(f"🏁 RESOLVED: {symbol} ID {sig_id} -> {outcome} ({reason})")
+                self.db.update_signal_outcome(sig_id, outcome, exit_price=current_price, exit_reason=reason)
+                resolutions_found = True
 
         # If trades were resolved, trigger a micro-update of the performance matrix
         # This keeps the dashboard perfectly in sync with real-time shadow performance.

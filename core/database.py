@@ -118,8 +118,9 @@ class SignalDatabase:
                     'buy_win_rate': 'REAL',
                     'sell_win_rate': 'REAL',
                     'suggested_lots': 'REAL',
-                    'raw_confidence': 'REAL',
-                    'expert_intent': 'TEXT'
+                    'expert_intent': 'TEXT',
+                    'exit_price': 'REAL',
+                    'exit_reason': 'TEXT'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -515,16 +516,19 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Failed to update signal status: {e}")
 
-    def update_signal_outcome(self, signal_id: int, outcome: str):
-        """Update the outcome (SUCCESS/FAIL/EXPIRED) of a specific signal."""
+    def update_signal_outcome(self, signal_id: int, outcome: str, exit_price: float = 0.0, exit_reason: str = ""):
+        """Update the outcome (SUCCESS/FAIL/EXPIRED) of a specific signal with audit details."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("UPDATE signals SET outcome = ? WHERE id = ?", (outcome, signal_id))
+                cursor.execute(
+                    "UPDATE signals SET outcome = ?, exit_price = ?, exit_reason = ? WHERE id = ?", 
+                    (outcome, exit_price, exit_reason, signal_id)
+                )
                 conn.commit()
-                logger.info(f"Signal {signal_id} marked as {outcome}")
+                logger.info(f"Signal {signal_id} marked as {outcome} ({exit_reason})")
         except Exception as e:
-            logger.error(f"Failed to update signal outcome: {e}")
+            logger.error(f"Failed to update signal outcome for ID {signal_id}: {e}")
             
     def get_todays_stats(self) -> Dict[str, int]:
         """Get signal statistics for today."""
