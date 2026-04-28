@@ -124,8 +124,8 @@ def main():
     # Run once immediately for startup test
     job(engine, notifier)
     
-    # Schedule for every 5 minutes
-    schedule.every(5).minutes.do(job, engine, notifier)
+    # Schedule for every 2 minutes
+    schedule.every(2).minutes.do(job, engine, notifier)
     
     while True:
         schedule.run_pending()
