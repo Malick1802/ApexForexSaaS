@@ -601,9 +601,10 @@ def show_trading_terminal():
                 locked_trade = active_signals[0] if active_signals else None
                 
                 # 2. ALWAYS Run FRESH INFERENCE for Live Pulse (Background stats)
+                # For the UI pulse, we are more lenient with 'allow_stale' to keep decimals moving
                 live_result = inf_engine.predict_symbol(
                     symbol, save_to_db=False, 
-                    win_rate=st.session_state['accuracy_target'], allow_stale=False
+                    win_rate=st.session_state['accuracy_target'], allow_stale=True
                 )
 
                 # 3. LOCKING LOGIC: If a trade is active, use the LOCKED data for the main box
@@ -612,6 +613,10 @@ def show_trading_terminal():
                     st.caption(f"🔒 TERMINAL LOCKED TO ACTIVE POSITION (ID #{locked_trade['id']})")
                 else:
                     result = live_result
+                    if live_result:
+                        st.caption("📡 LIVE AI PULSE (Real-Time Monitoring)")
+                    else:
+                        st.caption("⚠️ AI PULSE OFFLINE (Awaiting Market Data)")
 
                 # 4. FALLBACK: If inference failed and no locked trade, show most recent DB signal
                 if not result:
