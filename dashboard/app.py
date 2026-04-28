@@ -391,10 +391,18 @@ def show_market_overview():
                 has_secondary_tier[sym] = len(real_sigs) > 1
 
         # Fallback for symbols with only historical signals (no active ones)
-        recent = db.get_recent_signals(limit=100, include_hidden=True)
+        # Increased limit to 1000 to handle high-frequency (2-min) scan volume across 31 pairs
+        recent = db.get_recent_signals(limit=1000, include_hidden=True)
         for s in recent:
-            if s['symbol'] not in sig_map:
-                sig_map[s['symbol']] = s
+            sym = s['symbol']
+            # Only use the newest one if we don't already have a more relevant (Active) signal
+            if sym not in sig_map:
+                sig_map[sym] = s
+            else:
+                # If the existing one is just a WAIT, but this one is NEWER, update it
+                existing = sig_map[sym]
+                if existing.get('signal') == 'WAIT' and s.get('timestamp', '') > existing.get('timestamp', ''):
+                    sig_map[sym] = s
 
         # Signal grid categories
         categories = {
