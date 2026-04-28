@@ -191,13 +191,29 @@ class FeatureEngineer:
         """
         X_list, y_list = [], []
         
-        feature_vals = features.values
-        label_vals = labels.values
-        
-        # Align by index
-        common_idx = features.index.intersection(labels.index)
-        feature_vals = features.loc[common_idx].values
-        label_vals = labels.loc[common_idx].values
+        # Safe conversion to numpy
+        if hasattr(features, 'values'):
+            feature_vals = features.values
+        else:
+            feature_vals = features
+            
+        if hasattr(labels, 'values'):
+            label_vals = labels.values
+        else:
+            label_vals = labels
+            
+        # If they are already numpy arrays, they must be pre-aligned
+        if not hasattr(features, 'index') or not hasattr(labels, 'index'):
+            if len(feature_vals) != len(label_vals):
+                logger.warning("Features and Labels have different lengths. Using minimum.")
+                min_len = min(len(feature_vals), len(label_vals))
+                feature_vals = feature_vals[:min_len]
+                label_vals = label_vals[:min_len]
+        else:
+            # Align by index if they are pandas objects
+            common_idx = features.index.intersection(labels.index)
+            feature_vals = features.loc[common_idx].values
+            label_vals = labels.loc[common_idx].values
         
         for i in range(sequence_length, len(feature_vals)):
             X_list.append(feature_vals[i - sequence_length:i])
