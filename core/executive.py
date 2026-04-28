@@ -88,7 +88,7 @@ class ExecutiveEngine:
         self,
         config_path: str = "config.yaml",
         target_win_rate: str = "70%",  # Set to user default (institutional floor)
-        scan_interval_minutes: int = 5
+        scan_interval_minutes: int = 2
     ):
         logger.info("="*70)
         logger.info("EXECUTIVE ENGINE - STARTING")
