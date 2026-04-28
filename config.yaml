@@ -173,6 +173,22 @@ currency_pairs:
       symbol: USDJPY
     pip_type: standard
     symbol: USDSGD
+  indices:
+  - symbol: NAS100
+    pip_type: standard
+    correlated_assets: [{symbol: US30, correlation: 0.9}]
+  - symbol: US30
+    pip_type: standard
+    correlated_assets: [{symbol: SPX500, correlation: 0.95}]
+  - symbol: SPX500
+    pip_type: standard
+    correlated_assets: [{symbol: VIX, correlation: -0.85}]
+  - symbol: GER40
+    pip_type: standard
+    correlated_assets: [{symbol: EURUSD, correlation: 0.4}]
+  - symbol: JPN225
+    pip_type: standard
+    correlated_assets: [{symbol: USDJPY, correlation: 0.7}]
 data:
   cache:
     directory: data_cache
@@ -183,6 +199,7 @@ data:
   - 1h
   - 4h
   - 1d
+  # (Rest of data remains the same)
 data_provider:
   active: mt5
   twelvedata:
@@ -228,8 +245,4 @@ safety:
   enabled: true
 
 # Temporarily blocked pairs (0% win rate - re-enable after model retraining)
-blocked_symbols:
-  - GOLD       # Win rate: 0% (0/4 last 7 days) - model bias toward BUY in downtrend
-  - XAUUSD     # Alias for GOLD
-  - CrudeOIL   # Win rate: 29% (4/14 last 7 days) - repeated false BUY signals
-  - USOIL      # Alias for CrudeOIL
+blocked_symbols: []

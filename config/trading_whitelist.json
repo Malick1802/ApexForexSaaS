@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-04-23T07:23:31.450057+00:00",
+  "last_updated": "2026-04-28T13:16:54.535524+00:00",
   "performance_matrix": {
     "EURUSD": {
       "60": {
@@ -118,21 +118,22 @@
         "last_updated": "2026-04-06T13:24:14.509670+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 2,
-          "status": "APPROVED",
-          "last_updated": "2026-04-15T10:28:17.939638+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
+      "BUY": {},
       "SELL": {
         "60": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.434440+00:00",
+          "last_updated": "2026-04-28T13:16:54.516428+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.516518+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -240,21 +241,22 @@
         "last_updated": "2026-04-06T13:24:14.509702+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 4,
-          "status": "APPROVED",
-          "last_updated": "2026-04-23T07:23:31.423962+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
+      "BUY": {},
       "SELL": {
         "60": {
           "accuracy": 0.5,
           "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.424203+00:00",
+          "last_updated": "2026-04-28T13:16:54.514400+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.514500+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -310,11 +312,20 @@
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.436817+00:00",
+          "last_updated": "2026-04-28T13:16:54.517905+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.518002+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDUSD": {
       "60": {
@@ -362,21 +373,22 @@
         "last_updated": "2026-04-06T13:24:14.509806+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.942853+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
+      "BUY": {},
       "SELL": {
         "60": {
           "accuracy": 0.2,
           "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.436497+00:00",
+          "last_updated": "2026-04-28T13:16:54.517333+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.517480+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -428,7 +440,8 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {},
+      "ALL": {}
     },
     "EURAUD": {
       "60": {
@@ -530,11 +543,20 @@
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.427042+00:00",
+          "last_updated": "2026-04-28T13:16:54.515303+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.515474+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURCHF": {
       "60": {
@@ -701,11 +723,20 @@
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.432503+00:00",
+          "last_updated": "2026-04-28T13:16:54.515805+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.515977+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPCHF": {
       "60": {
@@ -872,14 +903,14 @@
           "accuracy": 0.0,
           "trades": 4,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.423459+00:00",
+          "last_updated": "2026-04-28T13:16:54.513871+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.423567+00:00",
+          "last_updated": "2026-04-28T13:16:54.513936+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -888,7 +919,23 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.423736+00:00",
+          "last_updated": "2026-04-28T13:16:54.514036+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.514179+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.514220+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1050,18 +1097,20 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.433334+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.938809+00:00",
+          "last_updated": "2026-04-28T13:16:54.516071+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.516253+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDJPY": {
       "60": {
@@ -1171,11 +1220,20 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.424801+00:00",
+          "last_updated": "2026-04-28T13:16:54.514614+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.514778+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CHFJPY": {
       "60": {
@@ -1339,28 +1397,73 @@
       },
       "BUY": {
         "60": {
-          "accuracy": 0.2857142857142857,
-          "trades": 14,
-          "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.425611+00:00",
-          "source": "Live Data (14d)"
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567788+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
         },
         "70": {
-          "accuracy": 0.09090909090909091,
-          "trades": 11,
-          "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.425671+00:00",
-          "source": "Live Data (14d)"
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567794+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
         },
         "80": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.425711+00:00",
-          "source": "Live Data (14d)"
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567799+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567805+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567810+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567815+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567821+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567826+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567831+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
     },
     "USDSGD": {
       "60": {
@@ -1511,11 +1614,20 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.435117+00:00",
+          "last_updated": "2026-04-28T13:16:54.516937+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-28T13:16:54.517107+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDCHF": {
       "60": {
@@ -1753,25 +1865,611 @@
     "GOLD": {
       "BUY": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.434741+00:00",
-          "source": "Live Data (14d)"
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567419+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
         },
         "70": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-23T07:23:31.434791+00:00",
-          "source": "Live Data (14d)"
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567693+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567706+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567714+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567719+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567724+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567730+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567735+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567739+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
     },
     "SYSTEM": {
       "BUY": {},
-      "SELL": {}
+      "SELL": {},
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T13:16:54.517773+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T13:16:54.517802+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T13:16:54.517829+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T13:16:54.517857+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T13:16:54.517885+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "XAUUSD": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567745+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567750+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567754+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567759+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567764+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567768+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567774+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567778+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567783+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "USOIL": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567836+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567841+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567846+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567851+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567856+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567861+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567866+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567871+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567876+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "NAS100": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567881+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567886+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567891+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567896+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567900+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567905+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567909+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567914+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567919+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "US30": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567925+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567929+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567934+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567940+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567945+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567950+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567956+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567960+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567966+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "GER40": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567971+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567976+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567981+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567986+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567991+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.567995+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568000+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568005+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568009+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "SPX500": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568014+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568019+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568024+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568028+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568032+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568037+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568041+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568046+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568050+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
+    },
+    "JPN225": {
+      "BUY": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568055+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568060+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568065+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568070+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568075+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568079+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568084+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568089+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "trades": 10,
+          "status": "APPROVED",
+          "last_updated": "2026-04-28T14:04:55.568094+00:00",
+          "source": "Manual Force Unlock (Fleet Expansion)"
+        }
+      }
     }
   }
 }
