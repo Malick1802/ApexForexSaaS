@@ -602,9 +602,12 @@ def show_trading_terminal():
                 
                 # 2. ALWAYS Run FRESH INFERENCE for Live Pulse (Background stats)
                 # For the UI pulse, we are more lenient with 'allow_stale' to keep decimals moving
+                # but we FORCE use_cache=False to ensure we aren't stuck on a stale parquet file.
                 live_result = inf_engine.predict_symbol(
                     symbol, save_to_db=False, 
-                    win_rate=st.session_state['accuracy_target'], allow_stale=True
+                    win_rate=st.session_state['accuracy_target'], 
+                    allow_stale=True,
+                    use_cache=False
                 )
 
                 # 3. LOCKING LOGIC: If a trade is active, use the LOCKED data for the main box

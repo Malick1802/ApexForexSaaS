@@ -756,7 +756,8 @@ class InferenceEngine:
         symbol: str,
         save_to_db: bool = True,
         win_rate: Optional[str] = None,
-        allow_stale: bool = False
+        allow_stale: bool = False,
+        use_cache: bool = True
     ) -> Optional[Dict[str, Any]]:
         """
         Generate prediction for a specific accuracy tier (Model Isolation Mode).
@@ -773,7 +774,7 @@ class InferenceEngine:
 
         try:
             # ── 0. DATA FETCHING ──────────────────────────────────────────
-            df = self.data_engine.fetch(symbol, interval="1h", days=30)  # 30 days for EMA200 warmup
+            df = self.data_engine.fetch(symbol, interval="1h", days=30, use_cache=use_cache)  # 30 days for EMA200 warmup
             if df is None or len(df) < 60: return None
             if not allow_stale and self._is_data_stale(df.index[-1]): return None
 
