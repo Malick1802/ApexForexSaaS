@@ -168,9 +168,27 @@ class SignalDatabase:
         Returns:
         """
         
-        # --- PERMANENT BAN: WAIT signals must never be saved ---
+        # --- SMART PULSE: Maintain exactly ONE 'WAIT' signal per symbol to drive the Dashboard ---
         if data.get('signal') == 'WAIT':
-            return 0
+            try:
+                with self._get_connection() as conn:
+                    cursor = conn.cursor()
+                    # Check if a WAIT pulse already exists for this symbol
+                    cursor.execute("SELECT id FROM signals WHERE symbol = ? AND signal = 'WAIT' LIMIT 1", (data['symbol'],))
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        # UPDATE the existing pulse with fresh conviction
+                        cursor.execute("""
+                            UPDATE signals 
+                            SET timestamp = ?, confidence = ?, raw_confidence = ?, status = 'PULSE', outcome = 'N/A'
+                            WHERE id = ?
+                        """, (data['timestamp'], data['confidence'], data.get('raw_confidence', 0.0), existing[0]))
+                        conn.commit()
+                        return existing[0]
+                    # If none exists (first scan), fall through to the standard INSERT
+            except Exception as e:
+                logger.error(f"Failed to upsert pulse for {data['symbol']}: {e}")
             
         try:
             with self._get_connection() as conn:
