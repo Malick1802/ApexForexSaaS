@@ -185,6 +185,7 @@ class SignalDatabase:
                             WHERE id = ?
                         """, (data['timestamp'], data['confidence'], data.get('raw_confidence', 0.0), existing[0]))
                         conn.commit()
+                        logger.debug(f"PULSE: Updated {data['symbol']} conviction to {data['confidence']:.4f}")
                         return existing[0]
                     # If none exists (first scan), fall through to the standard INSERT
             except Exception as e:
