@@ -156,7 +156,7 @@ class AdaptationTrainer:
                     X_train, y_train,
                     validation_data=(X_val, y_val),
                     epochs=10, # Fast fine-tuning
-                    batch_size=512,
+                    batch_size=128,
                     class_weight=class_weight,
                     callbacks=[
                         keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=3, restore_best_weights=True)
@@ -178,6 +178,11 @@ class AdaptationTrainer:
                     }, f)
                 
                 logger.info(f"✅ {symbol} Expert Adaptation Complete!")
+                
+                # Memory Safeguard
+                del pair_model, X_train, y_train, X_val, y_val, X, y_seq
+                keras.backend.clear_session()
+                gc.collect()
                 
                 # Free memory
                 del X_train, y_train, X_val, y_val, pair_model
