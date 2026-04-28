@@ -532,9 +532,11 @@ class InferenceEngine:
         rr_ratio = trading_config.get('risk_reward_ratio', 1.5)
         
         # Determine pip type
-        is_gold = 'XAU' in symbol or 'GOLD' in symbol
-        if is_gold:
-            pip_type = 'gold'
+        is_gold = any(x in symbol.upper() for x in ['XAU', 'GOLD', 'XAG', 'SILVER'])
+        is_oil = any(x in symbol.upper() for x in ['OIL', 'WTI', 'CRUDE'])
+        
+        if is_gold or is_oil:
+            pip_type = 'gold' # 0.01
         else:
             pip_type = 'jpy' if 'JPY' in symbol else 'standard'
             

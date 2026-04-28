@@ -421,8 +421,23 @@ class ExecutiveEngine:
 
                 # Directional Cooldown: Only block if the NEW signal matches the LAST one
                 cooldown_key = f"{symbol}_{signal}"
-                if cooldown_key in self._recent_signals:
-                    elapsed = (datetime.now(timezone.utc) - self._recent_signals[cooldown_key]).total_seconds() / 60
+                last_time = self._recent_signals.get(cooldown_key)
+                
+                # If not in memory, check DB (persistent cooldown across restarts)
+                if not last_time:
+                    recent = self.db.get_recent_signals(limit=1, symbol=symbol)
+                    if recent and recent[0]['signal'] == signal:
+                        try:
+                            last_time = pd.to_datetime(recent[0]['timestamp'])
+                            if last_time.tzinfo is None:
+                                last_time = last_time.tz_localize('UTC')
+                            # Populate memory cache
+                            self._recent_signals[cooldown_key] = last_time
+                        except Exception:
+                            pass
+
+                if last_time:
+                    elapsed = (datetime.now(timezone.utc) - last_time).total_seconds() / 60
                     if elapsed < self._cooldown_minutes:
                         logger.info(f"SKIP: {symbol} {signal}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min).")
                         return None
