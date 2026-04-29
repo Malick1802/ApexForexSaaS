@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-04-28T15:29:10.565010+00:00",
+  "last_updated": "2026-04-29T16:44:03.859406+00:00",
   "performance_matrix": {
     "EURUSD": {
       "60": {
@@ -97,22 +97,86 @@
         "last_updated": "2026-04-06T13:24:14.509670+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {},
+      "BUY": {
+        "60": {
+          "accuracy": 0.07407407407407407,
+          "trades": 54,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.845852+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.02857142857142857,
+          "trades": 35,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.846013+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 19,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.846145+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
       "SELL": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+          "accuracy": 0.39622641509433965,
+          "trades": 106,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529777+00:00",
+          "last_updated": "2026-04-29T16:44:03.849647+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.32926829268292684,
+          "trades": 82,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.849961+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.42424242424242425,
+          "trades": 33,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.850113+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.850221+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+          "accuracy": 0.2875,
+          "trades": 160,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529873+00:00",
+          "last_updated": "2026-04-29T16:44:03.850516+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.23931623931623933,
+          "trades": 117,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.850685+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.2692307692307692,
+          "trades": 52,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.850828+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.850934+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -163,16 +227,9 @@
         "last_updated": "2026-04-06T13:24:14.509685+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.945121+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
+      "BUY": {},
+      "SELL": {},
+      "ALL": {}
     },
     "AUDUSD": {
       "60": {
@@ -220,22 +277,65 @@
         "last_updated": "2026-04-06T13:24:14.509702+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {},
+      "BUY": {
+        "60": {
+          "accuracy": 0.4146341463414634,
+          "trades": 82,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.831117+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.4807692307692308,
+          "trades": 52,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.831700+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.32142857142857145,
+          "trades": 28,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.831996+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
       "SELL": {
         "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+          "accuracy": 0.32142857142857145,
+          "trades": 56,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527357+00:00",
+          "last_updated": "2026-04-29T16:44:03.832652+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.16666666666666666,
+          "trades": 18,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.832781+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+          "accuracy": 0.37681159420289856,
+          "trades": 138,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527462+00:00",
+          "last_updated": "2026-04-29T16:44:03.833230+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.4,
+          "trades": 70,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.833367+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.32142857142857145,
+          "trades": 28,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.833469+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -288,20 +388,84 @@
       },
       "BUY": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+          "accuracy": 0.4639175257731959,
+          "trades": 97,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.531501+00:00",
+          "last_updated": "2026-04-29T16:44:03.853022+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.46511627906976744,
+          "trades": 86,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853156+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.31343283582089554,
+          "trades": 67,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853250+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.14893617021276595,
+          "trades": 47,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853369+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
+      "SELL": {
+        "60": {
+          "accuracy": 0.3488372093023256,
+          "trades": 43,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853561+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.2727272727272727,
+          "trades": 22,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853710+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.853812+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
       "ALL": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+          "accuracy": 0.42857142857142855,
+          "trades": 140,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.531679+00:00",
+          "last_updated": "2026-04-29T16:44:03.854230+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.42592592592592593,
+          "trades": 108,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.854392+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.2916666666666667,
+          "trades": 72,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.854529+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.14893617021276595,
+          "trades": 47,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.854652+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -358,7 +522,7 @@
           "accuracy": 0.2,
           "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530889+00:00",
+          "last_updated": "2026-04-29T16:44:03.852295+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -367,7 +531,7 @@
           "accuracy": 0.2,
           "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.531054+00:00",
+          "last_updated": "2026-04-29T16:44:03.852426+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -469,7 +633,24 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.836720+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.837396+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURCAD": {
       "60": {
@@ -522,7 +703,7 @@
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.528334+00:00",
+          "last_updated": "2026-04-29T16:44:03.837487+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -532,7 +713,7 @@
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.528548+00:00",
+          "last_updated": "2026-04-29T16:44:03.837646+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -583,16 +764,9 @@
         "last_updated": "2026-04-06T13:24:14.510146+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.911381+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
+      "BUY": {},
+      "SELL": {},
+      "ALL": {}
     },
     "GBPAUD": {
       "60": {
@@ -645,11 +819,42 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.930698+00:00",
+          "last_updated": "2026-04-29T16:44:03.840198+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.840238+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.840347+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.841375+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.842138+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPCAD": {
       "60": {
@@ -700,9 +905,9 @@
       "BUY": {
         "60": {
           "accuracy": 0.0,
-          "trades": 1,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529135+00:00",
+          "last_updated": "2026-04-29T16:44:03.842982+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -710,9 +915,9 @@
       "ALL": {
         "60": {
           "accuracy": 0.0,
-          "trades": 1,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529313+00:00",
+          "last_updated": "2026-04-29T16:44:03.843165+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -763,16 +968,9 @@
         "last_updated": "2026-04-06T13:24:14.510194+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.938263+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
+      "BUY": {},
+      "SELL": {},
+      "ALL": {}
     },
     "AUDCAD": {
       "60": {
@@ -822,14 +1020,59 @@
       },
       "BUY": {
         "60": {
-          "accuracy": 1.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.828623+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.829352+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.778112+00:00",
+          "last_updated": "2026-04-29T16:44:03.829407+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.829474+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.829682+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.829718+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.830053+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDNZD": {
       "60": {
@@ -882,14 +1125,14 @@
           "accuracy": 0.0,
           "trades": 4,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.526612+00:00",
+          "last_updated": "2026-04-29T16:44:03.830618+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.526780+00:00",
+          "last_updated": "2026-04-29T16:44:03.830660+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -898,7 +1141,7 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.526908+00:00",
+          "last_updated": "2026-04-29T16:44:03.830750+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -907,14 +1150,14 @@
           "accuracy": 0.2,
           "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527126+00:00",
+          "last_updated": "2026-04-29T16:44:03.830862+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527171+00:00",
+          "last_updated": "2026-04-29T16:44:03.830897+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -965,8 +1208,96 @@
         "last_updated": "2026-04-06T13:24:14.510240+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {},
-      "SELL": {}
+      "BUY": {
+        "60": {
+          "accuracy": 0.40476190476190477,
+          "trades": 84,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855098+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.40625,
+          "trades": 64,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855223+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.23333333333333334,
+          "trades": 30,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855329+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "trades": 7,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855442+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.4444444444444444,
+          "trades": 63,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855641+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5277777777777778,
+          "trades": 36,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855767+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "trades": 24,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855873+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.45454545454545453,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.855957+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.4217687074829932,
+          "trades": 147,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.856187+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.45,
+          "trades": 100,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.856342+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.35185185185185186,
+          "trades": 54,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.856457+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.2777777777777778,
+          "trades": 18,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.856571+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURJPY": {
       "60": {
@@ -1014,16 +1345,25 @@
         "last_updated": "2026-04-06T13:24:14.510364+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
+      "BUY": {},
+      "SELL": {
         "60": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.929362+00:00",
+          "last_updated": "2026-04-29T16:44:03.838618+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.838771+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPJPY": {
       "60": {
@@ -1076,17 +1416,25 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529409+00:00",
+          "last_updated": "2026-04-29T16:44:03.843550+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
-      "ALL": {
+      "SELL": {
         "60": {
-          "accuracy": 1.0,
+          "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529590+00:00",
+          "last_updated": "2026-04-29T16:44:03.843632+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.843696+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1137,16 +1485,9 @@
         "last_updated": "2026-04-06T13:24:14.510459+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 0.5,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.779351+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
+      "BUY": {},
+      "SELL": {},
+      "ALL": {}
     },
     "CADJPY": {
       "60": {
@@ -1199,17 +1540,25 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527568+00:00",
+          "last_updated": "2026-04-29T16:44:03.833751+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
-      "ALL": {
+      "SELL": {
         "60": {
-          "accuracy": 1.0,
+          "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527745+00:00",
+          "last_updated": "2026-04-29T16:44:03.833864+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.833941+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1260,16 +1609,25 @@
         "last_updated": "2026-04-06T13:24:14.510594+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
+      "BUY": {},
+      "SELL": {
         "60": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.792967+00:00",
+          "last_updated": "2026-04-29T16:44:03.834098+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.834165+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDJPY": {
       "60": {
@@ -1317,16 +1675,9 @@
         "last_updated": "2026-04-06T13:24:14.510611+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 2,
-          "status": "APPROVED",
-          "last_updated": "2026-04-15T10:28:17.942453+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
+      "BUY": {},
+      "SELL": {},
+      "ALL": {}
     },
     "CrudeOIL": {
       "60": {
@@ -1376,48 +1727,84 @@
       },
       "BUY": {
         "60": {
-          "accuracy": 0.2857142857142857,
-          "trades": 14,
+          "accuracy": 0.5922330097087378,
+          "trades": 103,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527864+00:00",
+          "last_updated": "2026-04-29T16:44:03.834354+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
-          "accuracy": 0.09090909090909091,
-          "trades": 11,
+          "accuracy": 0.4307692307692308,
+          "trades": 65,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527909+00:00",
+          "last_updated": "2026-04-29T16:44:03.834509+00:00",
           "source": "Live Data (14d)"
         },
         "80": {
-          "accuracy": 0.0,
-          "trades": 2,
+          "accuracy": 0.05263157894736842,
+          "trades": 19,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.527950+00:00",
+          "last_updated": "2026-04-29T16:44:03.834616+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
-      "ALL": {
+      "SELL": {
         "60": {
-          "accuracy": 0.2857142857142857,
-          "trades": 14,
+          "accuracy": 0.2608695652173913,
+          "trades": 46,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.528172+00:00",
+          "last_updated": "2026-04-29T16:44:03.835174+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
-          "accuracy": 0.09090909090909091,
-          "trades": 11,
+          "accuracy": 0.25,
+          "trades": 24,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.528218+00:00",
+          "last_updated": "2026-04-29T16:44:03.835316+00:00",
           "source": "Live Data (14d)"
         },
         "80": {
           "accuracy": 0.0,
-          "trades": 2,
+          "trades": 16,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.528255+00:00",
+          "last_updated": "2026-04-29T16:44:03.835478+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "trades": 8,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.835603+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.4899328859060403,
+          "trades": 149,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.836006+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.38202247191011235,
+          "trades": 89,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.836176+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.02857142857142857,
+          "trades": 35,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.836347+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "trades": 8,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.836469+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1469,7 +1856,24 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.856734+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.857161+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CADCHF": {
       "60": {
@@ -1518,7 +1922,8 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {},
+      "ALL": {}
     },
     "NZDCAD": {
       "60": {
@@ -1571,7 +1976,7 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530324+00:00",
+          "last_updated": "2026-04-29T16:44:03.851599+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1581,7 +1986,7 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530507+00:00",
+          "last_updated": "2026-04-29T16:44:03.851752+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1633,7 +2038,8 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {},
+      "ALL": {}
     },
     "EURNZD": {
       "60": {
@@ -1681,30 +2087,25 @@
         "last_updated": "2026-04-06T13:24:14.510730+00:00",
         "source": "Audit Baseline (Bayesian)"
       },
-      "BUY": {
+      "BUY": {},
+      "SELL": {
         "60": {
-          "accuracy": 0.3333333333333333,
-          "trades": 3,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.929816+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
           "accuracy": 0.0,
-          "trades": 1,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.929888+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.929944+00:00",
+          "last_updated": "2026-04-29T16:44:03.838927+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.839541+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPNZD": {
       "60": {
@@ -1754,21 +2155,66 @@
       },
       "BUY": {
         "60": {
-          "accuracy": 0.5,
-          "trades": 4,
+          "accuracy": 0.07407407407407407,
+          "trades": 27,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.939189+00:00",
+          "last_updated": "2026-04-29T16:44:03.843846+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
-          "accuracy": 0.5,
-          "trades": 2,
+          "accuracy": 0.0,
+          "trades": 7,
           "status": "BENCHED",
-          "last_updated": "2026-04-15T10:28:17.939249+00:00",
+          "last_updated": "2026-04-29T16:44:03.843910+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.843982+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.3125,
+          "trades": 16,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.844702+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.1111111111111111,
+          "trades": 9,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.844836+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.16279069767441862,
+          "trades": 43,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.845228+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0625,
+          "trades": 16,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.845338+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.845435+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDCHF": {
       "60": {
@@ -1817,39 +2263,48 @@
         "source": "Audit Baseline (Bayesian)"
       },
       "BUY": {},
-      "SELL": {}
+      "SELL": {},
+      "ALL": {}
     },
     "GOLD": {
       "BUY": {
         "60": {
           "accuracy": 0.0,
-          "trades": 4,
+          "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.529976+00:00",
+          "last_updated": "2026-04-29T16:44:03.851294+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 0.0,
-          "trades": 1,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530007+00:00",
+          "last_updated": "2026-04-29T16:44:03.851327+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
+      "SELL": {
+        "60": {
+          "accuracy": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-29T16:44:03.851402+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
       "ALL": {
         "60": {
-          "accuracy": 0.0,
-          "trades": 4,
+          "accuracy": 0.14285714285714285,
+          "trades": 7,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530200+00:00",
+          "last_updated": "2026-04-29T16:44:03.851482+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 0.0,
-          "trades": 1,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-28T15:29:10.530234+00:00",
+          "last_updated": "2026-04-29T16:44:03.851517+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1860,37 +2315,37 @@
       "ALL": {
         "60": {
           "accuracy": 1.0,
-          "trades": 3,
+          "trades": 19,
           "status": "APPROVED",
-          "last_updated": "2026-04-28T15:29:10.531361+00:00",
+          "last_updated": "2026-04-29T16:44:03.852751+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 1.0,
-          "trades": 3,
+          "trades": 19,
           "status": "APPROVED",
-          "last_updated": "2026-04-28T15:29:10.531394+00:00",
+          "last_updated": "2026-04-29T16:44:03.852786+00:00",
           "source": "Live Data (14d)"
         },
         "80": {
           "accuracy": 1.0,
-          "trades": 3,
+          "trades": 19,
           "status": "APPROVED",
-          "last_updated": "2026-04-28T15:29:10.531420+00:00",
+          "last_updated": "2026-04-29T16:44:03.852811+00:00",
           "source": "Live Data (14d)"
         },
         "90": {
           "accuracy": 1.0,
-          "trades": 3,
+          "trades": 19,
           "status": "APPROVED",
-          "last_updated": "2026-04-28T15:29:10.531446+00:00",
+          "last_updated": "2026-04-29T16:44:03.852851+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
           "accuracy": 1.0,
-          "trades": 3,
+          "trades": 19,
           "status": "APPROVED",
-          "last_updated": "2026-04-28T15:29:10.531472+00:00",
+          "last_updated": "2026-04-29T16:44:03.852892+00:00",
           "source": "Live Data (14d)"
         }
       }
