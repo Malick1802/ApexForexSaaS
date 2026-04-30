@@ -115,6 +115,30 @@ class PerformanceGate:
             
         return tier_data.get("status", "⬜ No data")
 
+    def get_tier_accuracy(self, symbol: str, direction: str, confidence) -> float:
+        """Get the historically validated accuracy/win rate for a specific tier."""
+        # Ensure fresh data
+        self.get_tier_status(symbol, direction, confidence)
+        
+        applicable_tier = self._normalize_tier(confidence)
+        if not applicable_tier:
+            return 0.0
+
+        direction_data = self.performance_matrix.get(symbol, {}).get(direction)
+        if not direction_data or str(applicable_tier) not in direction_data:
+            if direction != "ALL":
+                direction_data = self.performance_matrix.get(symbol, {}).get("ALL")
+        
+        if not direction_data:
+            return 0.0
+            
+        tier_data = direction_data.get(str(applicable_tier))
+        if not tier_data:
+            return 0.0
+            
+        # Support both 'accuracy' (live) and 'win_rate' (OOS script)
+        return float(tier_data.get("accuracy", tier_data.get("win_rate", 0.0)))
+
     def recompute_from_db(self, lookback_days: int = 14):
         """
         Scan signals.db for the last X days and update all 5 tiers for all symbols BY DIRECTION.

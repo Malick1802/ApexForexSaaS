@@ -1100,7 +1100,14 @@ class InferenceEngine:
                 if final_confidence is None or np.isnan(final_confidence):
                     logger.warning(f"Calibrator returned NaN/None for {symbol}. Falling back to raw score.")
                     final_confidence = raw_confidence
-                    
+                
+                # If calibrator is unfitted/absent, final_confidence equals raw_confidence.
+                # In this case, pull the historically validated OOS accuracy for UI presentation!
+                if final_confidence == raw_confidence:
+                    hist_acc = self.perf_gate.get_tier_accuracy(symbol, signal, raw_confidence)
+                    if hist_acc > 0.0:
+                        final_confidence = hist_acc
+
                 logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} (Raw) -> {final_confidence:.1%} (Real)")
             except Exception as e:
                 logger.warning(f"Calibration crash for {symbol}: {e}")
