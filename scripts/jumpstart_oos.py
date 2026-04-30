@@ -25,7 +25,7 @@ logger = logging.getLogger("Jumpstart")
 
 # Configuration
 TIERS = [0.50, 0.55, 0.60, 0.70, 0.80, 0.90]
-OOS_START_DATE = "2026-03-16" # 45-day Jumpstart Window
+OOS_START_DATE = "2026-04-16" # 14-day Jumpstart Window
 
 def run_jumpstart_simulation():
     logger.info("🚀 Starting 14-day OOS Jumpstart Simulation (Institutional Parity)")
@@ -214,7 +214,7 @@ def update_trading_whitelist(results):
                             "oos_accuracy": data['accuracy'],
                             "status": "APPROVED" if approved else "BENCHED",
                             "last_updated": datetime.now().isoformat(),
-                            "source": "OOS Jumpstart (45d)"
+                            "source": "OOS Jumpstart (14d)"
                         }
                         updated_count += 1
         

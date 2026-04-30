@@ -1,49 +1,39 @@
 {
-  "last_updated": "2026-04-30T08:04:56.086527",
+  "last_updated": "2026-04-30T09:34:35.896456",
   "performance_matrix": {
     "EURUSD": {
       "BUY": {
         "50": {
-          "win_rate": 0.5555555555555556,
-          "accuracy": 0.5555555555555556,
-          "trades": 9,
-          "oos_trades": 9,
-          "oos_accuracy": 0.5555555555555556,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.081168",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
           "trades": 1,
           "oos_trades": 1,
-          "oos_accuracy": 1.0,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.081561",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.863415",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.081608",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
           "win_rate": 0.3333333333333333,
           "accuracy": 0.3333333333333333,
           "trades": 3,
           "oos_trades": 3,
           "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.081824",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879030",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879103",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -52,8 +42,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.081840",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879134",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -63,64 +53,44 @@
         "50": {
           "win_rate": 0.5,
           "accuracy": 0.5,
-          "trades": 12,
-          "oos_trades": 12,
+          "trades": 2,
+          "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082014",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082027",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082033",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879154",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.42857142857142855,
-          "accuracy": 0.42857142857142855,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.42857142857142855,
+          "win_rate": 0.4,
+          "accuracy": 0.4,
+          "trades": 5,
+          "oos_trades": 5,
+          "oos_accuracy": 0.4,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082259",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879184",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.5,
           "accuracy": 0.5,
-          "trades": 6,
-          "oos_trades": 6,
+          "trades": 4,
+          "oos_trades": 4,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082270",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879192",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
-          "trades": 3,
-          "oos_trades": 3,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.082278",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879198",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -128,14 +98,46 @@
     "USDCHF": {
       "BUY": {
         "50": {
-          "win_rate": 0.625,
-          "accuracy": 0.625,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.625,
+          "win_rate": 0.6666666666666666,
+          "accuracy": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.6666666666666666,
           "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.082308",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879227",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 1.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879235",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879241",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879265",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.5,
@@ -144,40 +146,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082315",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 12,
-          "oos_trades": 12,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082326",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082911",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.082940",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879272",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -185,24 +155,46 @@
     "AUDUSD": {
       "BUY": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083025",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879451",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.75,
-          "accuracy": 0.75,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.75,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.083034",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 1.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879466",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879659",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879672",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 1.0,
@@ -211,40 +203,8 @@
           "oos_trades": 1,
           "oos_accuracy": 1.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083040",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.35714285714285715,
-          "accuracy": 0.35714285714285715,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.35714285714285715,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083046",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.25,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083051",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083070",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879680",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -254,12 +214,12 @@
         "50": {
           "win_rate": 0.5,
           "accuracy": 0.5,
-          "trades": 6,
-          "oos_trades": 6,
+          "trades": 2,
+          "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083081",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879693",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.5,
@@ -268,97 +228,30 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083086",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879706",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.3,
-          "accuracy": 0.3,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.3,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083140",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879746",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083147",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.083153",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "NZDUSD": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.083179",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084836",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084858",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.5384615384615384,
-          "accuracy": 0.5384615384615384,
-          "trades": 13,
-          "oos_trades": 13,
-          "oos_accuracy": 0.5384615384615384,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084870",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.3333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084875",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879756",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -367,8 +260,65 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084880",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.879763",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "NZDUSD": {
+      "BUY": {
+        "50": {
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 1.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879774",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879780",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879790",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879798",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.879805",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -378,44 +328,34 @@
         "50": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 2,
-          "oos_trades": 2,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084889",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880523",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 5,
-          "oos_trades": 5,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084897",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880728",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 5,
-          "oos_trades": 5,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084932",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.084940",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880765",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -423,46 +363,46 @@
     "EURAUD": {
       "BUY": {
         "50": {
-          "win_rate": 0.7142857142857143,
-          "accuracy": 0.7142857142857143,
-          "trades": 7,
-          "oos_trades": 7,
-          "oos_accuracy": 0.7142857142857143,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.084949",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 0.4,
+          "accuracy": 0.4,
+          "trades": 5,
+          "oos_trades": 5,
+          "oos_accuracy": 0.4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.880801",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.32,
-          "accuracy": 0.32,
-          "trades": 25,
-          "oos_trades": 25,
-          "oos_accuracy": 0.32,
+          "win_rate": 0.25,
+          "accuracy": 0.25,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.25,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085705",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880878",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.6428571428571429,
-          "accuracy": 0.6428571428571429,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.6428571428571429,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.085724",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 1.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.880888",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
-          "trades": 3,
-          "oos_trades": 3,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.085729",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.880895",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -470,36 +410,36 @@
     "EURCAD": {
       "BUY": {
         "50": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.085738",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.880906",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.3125,
-          "accuracy": 0.3125,
-          "trades": 16,
-          "oos_trades": 16,
-          "oos_accuracy": 0.3125,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085746",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 0.75,
+          "accuracy": 0.75,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.75,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.880916",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085755",
-          "source": "OOS Jumpstart (45d)"
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 1.0,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.880923",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 1.0,
@@ -508,8 +448,8 @@
           "oos_trades": 1,
           "oos_accuracy": 1.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085760",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880929",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -517,14 +457,14 @@
     "EURCHF": {
       "BUY": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.4,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085768",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880940",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
@@ -533,40 +473,40 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085773",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880946",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.125,
-          "accuracy": 0.125,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.125,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085780",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880955",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.16666666666666666,
-          "accuracy": 0.16666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.16666666666666666,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085785",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880961",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.25,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085789",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880967",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -574,46 +514,46 @@
     "GBPAUD": {
       "BUY": {
         "50": {
-          "win_rate": 0.5714285714285714,
-          "accuracy": 0.5714285714285714,
-          "trades": 7,
-          "oos_trades": 7,
-          "oos_accuracy": 0.5714285714285714,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085797",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.880996",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 24,
-          "oos_trades": 24,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085804",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.36363636363636365,
-          "accuracy": 0.36363636363636365,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.36363636363636365,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085808",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
           "win_rate": 0.3333333333333333,
           "accuracy": 0.3333333333333333,
-          "trades": 3,
-          "oos_trades": 3,
+          "trades": 6,
+          "oos_trades": 6,
           "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085814",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881006",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.881012",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.881018",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -621,56 +561,36 @@
     "GBPCAD": {
       "BUY": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085821",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085826",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.4782608695652174,
-          "accuracy": 0.4782608695652174,
-          "trades": 23,
-          "oos_trades": 23,
-          "oos_accuracy": 0.4782608695652174,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085833",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.45454545454545453,
-          "accuracy": 0.45454545454545453,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.45454545454545453,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085859",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
           "win_rate": 0.0,
           "accuracy": 0.0,
           "trades": 1,
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085864",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881027",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5714285714285714,
+          "accuracy": 0.5714285714285714,
+          "trades": 7,
+          "oos_trades": 7,
+          "oos_accuracy": 0.5714285714285714,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.881230",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.75,
+          "accuracy": 0.75,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.75,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.881246",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -678,36 +598,36 @@
     "GBPCHF": {
       "BUY": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.4,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085872",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881257",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.36363636363636365,
-          "accuracy": 0.36363636363636365,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.36363636363636365,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085879",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881266",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.4444444444444444,
-          "accuracy": 0.4444444444444444,
-          "trades": 9,
-          "oos_trades": 9,
-          "oos_accuracy": 0.4444444444444444,
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085885",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881271",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.5,
@@ -716,55 +636,34 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085889",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.881276",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
     },
     "AUDCAD": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.8333333333333334,
-          "accuracy": 0.8333333333333334,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.8333333333333334,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.085896",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085901",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
+      "BUY": {},
       "SELL": {
         "50": {
-          "win_rate": 0.4117647058823529,
-          "accuracy": 0.4117647058823529,
-          "trades": 17,
-          "oos_trades": 17,
-          "oos_accuracy": 0.4117647058823529,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085929",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
           "win_rate": 0.5,
           "accuracy": 0.5,
-          "trades": 12,
-          "oos_trades": 12,
+          "trades": 4,
+          "oos_trades": 4,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085936",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883674",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.6666666666666666,
+          "accuracy": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.6666666666666666,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.883704",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.5,
@@ -773,8 +672,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085941",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883712",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -788,8 +687,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085948",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883726",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.5,
@@ -798,8 +697,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085954",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883731",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -808,40 +707,20 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085959",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883737",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 12,
-          "oos_trades": 12,
-          "oos_accuracy": 0.3333333333333333,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085966",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.14285714285714285,
-          "accuracy": 0.14285714285714285,
-          "trades": 7,
-          "oos_trades": 7,
-          "oos_accuracy": 0.14285714285714285,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085971",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085976",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.883744",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -849,14 +728,14 @@
     "USDJPY": {
       "BUY": {
         "50": {
-          "win_rate": 0.16666666666666666,
-          "accuracy": 0.16666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.16666666666666666,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085983",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.884246",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
@@ -865,40 +744,30 @@
           "oos_trades": 2,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085989",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.884268",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 25,
-          "oos_trades": 25,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.085995",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.23076923076923078,
-          "accuracy": 0.23076923076923078,
-          "trades": 13,
-          "oos_trades": 13,
-          "oos_accuracy": 0.23076923076923078,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086000",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5714285714285714,
-          "accuracy": 0.5714285714285714,
+          "win_rate": 0.14285714285714285,
+          "accuracy": 0.14285714285714285,
           "trades": 7,
           "oos_trades": 7,
-          "oos_accuracy": 0.5714285714285714,
+          "oos_accuracy": 0.14285714285714285,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086005",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.884431",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.884447",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -906,24 +775,36 @@
     "EURJPY": {
       "BUY": {
         "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 12,
-          "oos_trades": 12,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086012",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
           "trades": 3,
           "oos_trades": 3,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.086017",
-          "source": "OOS Jumpstart (45d)"
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.884491",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 6,
+          "oos_trades": 6,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.886895",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.886917",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -932,40 +813,8 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086021",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 18,
-          "oos_trades": 18,
-          "oos_accuracy": 0.3333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086040",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.3,
-          "accuracy": 0.3,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.3,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086045",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086050",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.886924",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -973,14 +822,73 @@
     "GBPJPY": {
       "BUY": {
         "50": {
-          "win_rate": 0.35714285714285715,
-          "accuracy": 0.35714285714285715,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.35714285714285715,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086058",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894723",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 6,
+          "oos_trades": 6,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894793",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.25,
+          "accuracy": 0.25,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.25,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894802",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894808",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "AUDJPY": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894821",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894866",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.5,
@@ -989,117 +897,8 @@
           "oos_trades": 2,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086063",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086068",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.2727272727272727,
-          "accuracy": 0.2727272727272727,
-          "trades": 22,
-          "oos_trades": 22,
-          "oos_accuracy": 0.2727272727272727,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086073",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.3076923076923077,
-          "accuracy": 0.3076923076923077,
-          "trades": 13,
-          "oos_trades": 13,
-          "oos_accuracy": 0.3076923076923077,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086079",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.25,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086108",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "AUDJPY": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.45454545454545453,
-          "accuracy": 0.45454545454545453,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.45454545454545453,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086118",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 3,
-          "oos_trades": 3,
-          "oos_accuracy": 1.0,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.086123",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086127",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 20,
-          "oos_trades": 20,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086134",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 9,
-          "oos_trades": 9,
-          "oos_accuracy": 0.3333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086139",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086144",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894875",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1109,12 +908,12 @@
         "50": {
           "win_rate": 0.5,
           "accuracy": 0.5,
-          "trades": 10,
-          "oos_trades": 10,
+          "trades": 6,
+          "oos_trades": 6,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086153",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894885",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.25,
@@ -1123,40 +922,30 @@
           "oos_trades": 4,
           "oos_accuracy": 0.25,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086158",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894890",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.38461538461538464,
-          "accuracy": 0.38461538461538464,
-          "trades": 13,
-          "oos_trades": 13,
-          "oos_accuracy": 0.38461538461538464,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086165",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894898",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.3333333333333333,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086170",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.3333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086175",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894904",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1164,235 +953,14 @@
     "CHFJPY": {
       "BUY": {
         "50": {
-          "win_rate": 0.3076923076923077,
-          "accuracy": 0.3076923076923077,
-          "trades": 13,
-          "oos_trades": 13,
-          "oos_accuracy": 0.3076923076923077,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086182",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086186",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086190",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.38461538461538464,
-          "accuracy": 0.38461538461538464,
-          "trades": 26,
-          "oos_trades": 26,
-          "oos_accuracy": 0.38461538461538464,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086197",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.21052631578947367,
-          "accuracy": 0.21052631578947367,
-          "trades": 19,
-          "oos_trades": 19,
-          "oos_accuracy": 0.21052631578947367,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086200",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.25,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086205",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "NZDJPY": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.16666666666666666,
-          "accuracy": 0.16666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.16666666666666666,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086212",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.25,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086217",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 1.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086221",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.5333333333333333,
-          "accuracy": 0.5333333333333333,
-          "trades": 15,
-          "oos_trades": 15,
-          "oos_accuracy": 0.5333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086228",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 10,
-          "oos_trades": 10,
-          "oos_accuracy": 0.4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086232",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086236",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "CrudeOIL": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086293",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.36363636363636365,
-          "accuracy": 0.36363636363636365,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.36363636363636365,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086299",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086304",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.35,
-          "accuracy": 0.35,
-          "trades": 40,
-          "oos_trades": 40,
-          "oos_accuracy": 0.35,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086310",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.3,
-          "accuracy": 0.3,
-          "trades": 30,
-          "oos_trades": 30,
-          "oos_accuracy": 0.3,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086315",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.2777777777777778,
-          "accuracy": 0.2777777777777778,
-          "trades": 18,
-          "oos_trades": 18,
-          "oos_accuracy": 0.2777777777777778,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086319",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "70": {
-          "win_rate": 0.6666666666666666,
-          "accuracy": 0.6666666666666666,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.6666666666666666,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.086324",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "USDSGD": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.25,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086332",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
           "trades": 1,
           "oos_trades": 1,
-          "oos_accuracy": 1.0,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086337",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894915",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
@@ -1403,28 +971,256 @@
           "oos_trades": 9,
           "oos_accuracy": 0.4444444444444444,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086344",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894923",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.375,
-          "accuracy": 0.375,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.375,
+          "win_rate": 0.2857142857142857,
+          "accuracy": 0.2857142857142857,
+          "trades": 7,
+          "oos_trades": 7,
+          "oos_accuracy": 0.2857142857142857,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086349",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.894951",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.25,
+          "accuracy": 0.25,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.25,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.894959",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "NZDJPY": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.895006",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.6,
+          "accuracy": 0.6,
+          "trades": 5,
+          "oos_trades": 5,
+          "oos_accuracy": 0.6,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.895015",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.895027",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.6666666666666666,
+          "accuracy": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.6666666666666666,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.895032",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "GOLD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896110",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896131",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.3333333333333333,
           "accuracy": 0.3333333333333333,
-          "trades": 6,
-          "oos_trades": 6,
+          "trades": 3,
+          "oos_trades": 3,
           "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086353",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896138",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.6363636363636364,
+          "accuracy": 0.6363636363636364,
+          "trades": 11,
+          "oos_trades": 11,
+          "oos_accuracy": 0.6363636363636364,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.896148",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 6,
+          "oos_trades": 6,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896155",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.75,
+          "accuracy": 0.75,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.75,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.896161",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "CrudeOIL": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896172",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896183",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.25,
+          "accuracy": 0.25,
+          "trades": 16,
+          "oos_trades": 16,
+          "oos_accuracy": 0.25,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896191",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.23076923076923078,
+          "accuracy": 0.23076923076923078,
+          "trades": 13,
+          "oos_trades": 13,
+          "oos_accuracy": 0.23076923076923078,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896197",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.25,
+          "accuracy": 0.25,
+          "trades": 8,
+          "oos_trades": 8,
+          "oos_accuracy": 0.25,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896203",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "70": {
+          "win_rate": 0.75,
+          "accuracy": 0.75,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.75,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.896210",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "USDSGD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896219",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896225",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896233",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896239",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1434,12 +1230,12 @@
         "50": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 3,
-          "oos_trades": 3,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086361",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896278",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
@@ -1448,112 +1244,82 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086365",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896285",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 6,
-          "oos_trades": 6,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086371",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896293",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
           "accuracy": 0.0,
-          "trades": 6,
-          "oos_trades": 6,
+          "trades": 1,
+          "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086376",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 3,
-          "oos_trades": 3,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086381",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896299",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
     },
     "NZDCAD": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.6,
-          "accuracy": 0.6,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.6,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.086389",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086394",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
+      "BUY": {},
       "SELL": {
         "50": {
-          "win_rate": 0.4,
-          "accuracy": 0.4,
-          "trades": 15,
-          "oos_trades": 15,
-          "oos_accuracy": 0.4,
+          "win_rate": 0.3333333333333333,
+          "accuracy": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086400",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896311",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.5555555555555556,
-          "accuracy": 0.5555555555555556,
-          "trades": 9,
-          "oos_trades": 9,
-          "oos_accuracy": 0.5555555555555556,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086405",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 2,
-          "oos_trades": 2,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086409",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "NZDCHF": {
-      "BUY": {
-        "50": {
           "win_rate": 0.5,
           "accuracy": 0.5,
           "trades": 4,
           "oos_trades": 4,
           "oos_accuracy": 0.5,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086416",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896317",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 1,
+          "oos_trades": 1,
+          "oos_accuracy": 1.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896323",
+          "source": "OOS Jumpstart (14d)"
+        }
+      },
+      "ALL": {}
+    },
+    "NZDCHF": {
+      "BUY": {},
+      "SELL": {
+        "50": {
+          "win_rate": 0.0,
+          "accuracy": 0.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896337",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.0,
@@ -1562,30 +1328,8 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086422",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 6,
-          "oos_trades": 6,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086428",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.2,
-          "accuracy": 0.2,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086434",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896343",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -1594,8 +1338,8 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086439",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896349",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1603,14 +1347,14 @@
     "EURNZD": {
       "BUY": {
         "50": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 8,
-          "oos_trades": 8,
-          "oos_accuracy": 0.25,
+          "win_rate": 0.16666666666666666,
+          "accuracy": 0.16666666666666666,
+          "trades": 6,
+          "oos_trades": 6,
+          "oos_accuracy": 0.16666666666666666,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086446",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896359",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.25,
@@ -1619,40 +1363,30 @@
           "oos_trades": 4,
           "oos_accuracy": 0.25,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086450",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896365",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.3333333333333333,
-          "accuracy": 0.3333333333333333,
-          "trades": 33,
-          "oos_trades": 33,
-          "oos_accuracy": 0.3333333333333333,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086456",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
           "win_rate": 0.375,
           "accuracy": 0.375,
-          "trades": 16,
-          "oos_trades": 16,
+          "trades": 8,
+          "oos_trades": 8,
           "oos_accuracy": 0.375,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086460",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896373",
+          "source": "OOS Jumpstart (14d)"
         },
-        "60": {
-          "win_rate": 0.25,
-          "accuracy": 0.25,
-          "trades": 4,
-          "oos_trades": 4,
-          "oos_accuracy": 0.25,
+        "55": {
+          "win_rate": 1.0,
+          "accuracy": 1.0,
+          "trades": 2,
+          "oos_trades": 2,
+          "oos_accuracy": 1.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086464",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896380",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1660,14 +1394,14 @@
     "GBPNZD": {
       "BUY": {
         "50": {
-          "win_rate": 0.4375,
-          "accuracy": 0.4375,
-          "trades": 16,
-          "oos_trades": 16,
-          "oos_accuracy": 0.4375,
+          "win_rate": 0.2,
+          "accuracy": 0.2,
+          "trades": 5,
+          "oos_trades": 5,
+          "oos_accuracy": 0.2,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086471",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896390",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
           "win_rate": 0.3333333333333333,
@@ -1676,8 +1410,8 @@
           "oos_trades": 3,
           "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086475",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896397",
+          "source": "OOS Jumpstart (14d)"
         },
         "60": {
           "win_rate": 0.0,
@@ -1686,40 +1420,40 @@
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086480",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896403",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
-          "win_rate": 0.3939393939393939,
-          "accuracy": 0.3939393939393939,
-          "trades": 33,
-          "oos_trades": 33,
-          "oos_accuracy": 0.3939393939393939,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086486",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.47058823529411764,
-          "accuracy": 0.47058823529411764,
-          "trades": 17,
-          "oos_trades": 17,
-          "oos_accuracy": 0.47058823529411764,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086491",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
           "win_rate": 0.5714285714285714,
           "accuracy": 0.5714285714285714,
           "trades": 7,
           "oos_trades": 7,
           "oos_accuracy": 0.5714285714285714,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086494",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896411",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "accuracy": 0.5,
+          "trades": 4,
+          "oos_trades": 4,
+          "oos_accuracy": 0.5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T09:34:35.896418",
+          "source": "OOS Jumpstart (14d)"
+        },
+        "60": {
+          "win_rate": 0.6666666666666666,
+          "accuracy": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 3,
+          "oos_accuracy": 0.6666666666666666,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T09:34:35.896424",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
@@ -1727,239 +1461,39 @@
     "AUDCHF": {
       "BUY": {
         "50": {
-          "win_rate": 0.2,
-          "accuracy": 0.2,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086500",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 1.0,
-          "accuracy": 1.0,
+          "win_rate": 0.0,
+          "accuracy": 0.0,
           "trades": 1,
           "oos_trades": 1,
-          "oos_accuracy": 1.0,
+          "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086505",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896433",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "SELL": {
         "50": {
           "win_rate": 0.3333333333333333,
           "accuracy": 0.3333333333333333,
-          "trades": 9,
-          "oos_trades": 9,
+          "trades": 3,
+          "oos_trades": 3,
           "oos_accuracy": 0.3333333333333333,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086511",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896442",
+          "source": "OOS Jumpstart (14d)"
         },
         "55": {
-          "win_rate": 0.2,
-          "accuracy": 0.2,
-          "trades": 5,
-          "oos_trades": 5,
-          "oos_accuracy": 0.2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086515",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
           "win_rate": 0.0,
           "accuracy": 0.0,
           "trades": 1,
           "oos_trades": 1,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086521",
-          "source": "OOS Jumpstart (45d)"
+          "last_updated": "2026-04-30T09:34:35.896448",
+          "source": "OOS Jumpstart (14d)"
         }
       },
       "ALL": {}
-    },
-    "GOLD": {
-      "BUY": {
-        "50": {
-          "win_rate": 0.42857142857142855,
-          "accuracy": 0.42857142857142855,
-          "trades": 14,
-          "oos_trades": 14,
-          "oos_accuracy": 0.42857142857142855,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086241",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4666666666666667,
-          "accuracy": 0.4666666666666667,
-          "trades": 15,
-          "oos_trades": 15,
-          "oos_accuracy": 0.4666666666666667,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086246",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.45454545454545453,
-          "accuracy": 0.45454545454545453,
-          "trades": 11,
-          "oos_trades": 11,
-          "oos_accuracy": 0.45454545454545453,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086250",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "70": {
-          "win_rate": 0.0,
-          "accuracy": 0.0,
-          "trades": 1,
-          "oos_trades": 1,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086253",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "win_rate": 0.5,
-          "accuracy": 0.5,
-          "trades": 28,
-          "oos_trades": 28,
-          "oos_accuracy": 0.5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086259",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "55": {
-          "win_rate": 0.4375,
-          "accuracy": 0.4375,
-          "trades": 16,
-          "oos_trades": 16,
-          "oos_accuracy": 0.4375,
-          "status": "BENCHED",
-          "last_updated": "2026-04-30T08:04:56.086262",
-          "source": "OOS Jumpstart (45d)"
-        },
-        "60": {
-          "win_rate": 0.7142857142857143,
-          "accuracy": 0.7142857142857143,
-          "trades": 7,
-          "oos_trades": 7,
-          "oos_accuracy": 0.7142857142857143,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T08:04:56.086267",
-          "source": "OOS Jumpstart (45d)"
-        }
-      },
-      "ALL": {}
-    },
-    "SYSTEM": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.984364+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.984506+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.988288+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.988391+00:00",
-          "source": "Live Data (14d)"
-        },
-        "100": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.988425+00:00",
-          "source": "Live Data (14d)"
-        },
-        "50": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.975293+00:00",
-          "source": "Live Data (14d)"
-        },
-        "55": {
-          "accuracy": 1.0,
-          "trades": 3,
-          "status": "APPROVED",
-          "last_updated": "2026-04-30T12:55:51.981184+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "XAUUSD": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "USOIL": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "NAS100": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "US30": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "GER40": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "SPX500": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "JPN225": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "SILVER": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "XAGUSD": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "COPPER": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "XPTUSD": {
-      "BUY": {},
-      "SELL": {}
-    },
-    "XPDUSD": {
-      "BUY": {},
-      "SELL": {}
     }
   }
 }

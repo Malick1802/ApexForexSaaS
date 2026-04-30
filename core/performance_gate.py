@@ -225,7 +225,7 @@ class PerformanceGate:
                         # Apply Strict Approval Logic
                         approved = (total_combined >= MIN_TRADES) and (win_rate >= DEFAULT_HURDLE)
                         
-                        source_label = "OOS + Live" if (oos_trades > 0 and total > 0) else ("OOS Jumpstart (45d)" if oos_trades > 0 else f"Live Data ({lookback_days}d)")
+                        source_label = "OOS + Live" if (oos_trades > 0 and total > 0) else ("OOS Jumpstart (14d)" if oos_trades > 0 else f"Live Data ({lookback_days}d)")
                         
                         self.performance_matrix[symbol][direction][str(t)] = {
                             "accuracy": win_rate,

@@ -33,7 +33,7 @@ class NotificationManager:
         self.enabled = self.telegram_config.get('enabled', False)
         self.bot_token = self.telegram_config.get('bot_token', '')
         self.chat_id = self.telegram_config.get('chat_id', '')
-        self.alert_threshold = self.telegram_config.get('alert_threshold', 0.60) # Default to 60% for shadow visibility
+        self.alert_threshold = self.telegram_config.get('alert_threshold', 0.52) # Default to 52% while Platt Calibrator trains
         self.notify_shadow = self.telegram_config.get('notify_shadow_trades', True)
 
     def send_telegram_message(self, message: str) -> bool:
@@ -79,9 +79,9 @@ class NotificationManager:
         # For Shadow Alerts, use the global config floor to allow visibility while benched.
         # For Certified alerts, respect the dynamic regime hurdle (0.65+ for trending etc.)
         if is_shadow:
-            alert_threshold = self.telegram_config.get('alert_threshold', 0.60)
+            alert_threshold = self.telegram_config.get('alert_threshold', 0.52)
         else:
-            alert_threshold = signal_data.get('regime_threshold') or self.telegram_config.get('alert_threshold', 0.70)
+            alert_threshold = signal_data.get('regime_threshold') or self.telegram_config.get('alert_threshold', 0.52)
 
         if is_shadow and not self.notify_shadow:
             return False
