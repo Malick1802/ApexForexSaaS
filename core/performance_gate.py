@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WHITELIST_PATH = PROJECT_ROOT / "config" / "trading_whitelist.json"
 DEFAULT_DB_PATH = str(PROJECT_ROOT / "signals.db")
 
-DEFAULT_HURDLE = 0.70  # 70% win rate
-MIN_TRADES = 2        # Must have at least 2 resolved trades to be 'proven'
-TIERS = [60, 70, 80, 90, 100]
+DEFAULT_HURDLE = 0.60  # 60% win rate
+MIN_TRADES = 3        # Must have at least 3 resolved trades to be 'proven'
+TIERS = [50, 55, 60, 70, 80, 90, 100]
 
 class PerformanceGate:
     """

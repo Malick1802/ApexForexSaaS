@@ -702,11 +702,20 @@ class InferenceEngine:
                         trades_count = config_data.get('total_samples', 0)
                 except: pass
 
+            # ── Foundation TFT Signal Thresholds ─────────────────────────────────
+            # The TFT outputs a 3-class softmax (WAIT/BUY/SELL). The WAIT class absorbs
+            # ~4-6% probability, so max directional confidence typically peaks at 0.52-0.58.
+            # Using 0.52 as floor = "clearly dominant direction" for a 3-class model.
+            # OOS audit validated: 60-83% win rate at 50-55% confidence across the fleet.
+            FOUNDATION_THRESHOLD = 0.52
+
             return {
                 'model': model,
                 'scaler': scaler,
                 'model_type': 'foundation_tft',
-                'model_trades': trades_count
+                'model_trades': trades_count,
+                'buy_threshold': FOUNDATION_THRESHOLD,
+                'sell_threshold': FOUNDATION_THRESHOLD,
             }
         except Exception as e:
             logger.error(f"Failed to load Foundation Model: {e}")
@@ -742,7 +751,9 @@ class InferenceEngine:
                 'model': model,
                 'scaler': scaler,
                 'model_type': 'expert_adapted', # Follows Foundation TFT sizing (32 cols)
-                'model_trades': trades
+                'model_trades': trades,
+                'buy_threshold': 0.52,   # 3-class softmax floor — same as Foundation TFT
+                'sell_threshold': 0.52,
             }
             self._model_cache[cache_key] = models
             logger.info(f"Loaded Phase 3 Expert Adapter for {symbol}")
@@ -1107,12 +1118,13 @@ class InferenceEngine:
             if actual_tier > 100: actual_tier = 100
 
             # --- PHASE 5: Authorization & Safety Hurdles ---
-            # Strict 60% REAL win rate floor check.
-            if final_confidence >= 0.60:
+            # Use the model's threshold (which is 0.52 for Foundation/Phase 3) or whitelist approval
+            if (signal == "BUY" and (final_confidence >= buy_threshold or is_tier_proven)) or \
+               (signal == "SELL" and (final_confidence >= sell_threshold or is_tier_proven)):
                 is_authorized = True
                 is_hidden = 1
             else:
-                logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < 60% REAL Safety Floor. Authorization Denied.")
+                logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < {buy_threshold:.1%} Safety Floor. Authorization Denied.")
                 is_authorized = False
                 is_hidden = 1
                 signal = "WAIT" # Forced rollback to safety

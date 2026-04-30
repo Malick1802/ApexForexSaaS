@@ -1,1139 +1,636 @@
 {
-  "last_updated": "2026-04-29T16:44:03.859406+00:00",
+  "last_updated": "2026-04-30T11:34:40.510723+00:00",
   "performance_matrix": {
     "EURUSD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 2,
-        "status": "APPROVED",
-        "last_updated": "2026-04-14T07:39:55.234637+00:00",
-        "source": "Live Bayesian (14d)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.5555555555555556,
+          "trades": 9,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.462405",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.463181",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509646+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.501606+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "win_rate": 0.4,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.463454",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.463763",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509652+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509654+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509657+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.501651+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPUSD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 2,
-        "status": "APPROVED",
-        "last_updated": "2026-04-14T07:39:55.235454+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509663+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509666+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509668+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509670+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.07407407407407407,
-          "trades": 54,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 12,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.845852+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464257",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.02857142857142857,
-          "trades": 35,
+        "55": {
+          "win_rate": 1.0,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.846013+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
-          "trades": 19,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.846145+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464513",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.39622641509433965,
-          "trades": 106,
+        "50": {
+          "win_rate": 0.42857142857142855,
+          "trades": 14,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.849647+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464884",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.32926829268292684,
-          "trades": 82,
+        "55": {
+          "win_rate": 0.5,
+          "trades": 6,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.849961+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.42424242424242425,
-          "trades": 33,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850113+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.0,
-          "trades": 4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850221+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464914",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.2875,
-          "trades": 160,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850516+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.23931623931623933,
-          "trades": 117,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850685+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.2692307692307692,
-          "trades": 52,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850828+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.0,
-          "trades": 4,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.850934+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "USDCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509672+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509675+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509678+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509682+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509685+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
       "ALL": {}
     },
-    "AUDUSD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 4.0,
-        "accuracy": 0.5,
-        "trades": 4,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.920516+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 3.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509692+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509695+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509699+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509702+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
+    "USDCHF": {
       "BUY": {
-        "60": {
-          "accuracy": 0.4146341463414634,
-          "trades": 82,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.831117+00:00",
-          "source": "Live Data (14d)"
+        "50": {
+          "win_rate": 0.7142857142857143,
+          "trades": 7,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.464933",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.4807692307692308,
-          "trades": 52,
+        "55": {
+          "win_rate": 0.5,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.831700+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.32142857142857145,
-          "trades": 28,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.831996+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464939",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.32142857142857145,
-          "trades": 56,
+        "50": {
+          "win_rate": 0.45454545454545453,
+          "trades": 11,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.832652+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.464946",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.16666666666666666,
-          "trades": 18,
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 9,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.832781+00:00",
+          "last_updated": "2026-04-30T05:26:30.464952",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.504212+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.37681159420289856,
-          "trades": 138,
+          "accuracy": 1.0,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833230+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.4,
-          "trades": 70,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833367+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.32142857142857145,
-          "trades": 28,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833469+00:00",
+          "last_updated": "2026-04-30T11:34:40.504261+00:00",
           "source": "Live Data (14d)"
         }
       }
+    },
+    "AUDUSD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.4,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.465237",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.75,
+          "trades": 4,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.465243",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.35714285714285715,
+          "trades": 14,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.465255",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.25,
+          "trades": 8,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.465260",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
     },
     "USDCAD": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509706+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509710+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509713+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509719+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509722+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.4639175257731959,
-          "trades": 97,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 6,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853022+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.465274",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.46511627906976744,
-          "trades": 86,
+        "55": {
+          "win_rate": 0.5,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853156+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.31343283582089554,
-          "trades": 67,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853250+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.14893617021276595,
-          "trades": 47,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853369+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.465279",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.3488372093023256,
-          "trades": 43,
+        "50": {
+          "win_rate": 0.3,
+          "trades": 10,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853561+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.465654",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.2727272727272727,
-          "trades": 22,
+        "55": {
+          "win_rate": 0.4,
+          "trades": 10,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853710+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
-          "trades": 5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.853812+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.465665",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.42857142857142855,
-          "trades": 140,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.854230+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.42592592592592593,
-          "trades": 108,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.854392+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.2916666666666667,
-          "trades": 72,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.854529+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.14893617021276595,
-          "trades": 47,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.854652+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
+      "ALL": {}
     },
     "NZDUSD": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509791+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509796+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509801+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509804+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509806+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {
-        "60": {
-          "accuracy": 0.2,
+      "BUY": {
+        "50": {
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466018",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.4,
           "trades": 5,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.852295+00:00",
+          "last_updated": "2026-04-30T05:26:30.466048",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5384615384615384,
+          "trades": 13,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466061",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466066",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.502912+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.2,
-          "trades": 5,
+          "accuracy": 0.0,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.852426+00:00",
+          "last_updated": "2026-04-30T11:34:40.502969+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "EURGBP": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509810+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.0,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466359",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.509813+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "50": {
+          "win_rate": 0.0,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466372",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466377",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510059+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510080+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510084+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
       "ALL": {}
     },
     "EURAUD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 2,
-        "status": "APPROVED",
-        "last_updated": "2026-04-14T07:39:55.233698+00:00",
-        "source": "Live Bayesian (14d)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.7142857142857143,
+          "trades": 7,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466567",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510094+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510097+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510102+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510105+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
       "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+        "50": {
+          "win_rate": 0.32,
+          "trades": 25,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.836720+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466595",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.6428571428571429,
+          "trades": 14,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466602",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.837396+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
+      "ALL": {}
     },
     "EURCAD": {
-      "60": {
-        "alpha": 3.0,
-        "beta": 3.0,
-        "accuracy": 0.5,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.922048+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510113+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510117+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510125+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510130+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
+        "50": {
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466616",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3125,
+          "trades": 16,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466623",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "trades": 8,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466647",
+          "source": "OOS Jumpstart (45d)"
+        },
         "60": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.837487+00:00",
+          "last_updated": "2026-04-30T11:34:40.500527+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
       "ALL": {
         "60": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.837646+00:00",
+          "last_updated": "2026-04-30T11:34:40.500613+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "EURCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510134+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510137+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510139+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510143+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510146+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
-    },
-    "GBPAUD": {
-      "60": {
-        "alpha": 3.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510150+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510153+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510155+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510159+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510162+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 1,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 4,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.840198+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466660",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 1.0,
+        "55": {
+          "win_rate": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.840238+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466664",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+        "50": {
+          "win_rate": 0.125,
+          "trades": 8,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.840347+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466671",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.16666666666666666,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466676",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+      "ALL": {}
+    },
+    "GBPAUD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5714285714285714,
+          "trades": 7,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.841375+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.842138+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466688",
+          "source": "OOS Jumpstart (45d)"
         }
-      }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5,
+          "trades": 24,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466695",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.36363636363636365,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466700",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
     },
     "GBPCAD": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510165+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510168+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510171+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510174+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510177+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
+        "50": {
+          "win_rate": 0.4,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466712",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466717",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.4782608695652174,
+          "trades": 23,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466725",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.45454545454545453,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466730",
+          "source": "OOS Jumpstart (45d)"
+        },
         "60": {
           "accuracy": 0.0,
-          "trades": 2,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.842982+00:00",
+          "last_updated": "2026-04-30T11:34:40.501836+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
       "ALL": {
         "60": {
           "accuracy": 0.0,
-          "trades": 2,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843165+00:00",
+          "last_updated": "2026-04-30T11:34:40.501876+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "GBPCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510180+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510183+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510187+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510191+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510194+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
-    },
-    "AUDCAD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 3.0,
-        "accuracy": 0.6666666666666666,
-        "trades": 3,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.919450+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510201+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510204+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510207+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510210+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 2,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 4,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.828623+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.829352+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.829407+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466741",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 1.0,
+        "50": {
+          "win_rate": 0.36363636363636365,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466749",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.4444444444444444,
+          "trades": 9,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466753",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
+    },
+    "AUDCAD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.8333333333333334,
+          "trades": 6,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466764",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.829474+00:00",
+          "last_updated": "2026-04-30T05:26:30.466769",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.4117647058823529,
+          "trades": 17,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466776",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "trades": 12,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466780",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.498348+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.3333333333333333,
-          "trades": 3,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.829682+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.829718+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
           "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830053+00:00",
+          "last_updated": "2026-04-30T11:34:40.498439+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "AUDNZD": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 4.0,
-        "accuracy": 0.0,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.920265+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510216+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510219+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510222+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510225+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 4,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 2,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830618+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466791",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.0,
+        "55": {
+          "win_rate": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466796",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "trades": 12,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466828",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.14285714285714285,
+          "trades": 7,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466833",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
+    },
+    "USDJPY": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466844",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830660+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466849",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.4,
+          "trades": 25,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466855",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.23076923076923078,
+          "trades": 13,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466859",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
+    },
+    "EURJPY": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5454545454545454,
+          "trades": 11,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466870",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.466875",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
@@ -1141,1173 +638,613 @@
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830750+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 0.2,
-          "trades": 5,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830862+00:00",
+          "last_updated": "2026-04-30T11:34:40.501294+00:00",
           "source": "Live Data (14d)"
         },
-        "70": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.830897+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "USDJPY": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510228+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510231+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510234+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510237+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510240+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {
-        "60": {
-          "accuracy": 0.40476190476190477,
-          "trades": 84,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855098+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.40625,
-          "trades": 64,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855223+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.23333333333333334,
-          "trades": 30,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855329+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.0,
-          "trades": 7,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855442+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 0.4444444444444444,
-          "trades": 63,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855641+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.5277777777777778,
-          "trades": 36,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855767+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.5,
-          "trades": 24,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855873+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.45454545454545453,
-          "trades": 11,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.855957+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 0.4217687074829932,
-          "trades": 147,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.856187+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.45,
-          "trades": 100,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.856342+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.35185185185185186,
-          "trades": 54,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.856457+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.2777777777777778,
+        "50": {
+          "win_rate": 0.3333333333333333,
           "trades": 18,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.856571+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "EURJPY": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510243+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510246+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510284+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510290+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510364+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+          "last_updated": "2026-04-30T05:26:30.466885",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3,
+          "trades": 10,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.838618+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466889",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.0,
+          "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.838771+00:00",
+          "last_updated": "2026-04-30T11:34:40.501344+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "GBPJPY": {
-      "60": {
-        "alpha": 5.0,
-        "beta": 5.0,
-        "accuracy": 0.5,
-        "trades": 6,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.235190+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 3.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510373+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510376+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510380+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510437+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 1,
+        "50": {
+          "win_rate": 0.38461538461538464,
+          "trades": 13,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843550+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.466901",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.466905",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
         "60": {
-          "accuracy": 0.0,
+          "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843632+00:00",
+          "last_updated": "2026-04-30T11:34:40.502055+00:00",
           "source": "Live Data (14d)"
+        },
+        "50": {
+          "win_rate": 0.2727272727272727,
+          "trades": 22,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468600",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3076923076923077,
+          "trades": 13,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468606",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+          "accuracy": 1.0,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843696+00:00",
+          "last_updated": "2026-04-30T11:34:40.502095+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "AUDJPY": {
-      "60": {
-        "alpha": 3.0,
-        "beta": 3.0,
-        "accuracy": 0.5,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.232627+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510448+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510452+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510456+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510459+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
-    },
-    "CADJPY": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510463+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510466+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510469+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510472+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510476+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468641",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "trades": 3,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.468646",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.5,
+          "trades": 20,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468658",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 9,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468662",
+          "source": "OOS Jumpstart (45d)"
+        },
         "60": {
           "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833751+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833864+00:00",
+          "last_updated": "2026-04-30T11:34:40.498661+00:00",
           "source": "Live Data (14d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+          "accuracy": 1.0,
+          "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.833941+00:00",
+          "last_updated": "2026-04-30T11:34:40.498706+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "CADJPY": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468674",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.468679",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.38461538461538464,
+          "trades": 13,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472419",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.3333333333333333,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472459",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.499248+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.499297+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "CHFJPY": {
-      "60": {
-        "alpha": 5.0,
-        "beta": 4.0,
-        "accuracy": 0.6,
-        "trades": 5,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.921261+00:00",
-        "source": "Live Bayesian (14d)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.3076923076923077,
+          "trades": 13,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472477",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.4,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472482",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 3.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510564+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510588+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510591+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510594+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
       "SELL": {
         "60": {
-          "accuracy": 0.0,
+          "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.834098+00:00",
+          "last_updated": "2026-04-30T11:34:40.499374+00:00",
           "source": "Live Data (14d)"
+        },
+        "50": {
+          "win_rate": 0.38461538461538464,
+          "trades": 26,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472493",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.21052631578947367,
+          "trades": 19,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472498",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "ALL": {
         "60": {
-          "accuracy": 0.0,
+          "accuracy": 1.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.834165+00:00",
+          "last_updated": "2026-04-30T11:34:40.499623+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "NZDJPY": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 2,
-        "status": "APPROVED",
-        "last_updated": "2026-04-14T07:39:55.235795+00:00",
-        "source": "Live Bayesian (14d)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472513",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.25,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472519",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510602+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.502789+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "win_rate": 0.5333333333333333,
+          "trades": 15,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472531",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.4,
+          "trades": 10,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472536",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510605+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510608+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510611+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T11:34:40.502839+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CrudeOIL": {
-      "60": {
-        "alpha": 7.0,
-        "beta": 6.0,
-        "accuracy": 0.5555555555555556,
-        "trades": 9,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.233500+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 4.0,
-        "beta": 4.0,
-        "accuracy": 0.5,
-        "trades": 4,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.233554+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "80": {
-        "alpha": 3.0,
-        "beta": 3.0,
-        "accuracy": 0.5,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.233601+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510640+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510643+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.5922330097087378,
-          "trades": 103,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 14,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.834354+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472586",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.4307692307692308,
-          "trades": 65,
+        "55": {
+          "win_rate": 0.36363636363636365,
+          "trades": 11,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.834509+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.05263157894736842,
-          "trades": 19,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.834616+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472591",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.2608695652173913,
-          "trades": 46,
+        "50": {
+          "win_rate": 0.34146341463414637,
+          "trades": 41,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.835174+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472601",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.25,
-          "trades": 24,
+        "55": {
+          "win_rate": 0.2903225806451613,
+          "trades": 31,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.835316+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
-          "trades": 16,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.835478+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.0,
-          "trades": 8,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.835603+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472605",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.4899328859060403,
-          "trades": 149,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.836006+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.38202247191011235,
-          "trades": 89,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.836176+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.02857142857142857,
-          "trades": 35,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.836347+00:00",
-          "source": "Live Data (14d)"
-        },
-        "90": {
-          "accuracy": 0.0,
-          "trades": 8,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.836469+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
+      "ALL": {}
     },
     "USDSGD": {
-      "60": {
-        "alpha": 3.0,
-        "beta": 2.0,
-        "accuracy": 1.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510647+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.25,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472623",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472628",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510653+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510656+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510659+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510663+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
       "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
+        "50": {
+          "win_rate": 0.4444444444444444,
+          "trades": 9,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.856734+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472634",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.375,
+          "trades": 8,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472639",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 1,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.857161+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
+      "ALL": {}
     },
     "CADCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510666+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.0,
+          "trades": 3,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472650",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472656",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510670+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "50": {
+          "win_rate": 0.0,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472662",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472667",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510673+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510676+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510679+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
       "ALL": {}
     },
     "NZDCAD": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510682+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510685+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510689+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510692+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510695+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
+        "50": {
+          "win_rate": 0.6,
+          "trades": 5,
+          "status": "APPROVED",
+          "last_updated": "2026-04-30T05:26:30.472680",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.5,
+          "trades": 2,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472685",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.4,
+          "trades": 15,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472692",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.5555555555555556,
+          "trades": 9,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472697",
+          "source": "OOS Jumpstart (45d)"
+        },
         "60": {
-          "accuracy": 1.0,
+          "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851599+00:00",
+          "last_updated": "2026-04-30T11:34:40.502536+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {},
       "ALL": {
         "60": {
-          "accuracy": 1.0,
+          "accuracy": 0.0,
           "trades": 1,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851752+00:00",
+          "last_updated": "2026-04-30T11:34:40.502579+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "NZDCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510699+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.5,
+          "trades": 4,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472710",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472715",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510702+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "50": {
+          "win_rate": 0.0,
+          "trades": 6,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472741",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472746",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510705+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510709+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510713+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
       "ALL": {}
     },
     "EURNZD": {
-      "60": {
-        "alpha": 3.0,
-        "beta": 4.0,
-        "accuracy": 0.3333333333333333,
-        "trades": 3,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.234531+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 2.0,
-        "beta": 4.0,
-        "accuracy": 0.0,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-07T12:31:24.923166+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 3.0,
-        "accuracy": 0.0,
-        "trades": 1,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510723+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510726+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510730+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.838927+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.839541+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "GBPNZD": {
-      "60": {
-        "alpha": 4.0,
-        "beta": 4.0,
-        "accuracy": 0.5,
-        "trades": 4,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.235322+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "70": {
-        "alpha": 3.0,
-        "beta": 3.0,
-        "accuracy": 0.5,
-        "trades": 2,
-        "status": "BENCHED",
-        "last_updated": "2026-04-14T07:39:55.235371+00:00",
-        "source": "Live Bayesian (14d)"
-      },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510739+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510742+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510745+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
       "BUY": {
-        "60": {
-          "accuracy": 0.07407407407407407,
-          "trades": 27,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843846+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.0,
+        "50": {
+          "win_rate": 0.2857142857142857,
           "trades": 7,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843910+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472756",
+          "source": "OOS Jumpstart (45d)"
         },
-        "80": {
-          "accuracy": 0.0,
+        "55": {
+          "win_rate": 0.3333333333333333,
           "trades": 3,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.843982+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472760",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.3125,
+        "50": {
+          "win_rate": 0.3333333333333333,
+          "trades": 33,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472766",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.375,
           "trades": 16,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.844702+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.1111111111111111,
-          "trades": 9,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.844836+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472769",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.16279069767441862,
-          "trades": 43,
+      "ALL": {}
+    },
+    "GBPNZD": {
+      "BUY": {
+        "50": {
+          "win_rate": 0.4666666666666667,
+          "trades": 15,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.845228+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472779",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.0625,
-          "trades": 16,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.845338+00:00",
-          "source": "Live Data (14d)"
-        },
-        "80": {
-          "accuracy": 0.0,
+        "55": {
+          "win_rate": 0.3333333333333333,
           "trades": 3,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.845435+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472784",
+          "source": "OOS Jumpstart (45d)"
         }
-      }
+      },
+      "SELL": {
+        "50": {
+          "win_rate": 0.375,
+          "trades": 32,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472795",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.47058823529411764,
+          "trades": 17,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472873",
+          "source": "OOS Jumpstart (45d)"
+        }
+      },
+      "ALL": {}
     },
     "AUDCHF": {
-      "60": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510749+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "BUY": {
+        "50": {
+          "win_rate": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472895",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 1.0,
+          "trades": 1,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472901",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "70": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510752+00:00",
-        "source": "Audit Baseline (Bayesian)"
+      "SELL": {
+        "50": {
+          "win_rate": 0.2857142857142857,
+          "trades": 7,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472908",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.2,
+          "trades": 5,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472913",
+          "source": "OOS Jumpstart (45d)"
+        }
       },
-      "80": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510754+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "90": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510757+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "100": {
-        "alpha": 2.0,
-        "beta": 2.0,
-        "accuracy": 0.0,
-        "trades": 0,
-        "status": "BENCHED",
-        "last_updated": "2026-04-06T13:24:14.510760+00:00",
-        "source": "Audit Baseline (Bayesian)"
-      },
-      "BUY": {},
-      "SELL": {},
       "ALL": {}
     },
     "GOLD": {
       "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "trades": 5,
+        "50": {
+          "win_rate": 0.42857142857142855,
+          "trades": 14,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851294+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472548",
+          "source": "OOS Jumpstart (45d)"
         },
-        "70": {
-          "accuracy": 0.0,
-          "trades": 2,
+        "55": {
+          "win_rate": 0.4666666666666667,
+          "trades": 15,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851327+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472553",
+          "source": "OOS Jumpstart (45d)"
         }
       },
       "SELL": {
-        "60": {
-          "accuracy": 0.5,
-          "trades": 2,
+        "50": {
+          "win_rate": 0.5,
+          "trades": 28,
           "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851402+00:00",
-          "source": "Live Data (14d)"
+          "last_updated": "2026-04-30T05:26:30.472569",
+          "source": "OOS Jumpstart (45d)"
+        },
+        "55": {
+          "win_rate": 0.4375,
+          "trades": 16,
+          "status": "BENCHED",
+          "last_updated": "2026-04-30T05:26:30.472573",
+          "source": "OOS Jumpstart (45d)"
         }
       },
-      "ALL": {
-        "60": {
-          "accuracy": 0.14285714285714285,
-          "trades": 7,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851482+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.0,
-          "trades": 2,
-          "status": "BENCHED",
-          "last_updated": "2026-04-29T16:44:03.851517+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
+      "ALL": {}
     },
     "SYSTEM": {
       "BUY": {},
@@ -2315,892 +1252,88 @@
       "ALL": {
         "60": {
           "accuracy": 1.0,
-          "trades": 19,
+          "trades": 6,
           "status": "APPROVED",
-          "last_updated": "2026-04-29T16:44:03.852751+00:00",
+          "last_updated": "2026-04-30T11:34:40.503903+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 1.0,
-          "trades": 19,
+          "trades": 6,
           "status": "APPROVED",
-          "last_updated": "2026-04-29T16:44:03.852786+00:00",
+          "last_updated": "2026-04-30T11:34:40.503938+00:00",
           "source": "Live Data (14d)"
         },
         "80": {
           "accuracy": 1.0,
-          "trades": 19,
+          "trades": 6,
           "status": "APPROVED",
-          "last_updated": "2026-04-29T16:44:03.852811+00:00",
+          "last_updated": "2026-04-30T11:34:40.503963+00:00",
           "source": "Live Data (14d)"
         },
         "90": {
           "accuracy": 1.0,
-          "trades": 19,
+          "trades": 6,
           "status": "APPROVED",
-          "last_updated": "2026-04-29T16:44:03.852851+00:00",
+          "last_updated": "2026-04-30T11:34:40.503989+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
           "accuracy": 1.0,
-          "trades": 19,
+          "trades": 6,
           "status": "APPROVED",
-          "last_updated": "2026-04-29T16:44:03.852892+00:00",
+          "last_updated": "2026-04-30T11:34:40.504005+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "XAUUSD": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191203+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191207+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191212+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191217+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191221+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191225+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191230+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191235+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191240+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "USOIL": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191340+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191345+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191349+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191354+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191358+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191363+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191367+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191372+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191376+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "NAS100": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191514+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191518+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191523+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191528+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191532+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191537+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191542+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191546+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191550+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "US30": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191555+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191560+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191565+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191569+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191574+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191578+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191583+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191588+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191592+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "GER40": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191597+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191601+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191606+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191610+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191615+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191619+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191625+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191629+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191633+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "SPX500": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191639+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191643+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191648+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191652+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191657+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191662+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191666+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191670+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191675+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "JPN225": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191680+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191684+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191688+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191693+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191698+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191702+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191707+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191711+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191716+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "SILVER": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191161+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191166+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191170+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191175+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191180+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191184+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191189+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191193+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191198+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "XAGUSD": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191246+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191250+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191255+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191262+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191267+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191281+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191286+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191290+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191294+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "COPPER": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191382+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191386+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191390+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191395+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191399+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191406+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191411+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191415+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191420+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "XPTUSD": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191426+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191431+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191435+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191441+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191446+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191450+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191455+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191462+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191466+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     },
     "XPDUSD": {
-      "BUY": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191471+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191476+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191480+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "SELL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191485+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191490+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191494+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      },
-      "ALL": {
-        "60": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191499+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "70": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191504+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        },
-        "80": {
-          "accuracy": 1.0,
-          "trades": 10,
-          "status": "APPROVED",
-          "last_updated": "2026-04-28T14:14:08.191508+00:00",
-          "source": "Fleet Expansion Force Unlock"
-        }
-      }
+      "BUY": {},
+      "SELL": {}
     }
   }
 }

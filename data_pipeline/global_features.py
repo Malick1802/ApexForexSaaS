@@ -136,23 +136,56 @@ class GlobalFeatureEngineer:
 
     def add_global_features(self, symbol: str, pair_features: pd.DataFrame, aligned_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
-        Enriches a single pair's features with global context.
-        Reduced to 2 features to match 34-feature brain (32 base + 2 global).
+        Enriches a single pair's features with full global context (13 features).
         """
         enriched = pair_features.copy()
         
-        # 1. Add Gold Return (Critical for Volatility Perception)
+        # 1. Currency Strength Matrix (8 features)
+        try:
+            csm = self.compute_currency_strength(aligned_data)
+            for curr in self.CURRENCIES:
+                col_name = f"{curr}_strength"
+                if curr in csm.columns:
+                    enriched[col_name] = csm[curr]
+                else:
+                    enriched[col_name] = 0.0
+        except Exception as e:
+            logger.warning(f"Failed to compute CSM: {e}")
+            for curr in self.CURRENCIES: enriched[f"{curr}_strength"] = 0.0
+
+        # 2. DXY Proxy & Returns (2 features)
+        try:
+            dxy = self.compute_dxy_proxy(aligned_data)
+            enriched['dxy_proxy'] = dxy
+            enriched['dxy_ret'] = np.log(dxy / dxy.shift(1)).fillna(0)
+        except:
+            enriched['dxy_proxy'] = 100.0
+            enriched['dxy_ret'] = 0.0
+
+        # 3. Gold Return (1 feature)
         if "GOLD" in aligned_data:
             gold_df = aligned_data["GOLD"]
             enriched['gold_ret'] = np.log(gold_df['close'] / gold_df['close'].shift(1)).fillna(0)
         else:
             enriched['gold_ret'] = 0.0
-            
-        # 2. Add DXY Proxy (Critical for USD Sensitivity)
+
+        # 4. VIX Proxy (1 feature)
+        # Use EURUSD as the volatility anchor if available, otherwise the current pair
+        anchor_df = aligned_data.get("EURUSD", enriched)
         try:
-            dxy = self.compute_dxy_proxy(aligned_data)
-            enriched['dxy_ret'] = np.log(dxy / dxy.shift(1)).fillna(0)
+            enriched['vix_proxy'] = self.compute_vix_proxy(anchor_df)
         except:
-            enriched['dxy_ret'] = 0.0
+            enriched['vix_proxy'] = 0.0
+
+        # 5. Yield Curve Slope (1 feature)
+        if "^TNX" in aligned_data:
+            tnx_df = aligned_data["^TNX"]
+            irx_df = aligned_data.get("^IRX") # 2Y Treasury
+            try:
+                enriched['yield_curve_slope'] = self.compute_yield_curve_slope(tnx_df, irx_df)
+            except:
+                enriched['yield_curve_slope'] = 0.0
+        else:
+            enriched['yield_curve_slope'] = 0.0
             
         return enriched.ffill().fillna(0)
