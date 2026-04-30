@@ -738,7 +738,16 @@ class InferenceEngine:
             
             logger.info(f"Loading Phase 3 Expert Adapter for {symbol} from {expert_path}")
             
-            model = keras.models.load_model(str(expert_path))
+            # Import custom layers required by the Foundation TFT architecture
+            from models.global_brain import VariableSelectionNetwork, GatedResidualNetwork
+            
+            model = keras.models.load_model(
+                str(expert_path),
+                custom_objects={
+                    'VariableSelectionNetwork': VariableSelectionNetwork,
+                    'GatedResidualNetwork': GatedResidualNetwork
+                }
+            )
             scaler = joblib.load(str(scaler_path))
             
             trades = 0
@@ -756,11 +765,12 @@ class InferenceEngine:
                 'sell_threshold': 0.52,
             }
             self._model_cache[cache_key] = models
-            logger.info(f"Loaded Phase 3 Expert Adapter for {symbol}")
+            logger.info(f"✅ Loaded Phase 3 Expert Adapter for {symbol} ({trades} training samples)")
             return models
         except Exception as e:
-            # logger.warning(f"Failed to load Phase 3 expert for {symbol}: {e}")
+            logger.warning(f"Failed to load Phase 3 expert for {symbol}: {e}")
             return None
+
 
     def predict_symbol(
         self,
