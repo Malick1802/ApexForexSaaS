@@ -203,25 +203,39 @@ class PerformanceGate:
                         fail = stats.get('FAIL', 0)
                         total = success + fail
                         
-                        if total == 0:
-                            # If we previously had data for this tier but now have 0 trades in 14d,
+                        existing_tier = self.performance_matrix.get(symbol, {}).get(direction, {}).get(str(t), {})
+                        
+                        oos_trades = existing_tier.get("oos_trades", 0)
+                        oos_accuracy = existing_tier.get("oos_accuracy", 0.0)
+                        oos_success = int(round(oos_trades * oos_accuracy))
+                        
+                        total_combined = total + oos_trades
+                        success_combined = success + oos_success
+                        
+                        if total_combined == 0:
+                            # If we previously had data for this tier but now have 0 trades combined,
                             # we should mark it as BENCHED/No Data instead of leaving it stale.
                             if direction in self.performance_matrix[symbol] and str(t) in self.performance_matrix[symbol][direction]:
                                 del self.performance_matrix[symbol][direction][str(t)]
                             continue 
                         
                         found_recent = True
-                        win_rate = (success / total) if total > 0 else 0.0
+                        win_rate = (success_combined / total_combined) if total_combined > 0 else 0.0
                         
                         # Apply Strict Approval Logic
-                        approved = (total >= MIN_TRADES) and (win_rate >= DEFAULT_HURDLE)
+                        approved = (total_combined >= MIN_TRADES) and (win_rate >= DEFAULT_HURDLE)
+                        
+                        source_label = "OOS + Live" if (oos_trades > 0 and total > 0) else ("OOS Jumpstart (45d)" if oos_trades > 0 else f"Live Data ({lookback_days}d)")
                         
                         self.performance_matrix[symbol][direction][str(t)] = {
                             "accuracy": win_rate,
-                            "trades": total,
+                            "win_rate": win_rate,
+                            "trades": total_combined,
+                            "oos_trades": oos_trades,
+                            "oos_accuracy": oos_accuracy,
                             "status": "APPROVED" if approved else "BENCHED",
                             "last_updated": datetime.now(timezone.utc).isoformat(),
-                            "source": f"Live Data ({lookback_days}d)"
+                            "source": source_label
                         }
 
             conn.close()

@@ -208,7 +208,10 @@ def update_trading_whitelist(results):
                         approved = data['accuracy'] >= 0.60 and data['trades'] >= 3
                         whitelist["performance_matrix"][symbol][side][str(tier_pct)] = {
                             "win_rate": data['accuracy'],
+                            "accuracy": data['accuracy'],
                             "trades": data['trades'],
+                            "oos_trades": data['trades'],
+                            "oos_accuracy": data['accuracy'],
                             "status": "APPROVED" if approved else "BENCHED",
                             "last_updated": datetime.now().isoformat(),
                             "source": "OOS Jumpstart (45d)"
