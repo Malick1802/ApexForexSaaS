@@ -49,12 +49,12 @@ logger = logging.getLogger("FoundationV2")
 HISTORY_DAYS   = 1825      # 5 years
 OOS_DAYS       = 30        # 30-day held-out test set
 VAL_DAYS       = 150       # ~5 months validation
-SEQ_LEN        = 48        # 48-hour look-back window
-BATCH_SIZE     = 512
+BATCH_SIZE     = 64        # Reduced for low-RAM VMs (was 512)
 EPOCHS         = 60
-UNITS          = 64
+UNITS          = 32        # Smaller model for low-RAM VMs (was 64)
 EARLY_STOP_PAT = 8
-STRIDE         = 4  # Sampling every 4 hours for 4x speedup
+STRIDE         = 8         # Sample every 8 hours — less data, same patterns
+SEQ_LEN        = 24        # 24-hour lookback — captures full daily cycle
 
 FOREX_PAIRS = [
     "EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD",
