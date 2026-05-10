@@ -1,0 +1,1 @@
+import os, sys; sys.path.append(os.getcwd()); from core.inference import InferenceEngine; eng = InferenceEngine(); res = eng.predict_symbol('GBPNZD', save_to_db=False); print('FINAL SIGNAL:', res.get('signal')); print('CONFIDENCE:', res.get('confidence')); print('IS_HIDDEN:', res.get('is_hidden'))
