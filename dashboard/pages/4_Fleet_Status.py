@@ -153,8 +153,14 @@ def parse_specialist_log(log_path, tail_bytes=50000):
         "start_time": None
     }
     
+    # Example Logs:
+    # INFO:__main__:Manufacturing Experts for EURUSD...
+    # INFO:__main__:⚡ Optimization Attempt 1/15 for EURUSD 90%+
+    # INFO:__main__:✅ Optimization SUCCESS! 92.1% (Trades: 120)
+    # INFO:__main__:Skipping AUDUSD BUY (Already Certified)
+    # INFO:__main__:Completed 5/31: EURUSD
+    
     log_time_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
-    fold_pattern = re.compile(r'Fold\s+(\d+):\s+Acc=([\d\.]+)%,\s+Loss=([\d\.]+).*OOS\s+WR=([\d\.]+)%')
     
     current_step = 0
     
@@ -164,46 +170,50 @@ def parse_specialist_log(log_path, tail_bytes=50000):
         if time_match:
             status["last_update"] = time_match.group(1)
             
-        if "Starting expert training for" in line:
-            parts = line.split("Starting expert training for")
-            if len(parts) > 1:
-                symbol = parts[1].split()[0].strip()
-                status["current_symbol"] = symbol
-                status["phase"] = f"Training {symbol}"
+        if "Manufacturing Experts for" in line:
+            symbol = line.split("Manufacturing Experts for")[-1].strip().replace("...", "")
+            status["current_symbol"] = symbol
+            status["phase"] = f"Training {symbol}"
+            
+        if "Optimization Attempt" in line:
+            # ⚡ Optimization Attempt 1/15 for EURUSD 90%+
+            try:
+                parts = line.split("Optimization Attempt ")[1].split(" for ")
+                attempt = parts[0] # "1/15"
+                details = parts[1] # "EURUSD 90%+"
                 
-        if "Worker" in line and "Completed" in line:
-            # Worker X (Pass 2): Completed EURUSD (1/10)
-            parts = line.split("Completed")
-            if len(parts) > 1:
-                symbol = parts[1].strip().split()[0].strip()
+                status["phase"] = f"Optimization {attempt} ({details})"
+                status["keras_progress"] = (int(attempt.split('/')[0]), int(attempt.split('/')[1]))
+                
+                current_step += 1
+                status["history"]["step"].append(current_step)
+                # Keep flat line for chart if no accuracy yet
+                status["history"]["accuracy"].append(status["metrics"]["accuracy"])
+                status["history"]["loss"].append(0)
+            except: pass
+            
+        if "Optimization SUCCESS!" in line or "Candidate" in line:
+            # ✅ Optimization SUCCESS! 92.1% (Trades: 120)
+            # Candidate 1: WR 92.1% | Volume 120
+            try:
+                if "SUCCESS!" in line:
+                    acc_str = line.split("SUCCESS!")[1].split("%")[0].strip()
+                else:
+                    acc_str = line.split("WR")[1].split("%")[0].strip()
+                    
+                acc = float(acc_str) / 100.0
+                status["metrics"]["accuracy"] = acc
+                if len(status["history"]["accuracy"]) > 0:
+                    status["history"]["accuracy"][-1] = acc
+            except: pass
+
+        if "Completed" in line and ":" in line:
+            # Completed 5/31: EURUSD
+            try:
+                symbol = line.split(":")[1].strip()
                 if symbol not in status["symbols_processed"] and len(symbol) <= 7:
                     status["symbols_processed"].append(symbol)
-
-        if "Training single pair:" in line:
-            parts = line.split("Training single pair:")
-            if len(parts) > 1:
-                symbol = parts[1].strip()
-                status["current_symbol"] = symbol
-                status["phase"] = f"Training {symbol}"
-            
-        fold_match = fold_pattern.search(line)
-        if fold_match:
-            fold_idx = int(fold_match.group(1))
-            acc = float(fold_match.group(2)) / 100.0
-            loss = float(fold_match.group(3))
-            oos = float(fold_match.group(4)) / 100.0
-            
-            status["metrics"]["accuracy"] = acc
-            status["metrics"]["loss"] = loss
-            status["metrics"]["oos_wr"] = oos
-            
-            status["phase"] = f"WFCV Fold {fold_idx}/5"
-            status["keras_progress"] = (fold_idx, 5) # 5 folds for specialist
-            
-            current_step += 1
-            status["history"]["step"].append(current_step)
-            status["history"]["accuracy"].append(acc)
-            status["history"]["loss"].append(loss)
+            except: pass
             
     return status
 
@@ -230,12 +240,12 @@ if monitor_target == "Global Foundation":
     parser_func = parse_training_log
     no_log_msg = f"⏳ No active training log found.\n\nStart training on the VM with:\n```\npython models/foundation_trainer_v2.py\n```\nExpected log at: `{log_dir / 'foundation_v2_training.log'}`"
 else:
-    hero_banner("Specialist Fleet Retraining", "Real-time monitor for Walk-Forward Cross Validation")
+    hero_banner("Specialist Fleet Retraining", "Real-time monitor for Expert Tier Isolation")
     log_dir = PROJECT_ROOT / "logs"
-    log_file = log_dir / "specialist_progressive.log"
+    log_file = log_dir / "expert_training.log"
     log_files = [log_file] if log_file.exists() else []
     parser_func = parse_specialist_log
-    no_log_msg = f"⏳ No active specialist training log found. Expected at: `{log_dir / 'specialist_progressive.log'}`"
+    no_log_msg = f"⏳ No active expert training log found. Expected at: `{log_dir / 'expert_training.log'}`"
 
 if len(log_files) > 20:
     log_files = log_files[-20:]
