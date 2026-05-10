@@ -61,7 +61,7 @@ FOREX_PAIRS = [
     "GBPJPY","EURJPY","AUDJPY","CADJPY","CHFJPY","NZDJPY","GBPCHF",
     "EURGBP","AUDNZD","NZDCHF","NZDCAD","CADCHF","AUDCHF","EURCAD",
     "GBPNZD","EURNZD","GBPCAD","USDSGD","EURAUD","EURCHF","GBPAUD",
-    "AUDCAD"
+    "AUDCAD", "GOLD"
 ]
 GOLD_SYMBOL_MT5 = "GOLD"   # Broker alias for XAUUSD
 MACRO_YF = {               # Fetched via yfinance (daily → resampled 1H)
