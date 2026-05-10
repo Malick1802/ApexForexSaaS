@@ -63,7 +63,7 @@ def parse_training_log(log_path, tail_bytes=50000):
     # Keras match: 1/1158 ━━━━━━━━━━━━━━━━━━━━ 50s 40ms/step - accuracy: 0.50 - loss: 0.69
     # Epoch match: Epoch 1/60
     epoch_pattern = re.compile(r'Epoch (\d+)/(\d+)')
-    keras_steps_pattern = re.compile(r'(\d+)/(\d+) ━.*accuracy:\s+([\d\.]+)\s+-\s+loss:\s+([\d\.]+)')
+    keras_steps_pattern = re.compile(r'(\d+)/(\d+).*?accuracy:\s+([\d\.]+)\s+-\s+loss:\s+([\d\.]+)')
     sequence_pattern = re.compile(r'^\d{4}.*INFO\]\s+([A-Z]+):\s+\d+,\d+\s+sequences')
     
     total_epochs = 60
