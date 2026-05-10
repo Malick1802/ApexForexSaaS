@@ -144,7 +144,7 @@ def add_global_context(pair_features: pd.DataFrame,
 # ─────────────────────────────────────────────────────────────
 
 def triple_barrier_label_fast(df: pd.DataFrame, tp_pct: float = 0.003,
-                               sl_pct: float = 0.0015, horizon: int = 24) -> pd.Series:
+                               sl_pct: float = 0.002, horizon: int = 24) -> pd.Series:
     """
     Vectorised triple-barrier labeling.
     Returns: 2=BUY, 0=SELL, 1=WAIT (neutral)
