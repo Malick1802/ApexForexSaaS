@@ -214,29 +214,31 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.markdown("### 📊 Monitoring Target")
-    monitor_target = st.radio("Log Source", ["Specialist Fleet Base", "Global Foundation"], index=1, label_visibility="collapsed")
+    monitor_target = st.radio("Log Source", ["Global Foundation", "Specialist Fleet Base"], index=0, label_visibility="collapsed")
     st.markdown("<br>", unsafe_allow_html=True)
     
     sidebar_footer()
 
 if monitor_target == "Global Foundation":
-    hero_banner("Training Fleet Status", "Real-time monitor for Global Foundation Intelligence")
+    hero_banner("Foundation Brain V2 Training", "Real-time monitor for Global Foundation Intelligence")
     log_dir = PROJECT_ROOT / "logs"
     log_file = log_dir / "foundation_v2_training.log"
     log_files = [log_file] if log_file.exists() else []
     parser_func = parse_training_log
+    no_log_msg = f"⏳ No active training log found.\n\nStart training on the VM with:\n```\npython models/foundation_trainer_v2.py\n```\nExpected log at: `{log_dir / 'foundation_v2_training.log'}`"
 else:
     hero_banner("Specialist Fleet Retraining", "Real-time monitor for Walk-Forward Cross Validation")
     log_dir = PROJECT_ROOT / "logs"
     log_file = log_dir / "specialist_progressive.log"
     log_files = [log_file] if log_file.exists() else []
     parser_func = parse_specialist_log
+    no_log_msg = f"⏳ No active specialist training log found. Expected at: `{log_dir / 'specialist_progressive.log'}`"
 
 if len(log_files) > 20:
     log_files = log_files[-20:]
 
 if not log_files:
-    st.warning(f"No active training logs found for {monitor_target}.")
+    st.info(no_log_msg)
 else:
     status = None
     for log_path in log_files:
