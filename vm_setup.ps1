@@ -36,8 +36,8 @@ Write-Host "       Done." -ForegroundColor Green
 
 # 3. Install dependencies
 Write-Host "[3/6] Installing packages (may take a few minutes)..." -ForegroundColor Yellow
-& $PIP install --upgrade pip --quiet
-& $PIP install -r requirements.txt --quiet
+& $PYEXE -m pip install --upgrade pip --quiet --no-warn-script-location 2>$null
+& $PYEXE -m pip install -r requirements.txt --quiet --no-warn-script-location
 Write-Host "       All packages installed." -ForegroundColor Green
 
 # 4. Create directories
