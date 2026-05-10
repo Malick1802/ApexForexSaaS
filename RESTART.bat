@@ -1,4 +1,5 @@
 @echo off
+pushd "%~dp0"
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
 title Apex Services - Restarter
@@ -8,8 +9,8 @@ echo ===================================================
 echo.
 
 echo 1. Stopping existing services...
-powershell -Command "Stop-Process -Id (Get-NetTCPConnection -LocalPort 8505 -ErrorAction SilentlyContinue).OwningProcess -Force -ErrorAction SilentlyContinue"
-powershell -Command "Get-Process python* | Where-Object {$_.CommandLine -like '*main.py*' -or $_.CommandLine -like '*executive.py*' -or $_.CommandLine -like '*sentinel.py*'} | Stop-Process -Force -ErrorAction SilentlyContinue"
+powershell -Command "$p = Get-NetTCPConnection -LocalPort 8505 -ErrorAction SilentlyContinue; if($p){Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue}"
+powershell -Command "Get-Process python* -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*main.py*' -or $_.CommandLine -like '*executive.py*' -or $_.CommandLine -like '*sentinel.py*'} | Stop-Process -Force -ErrorAction SilentlyContinue"
 echo    Wait 2 seconds for cleanup...
 timeout /t 2 /nobreak > nul
 

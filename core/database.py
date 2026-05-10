@@ -120,7 +120,8 @@ class SignalDatabase:
                     'suggested_lots': 'REAL',
                     'expert_intent': 'TEXT',
                     'exit_price': 'REAL',
-                    'exit_reason': 'TEXT'
+                    'exit_reason': 'TEXT',
+                    'notified': 'INTEGER DEFAULT 0'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -256,6 +257,19 @@ class SignalDatabase:
                 """, (datetime.now(timezone.utc).isoformat(), 'SYSTEM', 'HEARTBEAT', 1.0, 'EXECUTED', 'SUCCESS'))
         except Exception as e:
             logger.error(f"Heartbeat failed: {e}")
+
+    def mark_notified(self, signal_id: int):
+        """Mark a signal as having had its Telegram notification sent (notified=1)."""
+        try:
+            with self._get_connection() as conn:
+                conn.execute(
+                    "UPDATE signals SET notified = 1 WHERE id = ?",
+                    (signal_id,)
+                )
+                conn.commit()
+                logger.debug(f"Signal {signal_id} marked as notified.")
+        except Exception as e:
+            logger.error(f"Failed to mark signal {signal_id} as notified: {e}")
 
     def get_signal_by_id(self, signal_id: int) -> Optional[Dict]:
         """Fetch a single signal by its unique ID."""

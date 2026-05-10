@@ -1,4 +1,5 @@
 @echo off
+pushd "%~dp0"
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
 title Apex Sentinel - Automatic Signal Generator

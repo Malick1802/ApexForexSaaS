@@ -36,7 +36,6 @@ def parse_training_log(log_path, tail_bytes=50000):
     if not os.path.exists(log_path):
         return None
     
-    # Institutional Optimization: Only read the end of the log for status
     with open(log_path, 'rb') as f:
         try:
             f.seek(-tail_bytes, os.SEEK_END)
@@ -49,7 +48,7 @@ def parse_training_log(log_path, tail_bytes=50000):
     
     status = {
         "symbols_processed": [],
-        "total_symbols": 32,
+        "total_symbols": 26, # Updated to 26 for v2
         "current_symbol": "None",
         "phase": "Preparing Data",
         "keras_progress": None,
@@ -60,73 +59,67 @@ def parse_training_log(log_path, tail_bytes=50000):
         "start_time": None
     }
     
-    # Patterns
-    keras_steps_pattern = re.compile(r'Step\s+(\d+):\s+accuracy=([\d\.]+),\s+loss=([\d\.]+)')
-    epoch_end_pattern = re.compile(r'Epoch\s+(\d+)\s+finished:\s+accuracy=([\d\.]+),\s+loss=([\d\.]+)\s+\[train_acc=([\d\.]+)\]')
-    total_samples_pattern = re.compile(r'Total samples:\s+(\d+)')
     log_time_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
+    # Keras match: 1/1158 ━━━━━━━━━━━━━━━━━━━━ 50s 40ms/step - accuracy: 0.50 - loss: 0.69
+    # Epoch match: Epoch 1/60
+    epoch_pattern = re.compile(r'Epoch (\d+)/(\d+)')
+    keras_steps_pattern = re.compile(r'(\d+)/(\d+) ━.*accuracy:\s+([\d\.]+)\s+-\s+loss:\s+([\d\.]+)')
+    sequence_pattern = re.compile(r'^\d{4}.*INFO\]\s+([A-Z]+):\s+\d+,\d+\s+sequences')
     
-    default_total_steps = 1158
-    total_steps = default_total_steps
+    total_epochs = 60
     completed_epochs = 0
-    total_epochs = 15
+    total_steps = 1158
 
     for line in lines:
         line = strip_ansi(line)
         
-        # Capture Time
         time_match = log_time_pattern.match(line)
         if time_match:
             status["last_update"] = time_match.group(1)
 
-        # Dynamic Total Steps calculation for Phase 2 (5-year training)
-        if "Total samples:" in line:
-            samples_match = total_samples_pattern.search(line)
-            if samples_match:
-                batch_size = 256
-                total_steps = int(int(samples_match.group(1)) / batch_size)
-
-        if "Processing" in line and "into" in line:
-            parts = line.split("Processing")
-            if len(parts) > 1:
-                symbol = parts[1].split()[0].strip()
+        if "FOUNDATION BRAIN v2 - TRAINING START" in line:
+            status["phase"] = "Initializing V2 Brain"
+            
+        if "Fetching" in line and "from MT5" in line:
+            status["phase"] = "Fetching MT5 Historical Data"
+            
+        if "sequences" in line and "INFO]" in line and "Total" not in line:
+            seq_match = sequence_pattern.search(line)
+            if seq_match:
+                symbol = seq_match.group(1)
                 if symbol not in status["symbols_processed"] and len(symbol) <= 7:
                     status["symbols_processed"].append(symbol)
                 status["current_symbol"] = symbol
+                
+        if "Total sequences across all pairs" in line:
+            status["phase"] = "Building Data Corpus"
 
-        if "Starting Global Foundation training" in line:
+        if "Starting TFT model fit" in line:
             status["phase"] = "Model Training"
-            status["current_symbol"] = "Global Brain"
-        
-        # Step Metrics
+            status["current_symbol"] = "Global Brain v2"
+            
+        epoch_match = epoch_pattern.search(line)
+        if epoch_match:
+            completed_epochs = int(epoch_match.group(1))
+            total_epochs = int(epoch_match.group(2))
+            status["phase"] = f"Epoch {completed_epochs}/{total_epochs}"
+            status["current_symbol"] = "Global Brain v2"
+
         keras_match = keras_steps_pattern.search(line)
         if keras_match:
             current_step = int(keras_match.group(1))
-            train_acc = float(keras_match.group(2))
-            train_loss = float(keras_match.group(3))
+            total_steps = int(keras_match.group(2))
+            train_acc = float(keras_match.group(3))
+            train_loss = float(keras_match.group(4))
             
-            status["keras_progress"] = (current_step, total_steps)
+            status["keras_progress"] = ((completed_epochs - 1) * total_steps + current_step, total_steps * total_epochs)
             status["metrics"]["accuracy"] = train_acc
             status["metrics"]["loss"] = train_loss
             
-            # Global Step for continuous charting (prevents saw-tooth)
             global_step = (completed_epochs * total_steps) + current_step
             status["history"]["step"].append(global_step)
             status["history"]["accuracy"].append(train_acc)
             status["history"]["loss"].append(train_loss)
-
-        # Epoch Summaries
-        epoch_match = epoch_end_pattern.search(line)
-        if epoch_match:
-            epoch_num = int(epoch_match.group(1))
-            val_acc  = float(epoch_match.group(2))
-            val_loss = float(epoch_match.group(3))
-            completed_epochs = epoch_num
-
-            status["metrics"]["accuracy"] = val_acc
-            status["metrics"]["loss"] = val_loss
-            status["keras_progress"] = (epoch_num * total_steps, total_steps * total_epochs)
-            status["phase"] = f"Epoch {epoch_num}/{total_epochs}"
 
     return status
 
@@ -221,15 +214,16 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.markdown("### 📊 Monitoring Target")
-    monitor_target = st.radio("Log Source", ["Specialist Fleet Base", "Global Foundation"], index=0, label_visibility="collapsed")
+    monitor_target = st.radio("Log Source", ["Specialist Fleet Base", "Global Foundation"], index=1, label_visibility="collapsed")
     st.markdown("<br>", unsafe_allow_html=True)
     
     sidebar_footer()
 
 if monitor_target == "Global Foundation":
     hero_banner("Training Fleet Status", "Real-time monitor for Global Foundation Intelligence")
-    log_dir = PROJECT_ROOT / "logs" / "training"
-    log_files = sorted(list(log_dir.glob("global_foundation_*.log")))
+    log_dir = PROJECT_ROOT / "logs"
+    log_file = log_dir / "foundation_v2_training.log"
+    log_files = [log_file] if log_file.exists() else []
     parser_func = parse_training_log
 else:
     hero_banner("Specialist Fleet Retraining", "Real-time monitor for Walk-Forward Cross Validation")

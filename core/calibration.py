@@ -146,13 +146,7 @@ class FleetCalibrationManager:
     def __init__(self):
         self.calibrators: dict = {}   # (symbol, direction) → PlattCalibrator
 
-    def train_from_database(self, db_path: str = "signals.db", min_samples: int = 30):
-        """
-        Train calibrators from historical closed signals in the database.
-        
-        Only ACTIVE/SUCCESS/FAIL outcomes are used (not WAIT).
-        Labels: SUCCESS = 1, FAIL = 0
-        """
+    def train_from_database(self, db_path: str = "signals.db", min_samples: int = 3):
         import sqlite3
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
@@ -172,7 +166,6 @@ class FleetCalibrationManager:
             logger.warning("No closed signals found in database for calibration.")
             return
 
-        # Group by (symbol, direction)
         from collections import defaultdict
         groups: dict = defaultdict(lambda: {"scores": [], "labels": []})
         for r in rows:
@@ -186,12 +179,21 @@ class FleetCalibrationManager:
             if n < min_samples:
                 logger.debug(f"Skipping {sym} {direction}: only {n} samples (<{min_samples})")
                 continue
-            cal = PlattCalibrator(method="platt")
-            cal.fit(np.array(data["scores"]), np.array(data["labels"]))
-            cal.save(sym, direction)
-            self.calibrators[(sym, direction)] = cal
-            logger.info(f"✅ Calibrated {sym} {direction}: {n} samples\n{cal.reliability_report()}")
-            trained += 1
+            
+            # Check for at least 2 classes
+            if len(set(data["labels"])) < 2:
+                logger.debug(f"Skipping {sym} {direction}: requires both SUCCESS and FAIL outcomes to calibrate.")
+                continue
+
+            try:
+                cal = PlattCalibrator(method="platt")
+                cal.fit(np.array(data["scores"]), np.array(data["labels"]))
+                cal.save(sym, direction)
+                self.calibrators[(sym, direction)] = cal
+                logger.info(f"✅ Calibrated {sym} {direction}: {n} samples\n{cal.reliability_report()}")
+                trained += 1
+            except Exception as e:
+                logger.warning(f"Failed to calibrate {sym} {direction}: {e}")
 
         logger.info(f"\nCalibration complete: {trained}/{len(groups)} pairs trained.")
 

@@ -69,6 +69,36 @@ def load_inference_v2():
     engine = get_inference()
     return engine
 
+def get_training_status():
+    import os
+    import re
+    log_path = os.path.join(PROJECT_ROOT, "logs", "foundation_v2_training.log")
+    if not os.path.exists(log_path):
+        return None
+    try:
+        # Only check if log was modified recently (last 6 hours)
+        if time.time() - os.path.getmtime(log_path) > 21600:
+            return None
+            
+        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()[-100:]
+        
+        for line in reversed(lines):
+            if "TRAINING COMPLETE" in line:
+                return None
+            elif "Epoch" in line and "/" in line:
+                match = re.search(r'Epoch (\d+)/(\d+)', line)
+                if match:
+                    return f"Training Epoch {match.group(1)}/{match.group(2)}"
+            elif "OOS HOLDOUT EVALUATION" in line:
+                return "Evaluating OOS..."
+            elif "Building training corpus" in line or "Total sequences across all pairs" in line:
+                return "Building Data Corpus..."
+            elif "Fetching" in line:
+                return "Fetching MT5 Data..."
+        return "Training in Background"
+    except Exception:
+        return None
 
 # ── Chart Renderer (TradingView Lightweight Charts – blink-free) ───
 def render_chart(df, symbol, key=None):
@@ -263,7 +293,11 @@ def show_command_center():
         # BUT link to 'expired' filter so user can see "trades that did not complete" as requested.
         st.markdown(kpi_card("Closed Trades (Week)", completed_count, "Hit TP or SL", "accent-cyan", link_url="/analytics?nav=true&filter=expired"), unsafe_allow_html=True)
     with c5:
-        st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan"), unsafe_allow_html=True)
+        training_status = get_training_status()
+        if training_status:
+            st.markdown(kpi_card("System Health", "Training v2", training_status, "accent-gold"), unsafe_allow_html=True)
+        else:
+            st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     section_header("🎯", "High Confidence Opportunities")
@@ -1304,14 +1338,16 @@ def show_control_panel():
 def show_fleet_status():
     import re
 
-    hero_banner("Fleet Status", "Real-time training monitor for Specialist and Foundation models")
+    hero_banner("Fleet Status", "Real-time training monitor for Global Foundation Intelligence v2")
 
     def strip_ansi(text):
-        return re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])').sub('', text)
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
 
-    def parse_specialist_log(log_path, tail_bytes=50000):
+    def parse_training_log(log_path, tail_bytes=50000):
         if not os.path.exists(log_path):
             return None
+        
         with open(log_path, 'rb') as f:
             try:
                 f.seek(-tail_bytes, os.SEEK_END)
@@ -1319,60 +1355,100 @@ def show_fleet_status():
             except OSError:
                 f.seek(0)
                 content = f.read().decode('utf-8', errors='ignore')
+                
         lines = content.splitlines()
+        
         status = {
-            "symbols_processed": [], "total_symbols": 31,
-            "current_symbol": "None", "phase": "Preparing Fleet",
-            "keras_progress": None, "last_update": None,
+            "symbols_processed": [],
+            "total_symbols": 30, # Updated to 30 for v2 (29 pairs + GOLD)
+            "current_symbol": "None",
+            "phase": "Preparing Data",
+            "keras_progress": None,
+            "last_update": None,
             "metrics": {"accuracy": 0.0, "loss": 0.0},
             "history": {"step": [], "accuracy": [], "loss": []},
-            "eta": "Calculating..."
+            "eta": "Calculating...",
+            "start_time": None
         }
-        log_time_p = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
-        fold_p = re.compile(r'Fold\s+(\d+):\s+Acc=([\d\.]+)%,\s+Loss=([\d\.]+)')
-        step = 0
+        
+        log_time_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
+        epoch_pattern = re.compile(r'Epoch (\d+)/(\d+)')
+        keras_steps_pattern = re.compile(r'(\d+)/(\d+)\s+.*accuracy:\s+([\d\.]+)\s+-\s+loss:\s+([\d\.]+)')
+        sequence_pattern = re.compile(r'^\d{4}.*INFO\]\s+([A-Z]+):\s+\d+,\d+\s+sequences')
+        
+        total_epochs = 60
+        completed_epochs = 0
+        total_steps = 1158
+
         for line in lines:
             line = strip_ansi(line)
-            m = log_time_p.match(line)
-            if m: status["last_update"] = m.group(1)
-            if "Starting expert training for" in line:
-                sym = line.split("Starting expert training for")[-1].split()[0].strip()
-                status["current_symbol"] = sym
-                status["phase"] = f"Training {sym}"
-            if "Worker" in line and "Completed" in line:
-                sym = line.split("Completed")[-1].strip().split()[0].strip()
-                if sym not in status["symbols_processed"] and len(sym) <= 7:
-                    status["symbols_processed"].append(sym)
-            m2 = fold_p.search(line)
-            if m2:
-                fold_idx = int(m2.group(1))
-                acc = float(m2.group(2)) / 100.0
-                loss = float(m2.group(3))
-                status["metrics"] = {"accuracy": acc, "loss": loss}
-                status["phase"] = f"WFCV Fold {fold_idx}/5"
-                status["keras_progress"] = (fold_idx, 5)
-                step += 1
-                status["history"]["step"].append(step)
-                status["history"]["accuracy"].append(acc)
-                status["history"]["loss"].append(loss)
+            
+            time_match = log_time_pattern.match(line)
+            if time_match:
+                status["last_update"] = time_match.group(1)
+
+            if "FOUNDATION BRAIN v2 - TRAINING START" in line:
+                status["phase"] = "Initializing V2 Brain"
+                
+            if "Fetching" in line and "from MT5" in line:
+                status["phase"] = "Fetching MT5 Historical Data"
+                
+            if "sequences" in line and "INFO]" in line and "Total" not in line:
+                seq_match = sequence_pattern.search(line)
+                if seq_match:
+                    symbol = seq_match.group(1)
+                    if symbol not in status["symbols_processed"] and len(symbol) <= 7:
+                        status["symbols_processed"].append(symbol)
+                    status["current_symbol"] = symbol
+                    
+            if "Total sequences across all pairs" in line:
+                status["phase"] = "Building Data Corpus"
+
+            if "Starting TFT model fit" in line:
+                status["phase"] = "Model Training"
+                status["current_symbol"] = "Global Brain v2"
+                
+            epoch_match = epoch_pattern.search(line)
+            if epoch_match:
+                completed_epochs = int(epoch_match.group(1))
+                total_epochs = int(epoch_match.group(2))
+                status["phase"] = f"Epoch {completed_epochs}/{total_epochs}"
+                status["current_symbol"] = "Global Brain v2"
+
+            keras_match = keras_steps_pattern.search(line)
+            if keras_match:
+                current_step = int(keras_match.group(1))
+                total_steps = int(keras_match.group(2))
+                train_acc = float(keras_match.group(3))
+                train_loss = float(keras_match.group(4))
+                
+                status["keras_progress"] = ((completed_epochs - 1) * total_steps + current_step, total_steps * total_epochs)
+                status["metrics"]["accuracy"] = train_acc
+                status["metrics"]["loss"] = train_loss
+                
+                global_step = (completed_epochs * total_steps) + current_step
+                status["history"]["step"].append(global_step)
+                status["history"]["accuracy"].append(train_acc)
+                status["history"]["loss"].append(train_loss)
+
         return status
 
     log_dir = PROJECT_ROOT / "logs"
-    log_file = log_dir / "specialist_progressive.log"
+    log_file = log_dir / "foundation_v2_training.log"
 
     if not log_file.exists():
-        st.info("⏳ No active training log found. Run specialist training to populate this view.")
+        st.info("⏳ No active training log found. Run training to populate this view.")
         st.markdown(f"Expected log at: `{log_file}`")
         return
 
-    status = parse_specialist_log(str(log_file))
+    status = parse_training_log(str(log_file))
     if not status:
         st.error("Could not parse log file.")
         return
 
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.markdown(kpi_card("Phase", status["phase"], accent="accent-cyan"), unsafe_allow_html=True)
-    with c2: st.markdown(kpi_card("Fleet Progress", f"{len(status['symbols_processed'])}/31"), unsafe_allow_html=True)
+    with c2: st.markdown(kpi_card("Fleet Progress", f"{len(status['symbols_processed'])}/{status['total_symbols']}"), unsafe_allow_html=True)
     with c3: st.markdown(kpi_card("Accuracy", f"{status['metrics']['accuracy']:.1%}", accent="accent-green"), unsafe_allow_html=True)
     with c4: st.markdown(kpi_card("Last Sync", status["last_update"] or "--", accent="accent-gold"), unsafe_allow_html=True)
 
@@ -1380,35 +1456,56 @@ def show_fleet_status():
 
     if status["keras_progress"]:
         curr, total = status["keras_progress"]
-        st.progress(min(1.0, curr / max(total, 1)))
+        pct = max(0.0, min(1.0, curr / max(total, 1)))
+        
+        # Determine Epoch Number
+        epoch_str = "Initializing..."
+        if "Epoch" in status["phase"]:
+            epoch_str = status["phase"]
+            
+        st.markdown(f"**Training Progress:** {epoch_str} — {pct:.1%} Complete")
+        st.progress(pct)
 
     if status["history"]["accuracy"]:
         section_header("📊", "Accuracy Trend")
         chart_df = pd.DataFrame(status["history"]).set_index("step")
         st.line_chart(chart_df[["accuracy", "loss"]], use_container_width=True)
 
-    section_header("🛰️", "Symbol Grid")
+    section_header("🛰️", "Sequence Building Grid")
     all_syms = [
-        "EURUSD","GBPUSD","USDJPY","AUDUSD","USDCHF","USDCAD","NZDUSD",
-        "EURGBP","EURJPY","GBPJPY","EURCAD","EURAUD","EURCHF","GBPCHF",
-        "GBPAUD","GBPCAD","AUDJPY","CADJPY","CHFJPY","AUDCAD","NZDJPY",
-        "AUDNZD","EURNZD","GBPNZD","AUDCHF","NZDCAD","CADCHF","NZDCHF",
-        "XAUUSD","USOIL","USDSGD"
+        "EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD",
+        "GBPJPY","EURJPY","AUDJPY","CADJPY","CHFJPY","NZDJPY","GBPCHF",
+        "EURGBP","AUDNZD","NZDCHF","NZDCAD","CADCHF","AUDCHF","EURCAD",
+        "GBPNZD","EURNZD","GBPCAD","USDSGD","EURAUD","EURCHF","GBPAUD",
+        "AUDCAD","GOLD"
     ]
+    
     rows = [all_syms[i:i+6] for i in range(0, len(all_syms), 6)]
     for row in rows:
         cols = st.columns(6)
         for i, sym in enumerate(row):
             done = sym in status["symbols_processed"]
             active = sym == status["current_symbol"]
-            bg = "rgba(0,255,136,0.1)" if done else "rgba(0,229,255,0.05)" if active else "rgba(255,255,255,0.03)"
-            border = "1px solid var(--success)" if done else "2px solid var(--accent-cyan)" if active else "1px solid var(--border-glass)"
-            cols[i].markdown(f'<div style="padding:10px;border-radius:8px;background:{bg};border:{border};text-align:center;font-size:0.75rem;font-weight:600;">{sym}</div>', unsafe_allow_html=True)
+            
+            if done:
+                bg = "rgba(0,255,136,0.1)"
+                border = "1px solid var(--success)"
+                icon = "✅ "
+            elif active:
+                bg = "rgba(0,229,255,0.05)"
+                border = "2px solid var(--accent-cyan)"
+                icon = "⚙️ "
+            else:
+                bg = "rgba(255,255,255,0.03)"
+                border = "1px solid var(--border-glass)"
+                icon = "⏳ "
+                
+            cols[i].markdown(f'<div style="padding:10px;border-radius:8px;background:{bg};border:{border};text-align:center;font-size:0.75rem;font-weight:600;">{icon}{sym}</div>', unsafe_allow_html=True)
 
-    section_header("📜", "Log Tail (Last 50 Lines)")
-    with open(str(log_file), 'r', encoding='utf-8', errors='ignore') as f:
-        tail = f.readlines()[-50:]
-    st.code("".join([strip_ansi(l) for l in tail]), language="text")
+    with st.expander("📜 Show Raw Training Logs"):
+        with open(str(log_file), 'r', encoding='utf-8', errors='ignore') as f:
+            tail = f.readlines()[-50:]
+        st.code("".join([strip_ansi(l) for l in tail]), language="text")
 
     if st.button("🔄 Refresh", type="primary"):
         st.rerun()

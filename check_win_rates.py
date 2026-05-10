@@ -1,46 +1,26 @@
-import os
-import json
+import sqlite3
 import pandas as pd
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 1000)
 
-MODEL_DIR = "models/specialist"
+db_path = "c:/Users/artem/Downloads/ApexForexSaaS/signals.db"
+conn = sqlite3.connect(db_path)
+df = pd.read_sql("SELECT symbol, signal, outcome, confidence, timestamp FROM signals WHERE outcome IN ('SUCCESS', 'FAIL');", conn)
 
-results = []
-
-if not os.path.exists(MODEL_DIR):
-    print(f"Directory {MODEL_DIR} does not exist.")
-    exit()
-
-for symbol in os.listdir(MODEL_DIR):
-    metrics_path = os.path.join(MODEL_DIR, symbol, "metrics.json")
-    if os.path.exists(metrics_path):
-        try:
-            with open(metrics_path, 'r') as f:
-                data = json.load(f)
-                
-            # Extract key metrics
-            win_rate = data.get('win_rate', 0.0)
-            filtered_rate = data.get('filtered_win_rate', 0.0)
-            
-            # If 0, maybe it's a list of folds?
-            if win_rate == 0 and isinstance(data, list):
-                df_folds = pd.DataFrame(data)
-                win_rate = df_folds['win_rate'].mean()
-                filtered_rate = df_folds['filtered_win_rate'].mean()
-            elif isinstance(data, dict) and 'mean_metrics' in data:
-                 win_rate = data['mean_metrics'].get('win_rate', 0)
-                 filtered_rate = data['mean_metrics'].get('filtered_win_rate', 0)
-
-            results.append({
-                "Symbol": symbol,
-                "Win Rate": f"{win_rate:.1%}",
-                "Filtered Win Rate": f"{filtered_rate:.1%}"
-            })
-        except Exception as e:
-            print(f"Error reading {symbol}: {e}")
-
-if results:
-    df = pd.DataFrame(results)
-    df = df.sort_values("Filtered Win Rate", ascending=False)
-    print(df.to_markdown(index=False))
+if len(df) > 0:
+    stats = df.groupby('symbol')['outcome'].value_counts().unstack(fill_value=0)
+    if 'SUCCESS' not in stats.columns: stats['SUCCESS'] = 0
+    if 'FAIL' not in stats.columns: stats['FAIL'] = 0
+    stats['total'] = stats['SUCCESS'] + stats['FAIL']
+    stats['win_rate'] = (stats['SUCCESS'] / stats['total'] * 100).round(1)
+    stats = stats.sort_values('total', ascending=False)
+    print("=== SYMBOL WIN RATES ===")
+    print(stats)
+    
+    total_wins = stats['SUCCESS'].sum()
+    total_losses = stats['FAIL'].sum()
+    total_trades = total_wins + total_losses
+    print(f"\nOVERALL: {total_wins} Wins, {total_losses} Losses ({total_wins/total_trades*100:.1f}% Win Rate)")
 else:
-    print("No trained models found yet.")
+    print("No resolved signals found in database.")
+conn.close()

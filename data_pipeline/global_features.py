@@ -8,12 +8,16 @@ logger = logging.getLogger(__name__)
 class GlobalFeatureEngineer:
     """
     Computes global market features across multiple currency pairs.
-    
-    Features:
-    - Currency Strength Matrix (CSM): Relative strength of USD, EUR, GBP, JPY, AUD, CAD, CHF, NZD.
-    - Synthetic DXY: Proxy for Dollar Index.
-    - VIX Proxy: Realised 24-hour volatility of EURUSD as a fear gauge.
-    - Yield Curve Slope: 10Y - 2Y US Treasury spread (recession/risk signal).
+
+    Features (v2 — 16 total):
+    - Currency Strength Matrix (CSM): Relative strength of USD, EUR, GBP, JPY, AUD, CAD, CHF, NZD. (8)
+    - Synthetic DXY: Proxy for Dollar Index. (2)
+    - Gold Return: Risk-off barometer. (1)
+    - VIX Proxy: Realised 24-hour volatility of EURUSD as a fear gauge. (1)
+    - Yield Curve Slope: 10Y - 2Y US Treasury spread (recession/risk signal). (1)
+    - S&P 500 Return: Global equity risk appetite. (1)     [NEW v2]
+    - Crude Oil Return: Commodity inflation / CAD/AUD driver. (1)  [NEW v2]
+    - NASDAQ Return: Tech-sector / USD liquidity proxy. (1)  [NEW v2]
     """
     
     CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
@@ -187,5 +191,35 @@ class GlobalFeatureEngineer:
                 enriched['yield_curve_slope'] = 0.0
         else:
             enriched['yield_curve_slope'] = 0.0
-            
+
+        # 6. S&P 500 Return (1 feature) [NEW v2]
+        if "SP500" in aligned_data:
+            sp_df = aligned_data["SP500"]
+            try:
+                enriched['sp500_ret'] = np.log(sp_df['close'] / sp_df['close'].shift(1)).fillna(0)
+            except:
+                enriched['sp500_ret'] = 0.0
+        else:
+            enriched['sp500_ret'] = 0.0
+
+        # 7. Crude Oil Return (1 feature) [NEW v2]
+        if "OIL" in aligned_data:
+            oil_df = aligned_data["OIL"]
+            try:
+                enriched['oil_ret'] = np.log(oil_df['close'] / oil_df['close'].shift(1)).fillna(0)
+            except:
+                enriched['oil_ret'] = 0.0
+        else:
+            enriched['oil_ret'] = 0.0
+
+        # 8. NASDAQ Return (1 feature) [NEW v2]
+        if "NASDAQ" in aligned_data:
+            ndx_df = aligned_data["NASDAQ"]
+            try:
+                enriched['nasdaq_ret'] = np.log(ndx_df['close'] / ndx_df['close'].shift(1)).fillna(0)
+            except:
+                enriched['nasdaq_ret'] = 0.0
+        else:
+            enriched['nasdaq_ret'] = 0.0
+
         return enriched.ffill().fillna(0)

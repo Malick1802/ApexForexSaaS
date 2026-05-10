@@ -671,13 +671,43 @@ class InferenceEngine:
         return aligned
 
     def load_foundation_model(self, symbol: str) -> Optional[Dict]:
-        """Load the Global Foundation TFT model and pair-specific adaptation."""
-        base_dir = Path("models/foundation")
-        model_path = base_dir / "foundation_brain.keras"
+        """Load the Global Foundation TFT model (version-switchable).
+
+        Version is controlled by config.yaml:
+            foundation:
+              active_version: "v2"   # or "v1" to revert
+
+        Falls back to v1 automatically if v2 is not yet trained.
+        """
+        # ── Version resolution ────────────────────────────────
+        active_version = "v1"  # safe default
+        try:
+            import yaml
+            cfg_path = PROJECT_ROOT / "config.yaml"
+            if cfg_path.exists():
+                with open(cfg_path) as f:
+                    cfg = yaml.safe_load(f)
+                active_version = cfg.get("foundation", {}).get("active_version", "v1")
+        except Exception:
+            pass
+
+        version_dir_map = {
+            "v1": Path("models/foundation"),
+            "v2": Path("models/foundation_v2"),
+        }
+        base_dir = version_dir_map.get(active_version, Path("models/foundation"))
+
+        # Auto-fallback: if requested version not found, try v1
+        model_path  = base_dir / "foundation_brain.keras"
         config_path = base_dir / "config.json"
-        
         if not model_path.exists():
-            return None
+            if active_version != "v1":
+                logger.warning(f"Foundation v{active_version} not found at {model_path}. Falling back to v1.")
+                base_dir    = version_dir_map["v1"]
+                model_path  = base_dir / "foundation_brain.keras"
+                config_path = base_dir / "config.json"
+            if not model_path.exists():
+                return None
             
         try:
             # For TFT we might need custom objects if implemented as layers
@@ -829,6 +859,21 @@ class InferenceEngine:
                 
                 if active_trades:
                     lock = active_trades[0]
+                    
+                    # ── NOTIFICATION RETRY GATE ─────────────────────────────────────
+                    # If the signal was saved but Telegram was never confirmed (notified=0),
+                    # retry the notification now before returning the locked state.
+                    if lock.get('notified', 0) == 0 and lock.get('signal') in ('BUY', 'SELL'):
+                        try:
+                            retry_payload = dict(lock)
+                            retry_payload['is_shadow_alert'] = not bool(lock.get('is_proven', 0))
+                            sent = self.notifier.send_signal_alert(retry_payload)
+                            if sent:
+                                self.db.mark_notified(lock['id'])
+                                logger.info(f"🔔 RETRY NOTIFICATION SENT for locked signal {lock['id']} ({symbol} {lock['signal']})")
+                        except Exception as _ne:
+                            logger.warning(f"Notification retry failed for {symbol}: {_ne}")
+                    
                     return {
                         'id': lock['id'],
                         'timestamp': lock['timestamp'],
@@ -865,7 +910,8 @@ class InferenceEngine:
             features = self.global_engineer.add_global_features(symbol, base_features, global_data)
             
             # 3. Load Model (Priority 1: Phase 3 Expert, Priority 2: Phase 2 Foundation)
-            models = self.load_phase3_expert(symbol)
+            # BYPASS EXPERT: Forcing Foundation Brain for testing
+            models = None # self.load_phase3_expert(symbol)
             if not models:
                 models = self.load_foundation_model(symbol)
             
@@ -993,9 +1039,11 @@ class InferenceEngine:
             
             X_scaled = scaler.transform(X_last.reshape(-1, expected_features)).reshape(1, seq_len, expected_features)
             
-            # ── Static Thresholds (Reverted from Regime-Adjusted) ──────────────────────────
-            buy_threshold  = models.get('buy_threshold', 0.70)
-            sell_threshold = models.get('sell_threshold', 0.70)
+            # ── Institutional Floor (Hardcoded 60%) ──────────────────────────
+            # Per user requirement: Absolute 60% conviction trigger.
+            # We ignore any higher thresholds saved in model configs.
+            buy_threshold  = 0.60
+            sell_threshold = 0.60
             
             # Initialize default probabilities (safe defaults if a direction is blocked)
             buy_prob = 0.0
@@ -1028,6 +1076,15 @@ class InferenceEngine:
                     signal, confidence = "WAIT", wait_prob
                 
                 dominant_prob = max(buy_prob, sell_prob)
+                
+                # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
+                # Per user requirement: Do not deal with anything < 60%.
+                # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
+                if dominant_prob < 0.60:
+                    if signal in ('BUY', 'SELL'):
+                        logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
+                    signal = "WAIT"
+                    
                 # Hard gate for strictly approved pairs
                 is_tier_proven = buy_proven if signal == 'BUY' else sell_proven if signal == 'SELL' else False
             else:
@@ -1050,6 +1107,14 @@ class InferenceEngine:
 
                 dominant_prob = max(buy_prob, sell_prob)
                 
+                # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
+                # Per user requirement: Do not deal with anything < 60%.
+                # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
+                if dominant_prob < 0.60:
+                    if signal in ('BUY', 'SELL'):
+                        logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
+                    signal = "WAIT"
+                    
                 # Initialize state variables
                 is_authorized = False
                 is_hidden = 1
@@ -1082,6 +1147,7 @@ class InferenceEngine:
             expert_signal = signal 
             is_authorized = False # Default until calibrated floor met
             is_hidden = 1
+            result_shadow_flag = False  # True if BENCHED but ≥60% conviction
 
             if signal == "WAIT":
                 is_biased = False
@@ -1093,14 +1159,13 @@ class InferenceEngine:
                     is_biased = True
                     logger.warning(f"BIAS: {symbol}: Model Bias Detected ({dominant_prob:.1%} matches historical skew {hist_bias:.1%}). Blocking signal.")
 
-                if dominant_prob >= 0.60 and not is_biased:
+                if not is_biased:
                     signal = "BUY" if buy_prob > sell_prob else "SELL"
                     raw_confidence = buy_prob if signal == "BUY" else sell_prob
-                    logger.info(f"🚀 {symbol}: Promoting signal from WAIT to {signal} certification (Edge: {dominant_prob:.1%}).")
+                    logger.info(f"🚀 {symbol}: Evaluating {signal} (Raw Edge: {dominant_prob:.1%}) for Calibration.")
                 else:
                     signal = "WAIT"
-                    reason = "No directional edge" if not is_biased else "Model Bias"
-                    logger.info(f"⛔ {symbol}: {reason} ({dominant_prob:.1%}). Staying at WAIT.")
+                    logger.info(f"⛔ {symbol}: Model Bias Detected ({dominant_prob:.1%}). Staying at WAIT.")
 
             # --- PHASE 4: Platt Scaling Calibration ---
             # Map raw model conviction to real-world win rate (The "Real" Number)
@@ -1124,27 +1189,48 @@ class InferenceEngine:
                 final_confidence = raw_confidence
 
             # --- PHASE 4.5: Calibrated Tier Validation ---
-            # Now that we have the Real probability, check the corresponding tier in the whitelist
-            tier_status = self.perf_gate.get_tier_status(symbol, signal, final_confidence)
-            is_tier_proven = (tier_status == "APPROVED")
+            # CRITICAL DESIGN: Use RAW conviction tier for the approval gate, NOT the calibrated one.
+            # Reason: The historical trades in the whitelist were recorded at the raw conviction level
+            # (e.g. 63% raw). If Platt calibrates this to 100%, the evidence still lives under Tier 60.
+            # Looking up Tier 100 would always fail — the pair was never traded at 100% raw conviction.
+            # The calibrated number is purely a display/accuracy estimate, not a new evidence tier.
+            raw_tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
+            is_tier_proven = (raw_tier_status == "APPROVED")
             
-            # Calculate the ACTUAL mathematical tier (Floor to nearest 10)
-            # This MUST strictly match the conviction to avoid UI mismatches.
+            # Display tier uses calibrated confidence (what the user sees as accuracy estimate)
             actual_tier = int(final_confidence * 10) * 10
-            if actual_tier < 60: actual_tier = 60
             if actual_tier > 100: actual_tier = 100
 
+            # Log when calibration causes a tier shift so it's auditable
+            raw_tier_bucket = int(raw_confidence * 10) * 10
+            if actual_tier != raw_tier_bucket:
+                logger.info(
+                    f"[PLATT SHIFT] {symbol} {signal}: Raw={raw_confidence:.1%} (Tier {raw_tier_bucket}) "
+                    f"-> Calibrated={final_confidence:.1%} (Display Tier {actual_tier}). "
+                    f"Approval gate using RAW tier {raw_tier_bucket}: {raw_tier_status}"
+                )
+
             # --- PHASE 5: Authorization & Safety Hurdles ---
-            # Use the model's threshold (which is 0.52 for Foundation/Phase 3) or whitelist approval
-            if (signal == "BUY" and (final_confidence >= buy_threshold or is_tier_proven)) or \
-               (signal == "SELL" and (final_confidence >= sell_threshold or is_tier_proven)):
+            # Use the model's threshold or whitelist approval
+            # CRITICAL: Strict 60% Calibrated Conviction Floor enforced per user requirement.
+            has_calibrated_edge = (final_confidence >= 0.60)
+            
+            if (signal == "BUY" and has_calibrated_edge and (final_confidence >= buy_threshold or is_tier_proven)) or \
+               (signal == "SELL" and has_calibrated_edge and (final_confidence >= sell_threshold or is_tier_proven)):
                 is_authorized = True
-                is_hidden = 1
+                is_hidden = 1  # Hidden until tier is PROVEN (upgraded below)
+            elif signal in ('BUY', 'SELL') and has_calibrated_edge:
+                # Has ≥60% conviction but pair is BENCHED — save as SHADOW for certification tracking
+                logger.info(f"👻 SHADOW: {symbol} {signal} at {final_confidence:.1%} — BENCHED, tracking for certification.")
+                is_authorized = True   # Allow shadow save
+                is_hidden = 1          # Keep hidden from live terminal
+                # Flag it clearly as a shadow/paper trade
+                result_shadow_flag = True
             else:
                 logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < {buy_threshold:.1%} Safety Floor. Authorization Denied.")
                 is_authorized = False
                 is_hidden = 1
-                signal = "WAIT" # Forced rollback to safety
+                signal = "WAIT"  # Forced rollback to safety
 
             # 2. Live Upgrade (Market Signal)
             # Only upgrade to Live (visible) if it passes safety regimes AND accuracy hurdles
@@ -1201,7 +1287,16 @@ class InferenceEngine:
                 if target_signal == 'BUY': trades = models.get('buy_trades', 0)
                 elif target_signal == 'SELL': trades = models.get('sell_trades', 0)
             
+            # --- FINAL NUCLEAR SAFETY GATE ---
+            # Per user requirement: Absolutely no signals < 60% conviction.
+            # We only allow the return if it is a 'WAIT' signal (preserving dashboard telemetry).
+            if final_confidence < 0.60 and signal not in ("WAIT", "SCANNING"):
+                logger.warning(f"☢️ NUCLEAR BLOCK: {symbol} leaked to {final_confidence:.1%}. Forcefully discarding.")
+                return None
+            
             result = {
+                'raw_ai_confidence': raw_confidence, # Simplified back to single value
+                'calibrated_confidence': raw_confidence,
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'symbol': symbol,
                 'signal': signal,
@@ -1322,17 +1417,22 @@ class InferenceEngine:
                 if should_save:
                     # Send Telegram alerts natively before saving to DB
                     # This prevents double-fires from the global poller
+                    tg_sent = False
                     if result.get('signal') in ('BUY', 'SELL'):
-                        # Mark as shadow if not proven
-                        if not is_tier_proven:
+                        # Mark as shadow if not proven OR if flagged as a benched shadow
+                        if not is_tier_proven or result_shadow_flag:
                             result['is_shadow_alert'] = True
                         
-                        sent = self.notifier.send_signal_alert(result)
-                        if sent:
+                        tg_sent = self.notifier.send_signal_alert(result)
+                        if tg_sent:
                             result['status'] = 'SENT'
                             
                     logger.info(f"🎯 SAVING ISOLATED SIGNAL: {symbol} {signal} from {actual_tier}% Expert (Vol: {trades})")
-                    self.db.save_signal(result)
+                    signal_id = self.db.save_signal(result)
+                    
+                    # Mark notified AFTER save so we have the DB row ID
+                    if tg_sent and signal_id and signal_id > 0:
+                        self.db.mark_notified(signal_id)
                         
                     return result
                 else:

@@ -1,5 +1,6 @@
 import os
 import gc
+import sys
 import json
 import logging
 import numpy as np
@@ -8,6 +9,11 @@ from tensorflow import keras
 from pathlib import Path
 import yaml
 import joblib
+
+# Ensure project root is always on the path when running this script directly
+_PROJECT_ROOT = Path(__file__).parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +69,6 @@ class AdaptationTrainer:
                 'GatedResidualNetwork': GatedResidualNetwork
             }
         )
-        
-        scaler = joblib.load(str(scaler_path))
-        mean = scaler.mean_.astype(np.float32)
-        scale = scaler.scale_.astype(np.float32)
 
         from data_pipeline.providers.mt5_provider import MT5Provider
         from data_pipeline.engine import DataEngine
@@ -90,17 +92,20 @@ class AdaptationTrainer:
 
         # 2. Iterate and Adapt
         for symbol in self.symbols:
-            # Check if Expert already exists to avoid redundant training
             expert_model_path = self.expert_dir / symbol / "expert_model.keras"
-            if expert_model_path.exists():
-                logger.info(f"Skipping {symbol} (Expert already exists)")
-                continue
+            # Overwrite existing models for dynamic fine-tuning
 
             logger.info(f"========== Adapting Expert for {symbol} ==========")
             
             try:
                 # Dynamically load data from local SQLite cache instead of volatile /tmp/ files
-                df = data_engine.fetch(symbol, interval="1h", days=1825)
+                # FETCH ONLY OUT-OF-SAMPLE DATA (After Foundation cutoff: April 1, 2026)
+                from datetime import datetime, timezone
+                cutoff_date = datetime(2026, 4, 1, tzinfo=timezone.utc)
+                now = datetime.now(timezone.utc)
+                delta_days = max(1, (now - cutoff_date).days)
+                
+                df = data_engine.fetch(symbol, interval="1h", days=delta_days)
                 if df is None or len(df) < 500:
                     logger.warning(f"Not enough historical data cached for {symbol}. Skipping.")
                     continue
@@ -120,14 +125,38 @@ class AdaptationTrainer:
                 X_train, y_train = X[:split], y_seq[:split]
                 X_val, y_val = X[split:], y_seq[split:]
                 
-                # Apply scaler
+                # Refit a fresh StandardScaler on the current training data.
+                # This is critical for fine-tuning: the saved foundation scaler
+                # may have a different feature count (e.g., 34) vs the current
+                # feature engineer output (e.g., 44 with global macro features).
+                from sklearn.preprocessing import StandardScaler
+                pair_scaler = StandardScaler()
                 X_train_flat = X_train.reshape(-1, X_train.shape[2])
-                X_train_flat = (X_train_flat - mean) / scale
+                X_train_flat = pair_scaler.fit_transform(X_train_flat).astype(np.float32)
                 X_train = X_train_flat.reshape(X_train.shape)
                 
                 X_val_flat = X_val.reshape(-1, X_val.shape[2])
-                X_val_flat = (X_val_flat - mean) / scale
+                X_val_flat = pair_scaler.transform(X_val_flat).astype(np.float32)
                 X_val = X_val_flat.reshape(X_val.shape)
+                
+                # Save the pair-specific scaler alongside the expert model
+                expert_pair_dir = self.expert_dir / symbol
+                expert_pair_dir.mkdir(exist_ok=True)
+                joblib.dump(pair_scaler, str(expert_pair_dir / "scaler.joblib"))
+                logger.info(f"Saved fresh scaler for {symbol} ({X_train_flat.shape[1]} features)")
+                
+                # --- Architecture Compatibility: Trim features to match Foundation model ---
+                # The Foundation TFT input layer is hardwired to N_FOUNDATION_FEATURES.
+                # The feature engineer now outputs more due to added global macro features.
+                # We slice X down so Transfer Learning works without a full Foundation rebuild.
+                N_FOUNDATION_FEATURES = 34
+                if X_train.shape[2] != N_FOUNDATION_FEATURES:
+                    logger.warning(
+                        f"{symbol}: Trimming {X_train.shape[2]} features → "
+                        f"{N_FOUNDATION_FEATURES} to match Foundation TFT input."
+                    )
+                    X_train = X_train[:, :, :N_FOUNDATION_FEATURES]
+                    X_val   = X_val[:, :, :N_FOUNDATION_FEATURES]
                 
                 # Create a fresh copy of the model for this pair
                 # Using clone_model ensures we don't bleed weights across loops
@@ -181,11 +210,6 @@ class AdaptationTrainer:
                 
                 # Memory Safeguard
                 del pair_model, X_train, y_train, X_val, y_val, X, y_seq
-                keras.backend.clear_session()
-                gc.collect()
-                
-                # Free memory
-                del X_train, y_train, X_val, y_val, pair_model
                 keras.backend.clear_session()
                 gc.collect()
                 

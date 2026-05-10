@@ -75,9 +75,10 @@ logs/
 
 # Project Specific
 data_cache/
-models/
+models/*
 !models/__init__.py
 !models/*.py
+!models/**/*.py
 debug_*.txt
 verify_*.txt
 *.json

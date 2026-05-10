@@ -243,7 +243,7 @@ mt5:
   max_trade_leverage: 30  # Hard limit for GetLeveraged.com compliance
 notifications:
   telegram:
-    bot_token: 8562699506:AAGahdqN_owCNdK9aUpxJhTLKXpXVz9QhGs
+    bot_token: '8656723100:AAEPEbCyQ22MOvzDFAdxxD4EsxIF7Z_5KQM'
     chat_id: '6034739351'
     enabled: true
     notify_shadow_trades: true
@@ -265,3 +265,9 @@ safety:
 
 # Temporarily blocked pairs (0% win rate - re-enable after model retraining)
 blocked_symbols: []
+
+# Foundation Brain version control
+# Set active_version to "v2" once training completes to activate the new model.
+# Set back to "v1" at any time to revert instantly.
+foundation:
+  active_version: "v1"   # "v1" = original model | "v2" = 5yr MT5 + SP500/Oil/NASDAQ

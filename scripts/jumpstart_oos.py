@@ -205,7 +205,7 @@ def update_trading_whitelist(results):
             for side in ["BUY", "SELL"]:
                 for tier_pct, data in tiers.get(side, {}).items():
                     if data['trades'] >= 1: # Jumpstart even with 1 trade
-                        approved = data['accuracy'] >= 0.60 and data['trades'] >= 3
+                        approved = data['accuracy'] >= 0.70 and data['trades'] >= 2
                         whitelist["performance_matrix"][symbol][side][str(tier_pct)] = {
                             "win_rate": data['accuracy'],
                             "accuracy": data['accuracy'],

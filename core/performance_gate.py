@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WHITELIST_PATH = PROJECT_ROOT / "config" / "trading_whitelist.json"
 DEFAULT_DB_PATH = str(PROJECT_ROOT / "signals.db")
 
-DEFAULT_HURDLE = 0.60  # 60% win rate
-MIN_TRADES = 3        # Must have at least 3 resolved trades to be 'proven'
-TIERS = [50, 55, 60, 70, 80, 90, 100]
+DEFAULT_HURDLE = 0.70  # 70% win rate
+MIN_TRADES = 2        # Must have at least 2 resolved trades to be 'proven'
+TIERS = [60, 70, 80, 90, 100]
 
 class PerformanceGate:
     """
@@ -58,8 +58,43 @@ class PerformanceGate:
         logger.info(f"Performance Matrix saved for {len(self.performance_matrix)} symbols.")
 
     def is_tier_approved(self, symbol: str, direction: str, confidence) -> bool:
-        """Check if the specific confidence tier for a pair/direction is officially APPROVED."""
-        return self.get_tier_status(symbol, direction, confidence) == "APPROVED"
+        """
+        Check if the specific confidence tier for a pair/direction is officially APPROVED.
+        Institutional Rule: If ANY tier <= current_confidence is APPROVED, the signal is PROVEN.
+        (e.g., if Tier 50 is approved, then a 90% signal is also approved).
+        """
+        conf_int = self._normalize_tier(confidence)
+        if not conf_int:
+            return False
+            
+        # Scan all tiers from 60 up to the current normalized tier (Floor raised to 60)
+        for t in TIERS:
+            if t < 60:
+                continue
+            if t > conf_int:
+                break
+            if self.get_specific_tier_status(symbol, direction, t) == "APPROVED":
+                return True
+        return False
+
+    def get_specific_tier_status(self, symbol: str, direction: str, tier: int) -> str:
+        """Internal helper to get status of a specific tier without recursive normalization."""
+        if symbol not in self.performance_matrix:
+            return "⬜ No data"
+            
+        direction_data = self.performance_matrix[symbol].get(direction)
+        if not direction_data or str(tier) not in direction_data:
+            if direction != "ALL":
+                direction_data = self.performance_matrix[symbol].get("ALL")
+        
+        if not direction_data:
+            return "⬜ No data"
+            
+        tier_data = direction_data.get(str(tier))
+        if not tier_data:
+            return "⬜ No data"
+            
+        return tier_data.get("status", "⬜ No data")
 
     def _normalize_tier(self, confidence) -> int:
         """Handle both float (0.85) and formatted strings ('70%') / ints (85)."""
@@ -69,7 +104,12 @@ class PerformanceGate:
             except:
                 return 0
         else:
-            conf_int = int(confidence) if confidence >= 1 else int(confidence * 100)
+            # If it's a float like 0.85 or 1.0, scale it. 
+            # If it's already an int like 85, keep it.
+            if isinstance(confidence, float) and confidence <= 1.0:
+                conf_int = int(confidence * 100)
+            else:
+                conf_int = int(confidence)
         
         applicable_tier = 0
         for t in reversed(TIERS):
@@ -169,6 +209,12 @@ class PerformanceGate:
                         self.performance_matrix[symbol][d] = {}
                 
                 for direction in ["BUY", "SELL", "ALL"]:
+                    # Purge tiers that are no longer in the active configuration (e.g. 50, 55)
+                    stale_tiers = [t_str for t_str in self.performance_matrix[symbol][direction].keys() 
+                                  if t_str.isdigit() and int(t_str) not in TIERS]
+                    for t_str in stale_tiers:
+                        del self.performance_matrix[symbol][direction][t_str]
+
                     for t in TIERS:
                         # 2. Calculate tier accuracy
                         # For 'ALL', we don't filter by signal type
