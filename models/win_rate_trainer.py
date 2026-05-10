@@ -50,8 +50,7 @@ class WinRateFactory:
     def __init__(self, base_dir: str = "models", history_days: int = 1095): # 3 Years
         self.base_dir = Path(base_dir)
         self.history_days = history_days
-        # Prioritize 90% and 95% ONLY as per user request
-        self.targets = [90, 95]
+        self.targets = [60, 70, 80, 90, 100]
         
         self.engine = DataEngine()
         self.feature_engineer = FeatureEngineer()
