@@ -235,3 +235,33 @@ class FeatureEngineer:
     def get_feature_count(self) -> int:
         """Return the number of features."""
         return len(self.feature_names)
+
+    def add_correlated_asset(self, features: pd.DataFrame, corr_df: pd.DataFrame, asset_name: str = "corr") -> pd.DataFrame:
+        """
+        Merge correlated asset price data into the main feature set.
+        This provides the LSTM with external market context (e.g., DXY or CrudeOil).
+        """
+        # Align timestamps to prevent leakage or shape mismatch
+        common_idx = features.index.intersection(corr_df.index)
+        
+        if len(common_idx) == 0:
+            logger.warning("No overlapping timestamps between asset and correlated asset.")
+            return features
+            
+        feat_aligned = features.loc[common_idx].copy()
+        corr_aligned = corr_df.loc[common_idx]
+        
+        # We extract simple relative momentum features from the correlated asset
+        # to avoid absolute price scaling issues.
+        feat_aligned[f"{asset_name}_return_1"] = np.log(corr_aligned['close'] / corr_aligned['close'].shift(1))
+        feat_aligned[f"{asset_name}_return_5"] = np.log(corr_aligned['close'] / corr_aligned['close'].shift(5))
+        
+        # Range feature for volatility proxy
+        feat_aligned[f"{asset_name}_range"] = (corr_aligned['high'] - corr_aligned['low']) / corr_aligned['close']
+        
+        # Clean up NaNs from shifting
+        feat_aligned = feat_aligned.replace([np.inf, -np.inf], np.nan).dropna()
+        
+        self.feature_names = feat_aligned.columns.tolist()
+        return feat_aligned
+
