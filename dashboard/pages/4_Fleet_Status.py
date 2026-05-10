@@ -112,11 +112,14 @@ def parse_training_log(log_path, tail_bytes=50000):
             train_acc = float(keras_match.group(3))
             train_loss = float(keras_match.group(4))
             
-            status["keras_progress"] = ((completed_epochs - 1) * total_steps + current_step, total_steps * total_epochs)
+            # Progress within the current epoch (much clearer than 200,000+ total steps)
+            status["keras_progress"] = (current_step, total_steps)
             status["metrics"]["accuracy"] = train_acc
             status["metrics"]["loss"] = train_loss
             
-            global_step = (completed_epochs * total_steps) + current_step
+            # Use safe global step for charting
+            safe_completed = max(1, completed_epochs)
+            global_step = ((safe_completed - 1) * total_steps) + current_step
             status["history"]["step"].append(global_step)
             status["history"]["accuracy"].append(train_acc)
             status["history"]["loss"].append(train_loss)
@@ -306,11 +309,11 @@ else:
                 if status["keras_progress"]:
                     curr, total = status["keras_progress"]
                     # Clamp progress to [0, 1] to prevent Streamlit exception
-                    progress_pct = min(1.0, max(0.0, curr / total))
+                    progress_pct = min(1.0, max(0.0, curr / max(1, total)))
                     st.progress(progress_pct)
                     st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">
-                        <span>Step {curr} / {total}</span>
+                        <span>{status['phase']} — Step {curr} / {total}</span>
                         <span>{progress_pct:.1%}</span>
                     </div>
                     """, unsafe_allow_html=True)
