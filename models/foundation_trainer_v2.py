@@ -209,9 +209,11 @@ class ForexDataGenerator(Sequence):
         if split == 'train':
             np.random.shuffle(self.samples)
             
-        # Store raw underlying arrays for fast slicing
-        self.features_dict = {k: v.values.astype(np.float32) for k, v in features_dict.items()}
-        self.labels_dict = {k: v.values.astype(np.int32) for k, v in labels_dict.items()}
+        # Accept pre-converted numpy arrays directly (no copy made)
+        # features_dict must be {symbol: np.float32 array}
+        # labels_dict must be  {symbol: np.int32 array}
+        self.features_dict = features_dict
+        self.labels_dict   = labels_dict
 
     def __len__(self):
         return int(np.ceil(len(self.samples) / self.batch_size))
@@ -323,12 +325,14 @@ class FoundationTrainerV2:
                     logger.info(f"  Feature vector size: {n_features}")
 
                 labels = triple_barrier_label_fast(pair_df.reindex(features.index))
-                
-                features_dict[symbol] = features
-                labels_dict[symbol] = labels
-                
-                # We subtract SEQ_LEN because sliding window eats up SEQ_LEN
-                n_seq = max(0, len(features) - SEQ_LEN)
+
+                # ── Convert to numpy immediately and drop DataFrames ──
+                # This halves peak memory vs keeping DataFrames alive
+                features_dict[symbol] = features.values.astype(np.float32)
+                labels_dict[symbol]   = labels.values.astype(np.int32)
+                del features, labels, pair_df
+
+                n_seq = max(0, features_dict[symbol].shape[0] - SEQ_LEN)
                 sample_count += n_seq
                 logger.info(f"  {symbol}: {n_seq:,} sequences")
 
@@ -441,8 +445,13 @@ class FoundationTrainerV2:
 
         raw     = self.fetch_all_data()
         aligned = self.align(raw)
+        del raw; gc.collect()  # Free raw DataFrames before corpus build
+
         features_dict, labels_dict, n_features = self.build_corpus(aligned)
+        del aligned; gc.collect()  # Free aligned DataFrames before training
+
         model   = self.train(features_dict, labels_dict, n_features)
+        del features_dict, labels_dict; gc.collect()
 
         logger.info("=" * 60)
         logger.info("  TRAINING COMPLETE")
