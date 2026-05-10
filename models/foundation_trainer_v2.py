@@ -245,7 +245,7 @@ class FoundationTrainerV2:
         self.mt5 = get_mt5()
         if self.mt5 is None:
             raise RuntimeError("MT5 not connected. Open MetaTrader 5 first.")
-        self.output_dir = PROJECT_ROOT / "models" / "foundation_v2"
+        self.output_dir = PROJECT_ROOT / "models" / "foundation_v2_rr1_5"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Step 1: Fetch all data ───────────────────────────────
@@ -421,8 +421,8 @@ class FoundationTrainerV2:
 
         artifacts_dir = PROJECT_ROOT / "artifacts"
         artifacts_dir.mkdir(exist_ok=True)
-        with open(artifacts_dir / "foundation_v2_oos.md", 'w') as f:
-            f.write(f"# Foundation Brain v2 — OOS Report\n\n")
+        with open(artifacts_dir / "foundation_v2_rr1_5_oos.md", 'w') as f:
+            f.write(f"# Foundation Brain v2 (RR 1:1.5) — OOS Report\n\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
             f.write(f"| Metric | Value |\n|--------|-------|\n")
             f.write(f"| OOS Loss | {oos_loss:.4f} |\n")

@@ -42,7 +42,7 @@ Write-Host "       All packages installed." -ForegroundColor Green
 
 # 4. Create directories
 Write-Host "[4/6] Creating required directories..." -ForegroundColor Yellow
-foreach ($d in @("logs", "models\foundation_v2", "artifacts", "data_cache", "tmp\v2_training")) {
+foreach ($d in @("logs", "models\foundation_v2", "models\foundation_v2_rr1_5", "artifacts", "data_cache", "tmp\v2_training")) {
     New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 Write-Host "       Done." -ForegroundColor Green
