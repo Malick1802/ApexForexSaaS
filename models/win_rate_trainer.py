@@ -267,9 +267,11 @@ class WinRateFactory:
                     # Directory: models/{pair}/{target}/{signal_type}
                     save_dir = self.base_dir / symbol / str(target) / signal_type
                     
-                    if (save_dir / "model.keras").exists():
-                        logger.info(f"Skipping {symbol} {target}% {signal_type} (Exists)")
-                        continue
+                    # Force overwrite to ensure modernization to 32-feature standard
+                    # if (save_dir / "model.keras").exists():
+                    #     logger.info(f"Skipping {symbol} {target}% {signal_type} (Exists)")
+                    #     continue
+
 
                     # Validate before saving
                     # Re-calculate stats for this threshold
@@ -306,12 +308,12 @@ class WinRateFactory:
                             })
                             continue
 
-                    # Create Dir
-                    save_dir.mkdir(parents=True, exist_ok=True)
-                    
                     # Save Model (Copy)
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    logger.info(f"💾 Saving Certified Model: {symbol} {target}% {signal_type}")
                     model.save(save_dir / "model.keras")
                     joblib.dump(scaler, save_dir / "scaler.joblib")
+
                     
                     # Save Config
                     config = {
