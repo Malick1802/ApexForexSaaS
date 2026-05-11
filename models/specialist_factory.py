@@ -39,6 +39,7 @@ from tensorflow import keras
 from data_pipeline import DataEngine
 from data_pipeline.features import FeatureEngineer
 from models.enhanced_lstm import build_specialist_lstm
+from models.foundation_oracle import FoundationOracle
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -63,6 +64,8 @@ class SpecialistFactory:
         
         self.engine = DataEngine()
         self.feature_engineer = FeatureEngineer()
+        self.foundation_oracle = FoundationOracle()
+        logger.info("[SpecialistFactory] Foundation Oracle loaded — specialists will learn from the Global Brain.")
         
     def _get_hyperparameter_grid(self) -> List[Dict]:
         """Generate a grid of hyperparameters to try."""
@@ -131,6 +134,21 @@ class SpecialistFactory:
                 features = self.feature_engineer.add_correlated_asset(features, corr_df)
             except Exception as e:
                 logger.warning(f"Correlation fetch failed: {e}")
+
+        # ── Foundation Brain Feature Injection ──────────────────────────────
+        # Run the pre-trained Foundation Brain on this pair's raw OHLCV data.
+        # Its BUY/SELL/WAIT probabilities become 3 extra input features,
+        # teaching the Specialist to amplify Foundation signals with precision.
+        try:
+            fb_preds = self.foundation_oracle.generate_predictions(df)
+            # Align to the features index (which may be shorter after dropna)
+            fb_aligned = fb_preds.reindex(features.index).bfill().fillna(0.333)
+            features['fb_buy_prob']  = fb_aligned['fb_buy_prob'].values
+            features['fb_sell_prob'] = fb_aligned['fb_sell_prob'].values
+            features['fb_wait_prob'] = fb_aligned['fb_wait_prob'].values
+            logger.info(f"[SpecialistFactory] Foundation Brain signals injected for {symbol}.")
+        except Exception as e:
+            logger.warning(f"[SpecialistFactory] Foundation Brain injection failed for {symbol}: {e}")
 
         # Label processing for Binary Classification
         # 1=Buy, 2=Sell. 

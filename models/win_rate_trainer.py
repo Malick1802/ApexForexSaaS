@@ -36,6 +36,7 @@ from models.specialist_factory import SpecialistFactory
 from models.specialist_trainer import SpecialistPairTrainer
 
 from models.enhanced_lstm import build_specialist_lstm
+from models.foundation_oracle import FoundationOracle
 import random
 
 # Configure logging
@@ -54,6 +55,7 @@ class WinRateFactory:
         
         self.engine = DataEngine()
         self.feature_engineer = FeatureEngineer()
+        self.foundation_oracle = FoundationOracle()
         
     def _ensure_base_model(self, symbol: str) -> bool:
         """
@@ -376,8 +378,7 @@ class WinRateFactory:
         return report_data
 
     def _load_full_history(self, symbol, signal_type, scaler):
-        """Helper to load and scale FULL history data."""
-        # This logic duplicates _get_validation_data but adds scaling
+        """Helper to load and scale FULL history data with Foundation Brain augmentation."""
         try:
             df = self.engine.fetch_labeled(symbol, interval="1h", days=self.history_days)
             if df is None or len(df) < 500: return np.array([]), np.array([])
@@ -385,21 +386,34 @@ class WinRateFactory:
             features = self.feature_engineer.extract_features(df)
             
             # Correlated assets
+            correlated = self.engine.get_correlated_assets(symbol)
+            if correlated:
+                try:
+                    c_sym = correlated[0]['symbol']
+                    c_df = self.engine.fetch(c_sym, "1h", self.history_days)
+                    features = self.feature_engineer.add_correlated_asset(features, c_df)
+                except: pass
+
+            # Foundation Brain Feature Injection
+            # Must be done BEFORE scaling so feature count is consistent with training
+            try:
+                fb_preds = self.foundation_oracle.generate_predictions(df)
+                fb_aligned = fb_preds.reindex(features.index).bfill().fillna(0.333)
+                features['fb_buy_prob']  = fb_aligned['fb_buy_prob'].values
+                features['fb_sell_prob'] = fb_aligned['fb_sell_prob'].values
+                features['fb_wait_prob'] = fb_aligned['fb_wait_prob'].values
+            except Exception as e:
+                logger.warning(f"Foundation Brain injection skipped in _load_full_history: {e}")
+
             expected = scaler.n_features_in_
-            if expected > features.shape[1]:
-                correlated = self.engine.get_correlated_assets(symbol)
-                if correlated:
-                    try:
-                        c_sym = correlated[0]['symbol']
-                        c_df = self.engine.fetch(c_sym, "1h", self.history_days)
-                        features = self.feature_engineer.add_correlated_asset(features, c_df)
-                    except: pass
-            
-            # Simple Pad
+
+            # Pad if still short after all enrichments
             if features.shape[1] < expected:
                 for i in range(expected - features.shape[1]):
                     features[f'pad_{i}'] = 0.0
-            
+            elif features.shape[1] > expected:
+                features = features.iloc[:, :expected]
+
             # Targets
             t = 1 if signal_type == "BUY" else 2
             y = (df['label'] == t).astype(int)
