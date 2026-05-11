@@ -294,14 +294,17 @@ class WinRateFactory:
                         )
                         
                         if model_opt:
-                            logger.info(f"✅ Optimization SUCCESS! {wr_opt:.1%} (Trades: {trades_opt})")
+                            if wr_opt * 100 >= target:
+                                logger.info(f"✅ Optimization SUCCESS! {wr_opt:.1%} >= {target}% (Trades: {trades_opt})")
+                            else:
+                                logger.warning(f"⚠️  Best found after 15 attempts: {wr_opt:.1%} (Target was {target}%). Saving best anyway.")
                             model = model_opt
                             scaler = scaler_opt
                             threshold = thresh_opt
                             actual_wr = wr_opt
                             trades = trades_opt
                         else:
-                            logger.warning(f"❌ Optimization FAILED for {symbol} {signal_type} {target}%. Skipping this tier.")
+                            logger.warning(f"❌ Optimization FAILED entirely for {symbol} {signal_type} {target}%. No usable model found.")
                             report_data.append({
                                 "pair": symbol, "type": signal_type, "target": target,
                                 "threshold": threshold, "win_rate": actual_wr, "trades_total_val": int(trades),
@@ -474,7 +477,9 @@ class WinRateFactory:
         weights = compute_class_weight('balanced', classes=classes, y=y_train)
         class_weight = dict(zip(classes, weights))
         
-        best_candidate = None
+        best_candidate = None       # Best that MEETS the target WR
+        fallback_best = None         # Best overall, even if below target WR
+        fallback_best_wr = 0.0
         
         for i in range(attempts):
             logger.info(f"⚡ Optimization Attempt {i+1}/{attempts} for {symbol} {target_wr}%+")
@@ -500,7 +505,7 @@ class WinRateFactory:
                 X_train_scaled, y_train,
                 validation_data=(X_v_scaled, y_v),
                 epochs=50,
-                batch_size=32, # Smaller batch for better generalization
+                batch_size=32,
                 class_weight=class_weight,
                 callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)],
                 verbose=0
@@ -510,10 +515,15 @@ class WinRateFactory:
             X_full_scaled = scaler.transform(X_full_flat).reshape(X.shape)
             y_proba = model.predict(X_full_scaled, verbose=0).flatten()
             
-            # Find best threshold with volume priority
-            scan_thresh = np.arange(0.90, 0.995, 0.005)
+            # --- Scan for best threshold that meets target WR ---
+            scan_thresh = np.arange(0.50, 0.995, 0.005)
             best_t_for_candidate = None
             max_vol_for_candidate = 0
+            
+            # Also track the single best threshold by WR regardless of target
+            attempt_best_wr = 0.0
+            attempt_best_t = None
+            attempt_best_vol = 0
             
             for t in scan_thresh:
                 preds = (y_proba >= t).astype(int)
@@ -524,24 +534,45 @@ class WinRateFactory:
                 correct = (y[mask] == 1).sum()
                 wr = correct / trades
                 
+                # Track overall best for this attempt (fallback)
+                if wr > attempt_best_wr:
+                    attempt_best_wr = wr
+                    attempt_best_t = t
+                    attempt_best_vol = int(trades)
+                
+                # Track best that meets the target
                 if wr * 100 >= target_wr:
                     if trades > max_vol_for_candidate:
                         max_vol_for_candidate = trades
                         best_t_for_candidate = t
             
+            # Update global fallback with this attempt's best
+            if attempt_best_t is not None and attempt_best_wr > fallback_best_wr:
+                fallback_best_wr = attempt_best_wr
+                fallback_best = (model, scaler, float(attempt_best_t), attempt_best_wr, attempt_best_vol)
+                logger.info(f"   📌 Fallback Updated: WR {attempt_best_wr:.1%} | Vol {attempt_best_vol} (Attempt {i+1})")
+            
             if best_t_for_candidate:
                 wr = (y[(y_proba >= best_t_for_candidate)] == 1).sum() / max_vol_for_candidate
-                logger.info(f"   Candidate {i+1}: WR {wr:.1%} | Volume {max_vol_for_candidate}")
+                logger.info(f"   ✅ Candidate {i+1}: WR {wr:.1%} | Volume {max_vol_for_candidate}")
                 
                 # If we meet both target WR and Min Trades, return immediately
                 if max_vol_for_candidate >= min_trades:
                     return model, scaler, float(best_t_for_candidate), wr, int(max_vol_for_candidate)
                 
-                # Otherwise, track best candidate so far
+                # Otherwise track best candidate that meets target
                 if best_candidate is None or max_vol_for_candidate > best_candidate[4]:
                     best_candidate = (model, scaler, float(best_t_for_candidate), wr, int(max_vol_for_candidate))
         
-        return best_candidate if best_candidate else (None, None, None, None, None)
+        # Return best candidate that met target, OR fallback best overall
+        if best_candidate:
+            logger.info(f"   🏆 Best candidate meets target: WR {best_candidate[3]:.1%} | Vol {best_candidate[4]}")
+            return best_candidate
+        elif fallback_best:
+            logger.warning(f"   ⚠️  No candidate met {target_wr}% target. Saving best found: WR {fallback_best[3]:.1%} | Vol {fallback_best[4]}")
+            return fallback_best
+        else:
+            return None, None, None, None, None
         
         return None, None, None, None, None
 
