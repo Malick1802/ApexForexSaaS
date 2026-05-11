@@ -283,9 +283,9 @@ class WinRateFactory:
                     if trades > 0:
                         actual_wr = (y_val[mask] == 1).sum() / trades
                     
-                    # STRICT ENFORCEMENT for high targets
-                    if target >= 90 and actual_wr * 100 < target:
-                        logger.warning(f"Skipping {symbol} {signal_type} {target}%: Actual {actual_wr:.1%} < Target")
+                    # STRICT ENFORCEMENT for ALL targets - no model gets saved below its target WR
+                    if actual_wr * 100 < target:
+                        logger.warning(f"⚠️  {symbol} {signal_type} {target}%: Actual {actual_wr:.1%} < Target. Triggering optimization.")
                         
                         # ITERATIVE RETRAINING (Attempt to fix)
                         logger.info(f"🔄 Retraining {symbol} for {target}% target (Current: {actual_wr:.1%})")
@@ -301,12 +301,14 @@ class WinRateFactory:
                             actual_wr = wr_opt
                             trades = trades_opt
                         else:
+                            logger.warning(f"❌ Optimization FAILED for {symbol} {signal_type} {target}%. Skipping this tier.")
                             report_data.append({
                                 "pair": symbol, "type": signal_type, "target": target,
                                 "threshold": threshold, "win_rate": actual_wr, "trades_total_val": int(trades),
                                 "status": "FAILED"
                             })
                             continue
+
 
                     # Save Model (Copy)
                     save_dir.mkdir(parents=True, exist_ok=True)
