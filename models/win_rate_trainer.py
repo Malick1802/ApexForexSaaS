@@ -470,6 +470,8 @@ class WinRateFactory:
         weights = compute_class_weight('balanced', classes=classes, y=y_train)
         class_weight = dict(zip(classes, weights))
         
+        best_candidate = None
+        
         for i in range(attempts):
             logger.info(f"⚡ Optimization Attempt {i+1}/{attempts} for {symbol} {target_wr}%+")
             
