@@ -1,237 +1,428 @@
 """
-Foundation Brain v3 "The Fortress"
-===================================
-A rigorous, zero-leakage Global Brain trainer.
-Uses Rolling Z-Score normalization and strict temporal isolation.
-
-Optimized for 8GB RAM.
-Macro Features: SP500, GOLD, OIL, NASDAQ, US10Y, VIX
+Foundation Brain v3 Trainer
+============================
+Improvements over v2:
+  - Units: 32 → 64 (2x model capacity)
+  - Sequence: 24h → 48h (2 full trading days of context)
+  - Stride: 8 → 4 (more training samples)
+  - Features: 47 → ~59 (real VIX, real DXY, Copper, BTC, session timing)
+  - Real yield curve: TNX - IRX (2Y) instead of proxy
+  - Session flags: London / NY / Asian hour encoding
+  - Saves to models/foundation_v3/
 """
 
-import os
-import gc
-import sys
-import json
-import logging
+import os, gc, sys, json, logging, warnings
 import numpy as np
 import pandas as pd
+import joblib
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple
 
-# Suppress TF chatter
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-from tensorflow import keras
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '1'
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("FortressV3")
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(message)s",
+                    handlers=[logging.StreamHandler(sys.stdout)])
+logger = logging.getLogger("FoundationV3")
 
-# ── Config (Rigorous Isolation) ─────────────────────────────
-HISTORY_DAYS   = 1825
-OOS_DAYS       = 60        # Strict 2-month final test
-VAL_DAYS       = 180       # 6-month validation
-DEAD_ZONE_DAYS = 2         # Absolute isolation buffer
-SEQ_LEN        = 36        # 1.5 days context
-UNITS          = 64
-STRIDE         = 4
-BATCH_SIZE     = 32
-LEARNING_RATE  = 0.0003    # Lower for precision
-EPOCHS         = 100
+# ── Config ────────────────────────────────────────────────────
+HISTORY_DAYS   = 1825      # 5 years
+OOS_DAYS       = 30
+VAL_DAYS       = 150
+BATCH_SIZE     = 64
+EPOCHS         = 60
+UNITS          = 64        # 2x v2
+EARLY_STOP_PAT = 8
+STRIDE         = 4         # 2x more samples than v2
+SEQ_LEN        = 48        # 48-hour lookback (2x v2)
 
 FOREX_PAIRS = [
     "EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD",
     "GBPJPY","EURJPY","AUDJPY","CADJPY","CHFJPY","NZDJPY","GBPCHF",
     "EURGBP","AUDNZD","NZDCHF","NZDCAD","CADCHF","AUDCHF","EURCAD",
-    "GBPNZD","EURNZD","GBPCAD","EURAUD","EURCHF","GBPAUD","AUDCAD"
+    "GBPNZD","EURNZD","GBPCAD","USDSGD","EURAUD","EURCHF","GBPAUD",
+    "AUDCAD", "GOLD"
 ]
+GOLD_SYMBOL_MT5 = "GOLD"
 
-MACRO_SYMBOLS = ["S&P500", "GOLD", "CrudeOIL", "NASDAQ", "US10Y", "VIX"]
+# Extended macro universe (yfinance)
+MACRO_YF = {
+    "SP500":   "^GSPC",
+    "OIL":     "CL=F",
+    "NASDAQ":  "^IXIC",
+    "TNX":     "^TNX",    # 10Y Treasury
+    "IRX":     "^IRX",    # 2Y Treasury  ← NEW: real yield curve
+    "VIX":     "^VIX",    # Real VIX     ← NEW
+    "DXY":     "DX=F",    # Real DXY     ← NEW
+    "COPPER":  "HG=F",    # Copper       ← NEW
+    "BTC":     "BTC-USD", # Crypto risk  ← NEW
+}
+
 
 # ─────────────────────────────────────────────────────────────
-#  MEMORY-SAFE DATA ENGINE
+#  DATA LAYER
 # ─────────────────────────────────────────────────────────────
 
-class FortressGenerator(keras.utils.Sequence):
-    def __init__(self, features_dict, labels_dict, split='train'):
-        self.features_dict = features_dict
-        self.labels_dict = labels_dict
-        self.samples = []
-        
-        for symbol in features_dict.keys():
-            feat_len = len(features_dict[symbol])
-            n_total = feat_len - SEQ_LEN
-            
-            # Strict split indices
-            oos_start = n_total - int(n_total * (OOS_DAYS / HISTORY_DAYS))
-            val_start = oos_start - int(n_total * (VAL_DAYS / HISTORY_DAYS))
-            train_end = val_start - int(n_total * (DEAD_ZONE_DAYS / HISTORY_DAYS))
-            
-            if split == 'train': start, end = 0, train_end
-            elif split == 'val': start, end = val_start, oos_start
-            else: start, end = oos_start, n_total
-            
-            for i in range(start, end, STRIDE):
+def fetch_mt5_pair(mt5, symbol: str, days: int) -> pd.DataFrame:
+    bars_needed = days * 24
+    mt5.symbol_select(symbol, True)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, bars_needed)
+    if rates is None or len(rates) == 0:
+        raise ValueError(f"No MT5 data for {symbol}: {mt5.last_error()}")
+    df = pd.DataFrame(rates)
+    df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
+    df.set_index('time', inplace=True)
+    df = df[['open','high','low','close','tick_volume']].rename(columns={'tick_volume':'volume'})
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    return df[df.index >= cutoff]
+
+
+def fetch_yf_macro(key: str, ticker: str, days: int) -> pd.DataFrame:
+    import yfinance as yf
+    try:
+        df = yf.Ticker(ticker).history(period=f"{days}d", interval="1d",
+                                        auto_adjust=True, actions=False)
+        if df.empty:
+            logger.warning(f"yfinance: No data for {ticker}")
+            return pd.DataFrame()
+        df.index = df.index.tz_localize('UTC') if df.index.tz is None else df.index.tz_convert('UTC')
+        df = df[['Open','High','Low','Close','Volume']].rename(columns=str.lower)
+        return df.resample('1h').ffill()
+    except Exception as e:
+        logger.warning(f"yfinance failed {ticker}: {e}")
+        return pd.DataFrame()
+
+
+def rolling_zscore(series: pd.Series, window: int = 720) -> pd.Series:
+    mu  = series.rolling(window, min_periods=1).mean()
+    std = series.rolling(window, min_periods=1).std().replace(0, 1e-8)
+    return (series - mu) / std
+
+
+# ─────────────────────────────────────────────────────────────
+#  FEATURE ENGINEERING  (v3 — ~59 features)
+# ─────────────────────────────────────────────────────────────
+
+CURRENCIES = ["USD","EUR","GBP","JPY","AUD","CAD","CHF","NZD"]
+
+
+def build_base_features(df: pd.DataFrame) -> pd.DataFrame:
+    from data_pipeline.features import FeatureEngineer
+    return FeatureEngineer().extract_features(df)
+
+
+def add_global_context_v3(pair_features: pd.DataFrame,
+                           aligned: Dict[str, pd.DataFrame],
+                           timestamp_index: pd.DatetimeIndex) -> pd.DataFrame:
+    """Add 27 global context features (vs 15 in v2)."""
+    f = pair_features.copy()
+
+    # 1. Currency Strength Matrix (8)
+    all_returns = {p: np.log(d['close'] / d['close'].shift(1))
+                   for p, d in aligned.items() if len(d) > 1}
+    ret_df = pd.DataFrame(all_returns).ffill().fillna(0)
+    strength = pd.DataFrame(0.0, index=ret_df.index, columns=CURRENCIES)
+    for pair in ret_df.columns:
+        base, quote = pair[:3], pair[3:6]
+        if base in CURRENCIES and quote in CURRENCIES:
+            strength[base] += ret_df[pair]
+            strength[quote] -= ret_df[pair]
+    for cur in CURRENCIES:
+        f[f"{cur}_strength"] = strength[cur] if cur in strength else 0.0
+
+    # 2. DXY — prefer real DXY futures, fallback to synthetic (2)
+    if "DXY" in aligned:
+        dxy = aligned["DXY"]['close']
+        f['dxy_level'] = rolling_zscore(dxy)
+        f['dxy_ret']   = np.log(dxy / dxy.shift(1)).fillna(0)
+    else:
+        f['dxy_level'] = 0.0
+        f['dxy_ret']   = 0.0
+
+    # 3. Gold return (1)
+    if "GOLD" in aligned:
+        g = aligned["GOLD"]['close']
+        f['gold_ret'] = np.log(g / g.shift(1)).fillna(0)
+    else:
+        f['gold_ret'] = 0.0
+
+    # 4. Real VIX level (1) ← NEW
+    if "VIX" in aligned:
+        vix = aligned["VIX"]['close']
+        f['vix_real'] = rolling_zscore(vix)
+    else:
+        f['vix_real'] = 0.0
+
+    # 5. Yield curve slope — real TNX - IRX (1)
+    if "TNX" in aligned and "IRX" in aligned:
+        slope = aligned["TNX"]['close'] - aligned["IRX"]['close']
+        f['yield_curve'] = rolling_zscore(slope)
+    elif "TNX" in aligned:
+        tnx = aligned["TNX"]['close']
+        f['yield_curve'] = rolling_zscore(tnx - tnx.rolling(252).mean().fillna(method='bfill'))
+    else:
+        f['yield_curve'] = 0.0
+
+    # 6. SP500 return (1)
+    if "SP500" in aligned:
+        sp = aligned["SP500"]['close']
+        f['sp500_ret'] = np.log(sp / sp.shift(1)).fillna(0)
+    else:
+        f['sp500_ret'] = 0.0
+
+    # 7. Oil return (1)
+    if "OIL" in aligned:
+        oil = aligned["OIL"]['close']
+        f['oil_ret'] = np.log(oil / oil.shift(1)).fillna(0)
+    else:
+        f['oil_ret'] = 0.0
+
+    # 8. NASDAQ return (1)
+    if "NASDAQ" in aligned:
+        ndx = aligned["NASDAQ"]['close']
+        f['nasdaq_ret'] = np.log(ndx / ndx.shift(1)).fillna(0)
+    else:
+        f['nasdaq_ret'] = 0.0
+
+    # 9. Copper return (1) ← NEW
+    if "COPPER" in aligned:
+        cu = aligned["COPPER"]['close']
+        f['copper_ret'] = np.log(cu / cu.shift(1)).fillna(0)
+    else:
+        f['copper_ret'] = 0.0
+
+    # 10. BTC return (1) ← NEW
+    if "BTC" in aligned:
+        btc = aligned["BTC"]['close']
+        f['btc_ret'] = np.log(btc / btc.shift(1)).fillna(0)
+    else:
+        f['btc_ret'] = 0.0
+
+    # 11. Session timing — cyclical encoding (4) ← NEW
+    idx = f.index
+    hour = idx.hour
+    dow  = idx.dayofweek
+    f['hour_sin'] = np.sin(2 * np.pi * hour / 24)
+    f['hour_cos'] = np.cos(2 * np.pi * hour / 24)
+    f['dow_sin']  = np.sin(2 * np.pi * dow  / 5)
+    f['dow_cos']  = np.cos(2 * np.pi * dow  / 5)
+
+    # 12. Session flags (3) ← NEW: London=7-16 UTC, NY=13-21 UTC, Asia=22-6 UTC
+    f['session_london'] = ((hour >= 7)  & (hour < 16)).astype(float)
+    f['session_ny']     = ((hour >= 13) & (hour < 21)).astype(float)
+    f['session_asia']   = ((hour >= 22) | (hour < 6)).astype(float)
+
+    return f.ffill().fillna(0)
+
+
+# ─────────────────────────────────────────────────────────────
+#  LABELING
+# ─────────────────────────────────────────────────────────────
+
+def triple_barrier_label(df: pd.DataFrame, tp_pct=0.003, sl_pct=0.002, horizon=24) -> pd.Series:
+    closes = df['close'].values
+    labels = np.ones(len(closes), dtype=np.int32)
+    for i in range(len(closes) - horizon):
+        entry = closes[i]
+        tp, sl = entry*(1+tp_pct), entry*(1-sl_pct)
+        future = closes[i+1:i+1+horizon]
+        hit_tp = np.argmax(future >= tp) if np.any(future >= tp) else -1
+        hit_sl = np.argmax(future <= sl) if np.any(future <= sl) else -1
+        if   hit_tp == -1 and hit_sl == -1: labels[i] = 1
+        elif hit_tp == -1:                  labels[i] = 0
+        elif hit_sl == -1:                  labels[i] = 2
+        else: labels[i] = 2 if hit_tp <= hit_sl else 0
+    return pd.Series(labels, index=df.index, dtype=np.int32)
+
+
+# ─────────────────────────────────────────────────────────────
+#  DATA GENERATOR
+# ─────────────────────────────────────────────────────────────
+
+from tensorflow.keras.utils import Sequence
+
+class ForexDataGenerator(Sequence):
+    def __init__(self, features_dict, labels_dict, pairs,
+                 split='train', batch_size=BATCH_SIZE, seq_len=SEQ_LEN, stride=STRIDE):
+        self.batch_size = batch_size
+        self.seq_len    = seq_len
+        self.split      = split
+        self.samples    = []
+        for symbol in pairs:
+            if symbol not in features_dict: continue
+            n_total = len(features_dict[symbol]) - seq_len
+            if n_total <= 0: continue
+            n_oos = int(n_total * (OOS_DAYS  / HISTORY_DAYS))
+            n_val = int(n_total * (VAL_DAYS   / HISTORY_DAYS))
+            n_tr  = n_total - n_oos - n_val
+            if split == 'train': start, end = 0,     n_tr
+            elif split == 'val': start, end = n_tr,  n_tr + n_val
+            else:                start, end = n_tr + n_val, n_total
+            for i in range(start, end, stride):
                 self.samples.append((symbol, i))
-        
-        if split == 'train': np.random.shuffle(self.samples)
+        if split == 'train':
+            np.random.shuffle(self.samples)
+        self.features_dict = features_dict
+        self.labels_dict   = labels_dict
 
-    def __len__(self):
-        return int(np.ceil(len(self.samples) / BATCH_SIZE))
+    def __len__(self): return int(np.ceil(len(self.samples) / self.batch_size))
 
     def __getitem__(self, idx):
-        batch_samples = self.samples[idx * BATCH_SIZE : (idx + 1) * BATCH_SIZE]
+        batch = self.samples[idx*self.batch_size:(idx+1)*self.batch_size]
         n_feat = next(iter(self.features_dict.values())).shape[1]
-        
-        X = np.empty((len(batch_samples), SEQ_LEN, n_feat), dtype=np.float32)
-        y = np.empty((len(batch_samples),), dtype=np.int32)
-        
-        for i, (sym, start_idx) in enumerate(batch_samples):
-            # Rolling Z-Score (Normalization happens here per sample - zero leakage!)
-            raw_seq = self.features_dict[sym][start_idx : start_idx + SEQ_LEN]
-            mean = np.mean(raw_seq, axis=0)
-            std = np.std(raw_seq, axis=0) + 1e-8
-            X[i] = (raw_seq - mean) / std
-            
-            y[i] = self.labels_dict[sym][start_idx + SEQ_LEN]
-        
+        X = np.empty((len(batch), self.seq_len, n_feat), dtype=np.float32)
+        y = np.empty((len(batch),), dtype=np.int32)
+        for i, (sym, s) in enumerate(batch):
+            X[i] = self.features_dict[sym][s:s+self.seq_len]
+            y[i] = self.labels_dict[sym][s+self.seq_len]
         return X, y
 
+    def on_epoch_end(self):
+        if self.split == 'train': np.random.shuffle(self.samples)
+
+
 # ─────────────────────────────────────────────────────────────
-#  TRAINER
+#  MAIN TRAINER
 # ─────────────────────────────────────────────────────────────
 
-class FortressTrainerV3:
+class FoundationTrainerV3:
     def __init__(self):
-        self.output_dir = PROJECT_ROOT / "models" / "foundation_v3_fortress"
+        from core.mt5_connector import get_mt5
+        self.mt5 = get_mt5()
+        if self.mt5 is None:
+            raise RuntimeError("MT5 not connected.")
+        self.output_dir = PROJECT_ROOT / "models" / "foundation_v3"
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-    def fetch_data(self):
-        from data_pipeline.engine import DataEngine
-        engine = DataEngine()
-        
-        data = {}
-        all_symbols = FOREX_PAIRS + MACRO_SYMBOLS
-        
-        logger.info(f"Fetching {len(all_symbols)} symbols (5 Years)...")
-        for sym in all_symbols:
+
+    def fetch_all_data(self) -> Dict[str, pd.DataFrame]:
+        logger.info(f"Fetching {len(FOREX_PAIRS)} forex pairs from MT5...")
+        raw: Dict[str, pd.DataFrame] = {}
+        for symbol in FOREX_PAIRS:
             try:
-                df = engine.fetch(sym, "1h", days=HISTORY_DAYS)
-                if df is not None and not df.empty:
-                    data[sym] = df
+                raw[symbol] = fetch_mt5_pair(self.mt5, symbol, HISTORY_DAYS)
+                logger.info(f"  {symbol}: {len(raw[symbol]):,} bars")
             except Exception as e:
-                logger.warning(f"Failed to fetch {sym}: {e}")
-        return data
+                logger.warning(f"  {symbol}: SKIPPED — {e}")
+        logger.info(f"Fetching {len(MACRO_YF)} macro assets from yfinance...")
+        for key, ticker in MACRO_YF.items():
+            df = fetch_yf_macro(key, ticker, HISTORY_DAYS + 60)
+            if not df.empty:
+                raw[key] = df
+                logger.info(f"  {key} ({ticker}): {len(df):,} rows")
+        return raw
 
-    def engineer_features(self, data_dict):
-        logger.info("Engineering Rigorous Features + Macro Alignment...")
-        processed = {}
-        
-        # 1. Prepare Macros
-        macro_dfs = {s: data_dict[s] for s in MACRO_SYMBOLS if s in data_dict}
-        
-        for sym in FOREX_PAIRS:
-            if sym not in data_dict: continue
-            df = data_dict[sym].copy()
-            
-            # Technicals (Relative only)
-            df['returns'] = df['close'].pct_change()
-            df['range'] = (df['high'] - df['low']) / df['close']
-            df['rsi'] = self.calculate_rsi(df['close'])
-            
-            # Alignment with Macros
-            for m_sym, m_df in macro_dfs.items():
-                m_close = m_df['close'].reindex(df.index, method='ffill')
-                df[f'macro_{m_sym}_ret'] = m_close.pct_change()
-            
-            # Labeling (The Race: 1:1.5 RR)
-            df['label'] = self.generate_labels(df)
-            
-            df = df.dropna()
-            processed[sym] = df
-            
-        return processed
+    def align(self, raw: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+        logger.info("Aligning to common timeline...")
+        common = None
+        for df in raw.values():
+            common = df.index if common is None else common.intersection(df.index)
+        logger.info(f"  Common: {len(common):,} hours ({common[0].date()} - {common[-1].date()})")
+        return {s: df.reindex(common).ffill().bfill() for s, df in raw.items()}
 
-    def calculate_rsi(self, series, period=14):
-        delta = series.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        rs = gain / (loss + 1e-8)
-        return 100 - (100 / (1 + rs))
+    def build_corpus(self, aligned: Dict[str, pd.DataFrame]):
+        logger.info("Building v3 training corpus...")
+        n_features = None
+        features_dict, labels_dict = {}, {}
+        for symbol in FOREX_PAIRS:
+            if symbol not in aligned: continue
+            try:
+                pair_df  = aligned[symbol]
+                features = build_base_features(pair_df)
+                features = add_global_context_v3(features, aligned, features.index)
+                for col in features.columns:
+                    features[col] = rolling_zscore(features[col])
+                features = features.replace([np.inf, -np.inf], 0).fillna(0)
+                if n_features is None:
+                    n_features = len(features.columns)
+                    logger.info(f"  Feature vector size: {n_features}")
+                labels = triple_barrier_label(pair_df.reindex(features.index))
+                features_dict[symbol] = features.values.astype(np.float32)
+                labels_dict[symbol]   = labels.values.astype(np.int32)
+                logger.info(f"  {symbol}: {len(features_dict[symbol]):,} bars")
+                del features, labels, pair_df
+            except Exception as e:
+                logger.warning(f"  {symbol}: FAILED — {e}")
+            finally:
+                gc.collect()
+        return features_dict, labels_dict, n_features
 
-    def generate_labels(self, df):
-        # 1:1.5 RR Race (Purged)
-        # 1 = BUY, 2 = SELL, 0 = WAIT
-        close = df['close'].values
-        labels = np.zeros(len(df))
-        
-        for i in range(len(df) - 100):
-            p0 = close[i]
-            tp = p0 * 0.003
-            sl = tp / 1.5
-            
-            for j in range(i + 1, min(i + 100, len(df))):
-                diff = close[j] - p0
-                if diff >= tp: 
-                    labels[i] = 1 # BUY
-                    break
-                if diff <= -sl:
-                    labels[i] = 2 # SELL
-                    break
-        return labels
+    def train(self, features_dict, labels_dict, n_features: int):
+        import tensorflow as tf
+        from tensorflow import keras
+        from models.global_brain import build_global_brain
+
+        train_gen = ForexDataGenerator(features_dict, labels_dict, FOREX_PAIRS, 'train')
+        val_gen   = ForexDataGenerator(features_dict, labels_dict, FOREX_PAIRS, 'val')
+        oos_gen   = ForexDataGenerator(features_dict, labels_dict, FOREX_PAIRS, 'oos')
+        logger.info(f"Train: {len(train_gen.samples):,} | Val: {len(val_gen.samples):,} | OOS: {len(oos_gen.samples):,}")
+
+        # Class weights
+        subset = np.concatenate([labels_dict[s][:5000] for s in FOREX_PAIRS if s in labels_dict])
+        classes, counts = np.unique(subset, return_counts=True)
+        total = counts.sum()
+        class_weights = {int(c): float(total/(len(classes)*cnt)) for c,cnt in zip(classes, counts)}
+        logger.info(f"Class weights: {class_weights}")
+
+        model = build_global_brain((SEQ_LEN, n_features), num_classes=3, units=UNITS)
+        model.summary(print_fn=logger.info)
+
+        callbacks = [
+            keras.callbacks.EarlyStopping(monitor='val_loss', patience=EARLY_STOP_PAT,
+                                          restore_best_weights=True, verbose=1),
+            keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=4,
+                                              min_lr=1e-6, verbose=1),
+            keras.callbacks.ModelCheckpoint(str(self.output_dir/"foundation_brain.keras"),
+                                            save_best_only=True, monitor='val_loss', verbose=1),
+        ]
+
+        logger.info("Starting v3 training...")
+        model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS,
+                  class_weight=class_weights, callbacks=callbacks, verbose=1)
+
+        logger.info("=" * 50)
+        logger.info("OOS HOLDOUT EVALUATION")
+        oos_loss, oos_acc = model.evaluate(oos_gen, verbose=0)
+        logger.info(f"OOS Loss: {oos_loss:.4f} | OOS Accuracy: {oos_acc:.4f}")
+
+        config = {
+            "version": "v3",
+            "oos_loss": float(oos_loss),
+            "oos_accuracy": float(oos_acc),
+            "n_features": n_features,
+            "seq_len": SEQ_LEN,
+            "units": UNITS,
+            "training_pairs": FOREX_PAIRS,
+            "macro_assets": list(MACRO_YF.keys()),
+            "history_days": HISTORY_DAYS,
+            "trained_at": datetime.now().isoformat()
+        }
+        with open(self.output_dir / "config.json", 'w') as f:
+            json.dump(config, f, indent=2)
+        logger.info(f"Saved to {self.output_dir}")
+        return model
 
     def run(self):
-        raw = self.fetch_data()
-        processed = self.engineer_features(raw)
+        logger.info("=" * 60)
+        logger.info("  FOUNDATION BRAIN v3 — TRAINING START")
+        logger.info(f"  Features: ~59 | Sequence: {SEQ_LEN}h | Units: {UNITS}")
+        logger.info("=" * 60)
+        raw     = self.fetch_all_data()
+        aligned = self.align(raw)
         del raw; gc.collect()
-        
-        features_dict = {}
-        labels_dict = {}
-        
-        for sym, df in processed.items():
-            feat_cols = [c for c in df.columns if c not in ['label', 'open', 'high', 'low', 'close', 'tick_volume']]
-            features_dict[sym] = df[feat_cols].values.astype(np.float32)
-            labels_dict[sym] = df['label'].values.astype(np.int32)
-            
-        n_features = features_dict[next(iter(features_dict))].shape[1]
-        
-        # 4. Sanity Check: Label Distribution
-        unique, counts = np.unique(np.concatenate(list(labels_dict.values())), return_counts=True)
-        dist = dict(zip(unique, counts))
-        total = sum(counts)
-        logger.info(f"📊 Label Distribution: { {int(k): f'{(v/total)*100:.1f}%' for k, v in dist.items()} }")
-        
-        baseline = max(counts) / total
-        logger.info(f"⚖️ Baseline Accuracy (Random Guessing Majority): {baseline*100:.1f}%")
-        
-        train_gen = FortressGenerator(features_dict, labels_dict, 'train')
-        val_gen   = FortressGenerator(features_dict, labels_dict, 'val')
-        
-        # 5. Build Fortress Model
-        model = keras.Sequential([
-            keras.layers.Input(shape=(SEQ_LEN, n_features)),
-            keras.layers.LSTM(UNITS, return_sequences=True, kernel_regularizer='l2'),
-            keras.layers.BatchNormalization(),
-            keras.layers.LSTM(UNITS, kernel_regularizer='l2'),
-            keras.layers.Dense(3, activation='softmax')
-        ])
-        
-        model.compile(optimizer=keras.optimizers.Adam(LEARNING_RATE), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-        
-        callbacks = [
-            keras.callbacks.EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True),
-            keras.callbacks.ModelCheckpoint(str(self.output_dir / "foundation_brain.keras"), save_best_only=True)
-        ]
-        
-        logger.info(f"Training Fortress v3 with {n_features} features (including macros)...")
-        model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS, callbacks=callbacks)
-        
-        # Save Metadata
-        with open(self.output_dir / "config.json", 'w') as f:
-            json.dump({"version": "v3_fortress", "features": n_features, "trained_at": datetime.now().isoformat()}, f)
+        features_dict, labels_dict, n_features = self.build_corpus(aligned)
+        del aligned; gc.collect()
+        model = self.train(features_dict, labels_dict, n_features)
+        del features_dict, labels_dict; gc.collect()
+        logger.info("TRAINING COMPLETE — run specialist fleet pointing at foundation_v3")
+        return model
+
 
 if __name__ == "__main__":
-    FortressTrainerV3().run()
+    FoundationTrainerV3().run()
