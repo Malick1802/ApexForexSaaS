@@ -79,6 +79,11 @@ models/*
 !models/__init__.py
 !models/*.py
 !models/**/*.py
+# Allow foundation brain config files (but NOT the large .keras weights)
+!models/foundation_v2/
+!models/foundation_v2/config.json
+!models/foundation_v3/
+!models/foundation_v3/config.json
 debug_*.txt
 verify_*.txt
 *.json
