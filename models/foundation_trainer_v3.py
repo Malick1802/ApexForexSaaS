@@ -60,7 +60,7 @@ MACRO_YF = {
     "TNX":     "^TNX",    # 10Y Treasury
     "IRX":     "^IRX",    # 2Y Treasury  ← NEW: real yield curve
     "VIX":     "^VIX",    # Real VIX     ← NEW
-    "DXY":     "DX=F",    # Real DXY     ← NEW
+    "DXY":     "DX-Y.NYB",# Real DXY     ← UPDATED
     "COPPER":  "HG=F",    # Copper       ← NEW
     "BTC":     "BTC-USD", # Crypto risk  ← NEW
 }
