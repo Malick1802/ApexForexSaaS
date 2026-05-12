@@ -119,7 +119,7 @@ class FortressTrainerV3:
         logger.info(f"Fetching {len(all_symbols)} symbols (5 Years)...")
         for sym in all_symbols:
             try:
-                df = engine.get_historical_data(sym, "1h", days=HISTORY_DAYS)
+                df = engine.fetch(sym, "1h", days=HISTORY_DAYS)
                 if df is not None and not df.empty:
                     data[sym] = df
             except Exception as e:
