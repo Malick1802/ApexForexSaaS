@@ -245,7 +245,7 @@ class FoundationTrainerV2:
         self.mt5 = get_mt5()
         if self.mt5 is None:
             raise RuntimeError("MT5 not connected. Open MetaTrader 5 first.")
-        self.output_dir = PROJECT_ROOT / "models" / "foundation_v2_rr1_5"
+        self.output_dir = PROJECT_ROOT / "models" / "foundation_v2"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Step 1: Fetch all data ───────────────────────────────
