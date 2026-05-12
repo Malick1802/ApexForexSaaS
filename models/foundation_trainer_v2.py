@@ -45,16 +45,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("FoundationV2")
 
-# ── Config ────────────────────────────────────────────────────
+# ── Config (ULTIMATE MODE) ────────────────────────────────────
 HISTORY_DAYS   = 1825      # 5 years
 OOS_DAYS       = 30        # 30-day held-out test set
 VAL_DAYS       = 150       # ~5 months validation
-BATCH_SIZE     = 64        # Reduced for low-RAM VMs (was 512)
-EPOCHS         = 60
-UNITS          = 32        # Smaller model for low-RAM VMs (was 64)
-EARLY_STOP_PAT = 8
-STRIDE         = 8         # Sample every 8 hours — less data, same patterns
-SEQ_LEN        = 24        # 24-hour lookback — captures full daily cycle
+BATCH_SIZE     = 128       # Max throughput
+EPOCHS         = 100       # Allow more time to converge
+UNITS          = 128       # High capacity for complex patterns
+EARLY_STOP_PAT = 12        # Be more patient with learning
+STRIDE         = 1         # TRAIN ON EVERY SINGLE HOUR (Max granularity)
+SEQ_LEN        = 48        # 2-day lookback window
 
 FOREX_PAIRS = [
     "EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD",
@@ -143,10 +143,10 @@ def add_global_context(pair_features: pd.DataFrame,
 #  LABELING
 # ─────────────────────────────────────────────────────────────
 
-def triple_barrier_label_fast(df: pd.DataFrame, tp_pct: float = 0.003,
-                               sl_pct: float = 0.002, horizon: int = 24) -> pd.Series:
+def triple_barrier_label_fast(df: pd.DataFrame, tp_pct: float = 0.004,
+                                sl_pct: float = 0.002, horizon: int = 36) -> pd.Series:
     """
-    Vectorised triple-barrier labeling.
+    Vectorised triple-barrier labeling (Institutional RR 1:2).
     Returns: 2=BUY, 0=SELL, 1=WAIT (neutral)
     """
     closes = df['close'].values
