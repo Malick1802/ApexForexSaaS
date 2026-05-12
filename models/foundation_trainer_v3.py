@@ -198,10 +198,19 @@ class FortressTrainerV3:
             
         n_features = features_dict[next(iter(features_dict))].shape[1]
         
+        # 4. Sanity Check: Label Distribution
+        unique, counts = np.unique(np.concatenate(list(labels_dict.values())), return_counts=True)
+        dist = dict(zip(unique, counts))
+        total = sum(counts)
+        logger.info(f"📊 Label Distribution: { {int(k): f'{(v/total)*100:.1f}%' for k, v in dist.items()} }")
+        
+        baseline = max(counts) / total
+        logger.info(f"⚖️ Baseline Accuracy (Random Guessing Majority): {baseline*100:.1f}%")
+        
         train_gen = FortressGenerator(features_dict, labels_dict, 'train')
         val_gen   = FortressGenerator(features_dict, labels_dict, 'val')
         
-        # Build Fortress Model
+        # 5. Build Fortress Model
         model = keras.Sequential([
             keras.layers.Input(shape=(SEQ_LEN, n_features)),
             keras.layers.LSTM(UNITS, return_sequences=True, kernel_regularizer='l2'),
