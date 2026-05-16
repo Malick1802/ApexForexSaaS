@@ -15,7 +15,7 @@ DEFAULT_DB_PATH = str(PROJECT_ROOT / "signals.db")
 
 DEFAULT_HURDLE = 0.70  # 70% win rate
 MIN_TRADES = 2        # Must have at least 2 resolved trades to be 'proven'
-TIERS = [60, 70, 80, 90, 100]
+TIERS = [50, 60, 70, 80, 90, 100]
 
 class PerformanceGate:
     """
@@ -67,10 +67,10 @@ class PerformanceGate:
         if not conf_int:
             return False
             
-        # Scan all tiers from 60 up to the current normalized tier (Floor raised to 60)
+        # Scan all active tiers up to the current normalized tier.
+        # NOTE: No hardcoded floor — pairs with T50 approval (e.g. threshold=0.52)
+        # must be reachable here, otherwise they can never exit shadow mode.
         for t in TIERS:
-            if t < 60:
-                continue
             if t > conf_int:
                 break
             if self.get_specific_tier_status(symbol, direction, t) == "APPROVED":

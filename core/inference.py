@@ -457,10 +457,11 @@ class InferenceEngine:
         """
         Load enhanced 3-class model (BUY/SELL/WAIT).
         Checks multiple directories: enhanced, specialist, trained.
-        
-        Returns:
-            Dict with 'model', 'scaler' or None if not found
         """
+        cache_key = f"{symbol}_enhanced"
+        if cache_key in self._model_cache:
+            return self._model_cache[cache_key]
+
         # Try multiple model directories
         model_dirs = ["models/enhanced", "models/specialist", "models/trained"]
         
@@ -487,6 +488,7 @@ class InferenceEngine:
                     }
                     
                     logger.info(f"Loaded 3-class model for {symbol} (Vol: {trades_count})")
+                    self._model_cache[cache_key] = models
                     return models
                     
                 except Exception as e:
@@ -496,11 +498,41 @@ class InferenceEngine:
         return None
 
     def load_models(self, symbol: str, win_rate: Optional[int] = None) -> Optional[Dict]:
-        """
-        Unified model loader - STRICT SPECIALIST MODE.
-        Only loads models from the certified specialist fleet (models/specialist/).
-        Standard pool and non-certified expert models are disabled.
-        """
+        """ Unified model loader - v3 SPECIALIST MODE. """
+        cache_key = f"{symbol}_v3_spec"
+        if cache_key in self._model_cache:
+            return self._model_cache[cache_key]
+
+        # 1. Try v3 Specialist (All-in-one)
+        v3_path = PROJECT_ROOT / "models" / "specialist" / symbol / "specialist_brain.keras"
+        if v3_path.exists():
+            try:
+                from models.global_brain import VariableSelectionNetwork, GatedResidualNetwork
+                custom_objects = {
+                    'VariableSelectionNetwork': VariableSelectionNetwork,
+                    'GatedResidualNetwork': GatedResidualNetwork
+                }
+                model = keras.models.load_model(str(v3_path), custom_objects=custom_objects)
+                scaler_path = PROJECT_ROOT / "models" / "specialist" / symbol / "BUY" / "scaler.joblib"
+                scaler = joblib.load(str(scaler_path)) if scaler_path.exists() else None
+                
+                logger.info(f"Loaded v3 Specialist Brain for {symbol}")
+                models = {
+                    'model': model,
+                    'scaler': scaler,
+                    'model_type': 'specialist_v3',
+                    'version': 'v3',
+                    'n_features': 57,
+                    'buy_threshold': 0.52,
+                    'sell_threshold': 0.52
+                }
+                self._model_cache[cache_key] = models
+                return models
+
+            except Exception as e:
+                logger.error(f"Failed to load v3 specialist for {symbol}: {e}")
+
+        # 2. Fallback to binary specialist pool
         return self.load_binary_models(symbol)
     
     def calculate_tp_sl(
@@ -644,15 +676,22 @@ class InferenceEngine:
         symbols = self.data_engine.get_all_pairs()
         raw_data = {}
 
-        # Context symbols (Gold and Bond Yields)
-        context_symbols = ["GOLD", "^TNX"]
+        # Context symbols (v3 Macro Universe)
+        context_symbols = ["GOLD", "^TNX", "^IRX", "^VIX", "DX-Y.NYB", "^GSPC", "CL=F", "^IXIC", "HG=F", "BTC-USD"]
+        symbol_map = {
+            "^TNX": "^TNX", "^IRX": "^IRX", "^VIX": "VIX", "DX-Y.NYB": "DXY", 
+            "^GSPC": "SP500", "CL=F": "OIL", "^IXIC": "NASDAQ", "HG=F": "COPPER", "BTC-USD": "BTC"
+        }
+        
         for s in context_symbols:
             try:
-                # Use yfinance for context symbols to match training data
-                df = self.data_engine.fetch(s, interval="1h", days=7)
+                internal_name = symbol_map.get(s, s)
+                df = self.data_engine.fetch(s, interval="1h", days=60)
+
                 if df is not None and not df.empty:
-                    raw_data[s] = df
+                    raw_data[internal_name] = df
             except: pass
+
 
         for s in symbols:
             try:
@@ -672,15 +711,16 @@ class InferenceEngine:
 
     def load_foundation_model(self, symbol: str) -> Optional[Dict]:
         """Load the Global Foundation TFT model (version-switchable).
-
+        
         Version is controlled by config.yaml:
             foundation:
               active_version: "v2"   # or "v1" to revert
 
         Falls back to v1 automatically if v2 is not yet trained.
         """
-        # ── Version resolution ────────────────────────────────
-        active_version = "v1"  # safe default
+        # ── 1. Cache Check ────────────────────────────────────
+        # Foundation is GLOBAL, so we cache it under a universal key
+        active_version = "v1"
         try:
             import yaml
             cfg_path = PROJECT_ROOT / "config.yaml"
@@ -688,12 +728,17 @@ class InferenceEngine:
                 with open(cfg_path) as f:
                     cfg = yaml.safe_load(f)
                 active_version = cfg.get("foundation", {}).get("active_version", "v1")
-        except Exception:
-            pass
+        except: pass
+        
+        cache_key = f"foundation_{active_version}"
+        if cache_key in self._model_cache:
+            return self._model_cache[cache_key]
 
+        # ── 2. Version resolution ──────────────────────────────
         version_dir_map = {
             "v1": Path("models/foundation"),
             "v2": Path("models/foundation_v2"),
+            "v3": Path("models/foundation_v3"),
         }
         base_dir = version_dir_map.get(active_version, Path("models/foundation"))
 
@@ -717,11 +762,19 @@ class InferenceEngine:
                 'GatedResidualNetwork': GatedResidualNetwork
             }
             model = keras.models.load_model(str(model_path), custom_objects=custom_objects)
-            logger.info(f"Loaded Foundation Model (TFT) for {symbol}")
+            logger.info(f"Loaded Foundation Model (TFT) v{active_version}")
             
             # Load universal scaler (should be saved in foundation dir)
             scaler_path = base_dir / "scaler.joblib"
-            scaler = joblib.load(str(scaler_path)) if scaler_path.exists() else joblib.load(str(PROJECT_ROOT / "models" / "specialist" / symbol / "BUY" / "scaler.joblib"))
+            scaler = None
+            if scaler_path.exists():
+                scaler = joblib.load(str(scaler_path))
+            elif active_version != 'v3':
+                # Fallback for legacy models only
+                fb_scaler = PROJECT_ROOT / "models" / "specialist" / symbol / "BUY" / "scaler.joblib"
+                if fb_scaler.exists():
+                    scaler = joblib.load(str(fb_scaler))
+
             
             # Load trades volume from config.json
             trades_count = 0
@@ -739,17 +792,25 @@ class InferenceEngine:
             # OOS audit validated: 60-83% win rate at 50-55% confidence across the fleet.
             FOUNDATION_THRESHOLD = 0.52
 
-            return {
+            models = {
                 'model': model,
                 'scaler': scaler,
                 'model_type': 'foundation_tft',
+                'version': active_version,
+                'n_features': 57 if active_version == 'v3' else 34,
                 'model_trades': trades_count,
+
                 'buy_threshold': FOUNDATION_THRESHOLD,
                 'sell_threshold': FOUNDATION_THRESHOLD,
             }
+            
+            self._model_cache[cache_key] = models
+            return models
+
         except Exception as e:
             logger.error(f"Failed to load Foundation Model: {e}")
             return None
+
 
     def load_phase3_expert(self, symbol: str) -> Optional[Dict]:
         """Load Phase 3 Transfer-Learned Expert Model."""
@@ -825,7 +886,8 @@ class InferenceEngine:
 
         try:
             # ── 0. DATA FETCHING ──────────────────────────────────────────
-            df = self.data_engine.fetch(symbol, interval="1h", days=30, use_cache=use_cache)  # 30 days for EMA200 warmup
+            df = self.data_engine.fetch(symbol, interval="1h", days=60, use_cache=use_cache)  # 60 days for 720-bar window warmup
+
             if df is None or len(df) < 60: return None
             if not allow_stale and self._is_data_stale(df.index[-1]): return None
 
@@ -909,19 +971,39 @@ class InferenceEngine:
             global_data = self._update_global_context()
             features = self.global_engineer.add_global_features(symbol, base_features, global_data)
             
-            # 3. Load Model (Priority 1: Phase 3 Expert, Priority 2: Phase 2 Foundation)
-            # BYPASS EXPERT: Forcing Foundation Brain for testing
-            models = None # self.load_phase3_expert(symbol)
-            if not models:
-                models = self.load_foundation_model(symbol)
+            # ── 3. Load Model based on Fleet Routing Truth Map ────────────────────────
+            routing_config = self.config.get('fleet', {})
+            predators = {p['symbol']: p for p in routing_config.get('predators', [])}
+            
+            models = None
+            custom_threshold = 0.60 # Standard institutional floor
+            
+            if symbol in predators:
+                route = predators[symbol]['route']
+                custom_threshold = predators[symbol].get('threshold', 0.60)
+                logger.info(f"Fleet Routing: {symbol} using {route} path @ {custom_threshold} threshold (Predator Map)")
+                
+                if route == "global":
+                    models = self.load_foundation_model(symbol)
+                elif route == "specialist":
+                    models = self.load_models(symbol, win_rate=target_int)
+                elif route == "ensemble":
+                    models = self.load_models(symbol, win_rate=target_int)
+                    if models: models['model_type'] = 'ensemble_specialist'
             
             if not models:
-                # Fallback to specialists only if Foundation is missing or fails
-                models = self.load_models(symbol, win_rate=target_int)
+                models = self.load_foundation_model(symbol)
+                if not models:
+                    models = self.load_models(symbol, win_rate=target_int)
 
             if not models:
                 logger.warning(f"No model (Foundation or Specialist) found for {symbol} at {target_int}% tier.")
                 return None
+            
+            # Use the predator's custom threshold if defined
+            buy_threshold = custom_threshold
+            sell_threshold = custom_threshold
+
             
             # ── Phase 4 Intelligence Integration (Regime-Aware Preds) ───────────
             # Use GMM/Rule Detector to determine the dynamic hurdle for this market state
@@ -931,16 +1013,32 @@ class InferenceEngine:
             # Signal Generation
             # If Global Intelligence was added, 'features' already contains it.
             # Only use base_features as a backup for legacy models.
-            if models.get('model_type') not in ['foundation_tft', 'expert_adapted']:
+            if models.get('model_type') not in ['foundation_tft', 'expert_adapted', 'specialist_v3']:
                 features = base_features.copy()
+
             
-            scaler = models['scaler']
-            expected_features = scaler.n_features_in_
+            scaler = models.get('scaler')
+            version = models.get('version', 'v1')
+            if version == 'v3':
+                expected_features = 57
+            elif scaler:
+                expected_features = scaler.n_features_in_
+            else:
+                expected_features = models.get('n_features', 57)
+
             
             # ── 3. Feature Alignment Layer ──────────────────────────────────────────
-            if models.get('model_type') in ['foundation_tft', 'expert_adapted'] or expected_features >= 30:
-                # The Phase 2+ Foundation Brain expects these 34 features in this exact order.
-                # Names derived from models/foundation/config.json
+            if version == 'v3':
+                # v3 uses the GlobalFeatureEngineer v3 output directly (57 columns)
+                logger.info(f"Using direct v3 feature mapping for {symbol} ({len(features.columns)} cols)")
+                if len(features.columns) != expected_features:
+                    if len(features.columns) > expected_features:
+                        features = features.iloc[:, :expected_features]
+                    else:
+                        for i in range(expected_features - len(features.columns)):
+                            features[f'pad_{i}'] = 0.0
+            elif models.get('model_type') in ['foundation_tft', 'expert_adapted'] or expected_features >= 30:
+                # Legacy Phase 2 Foundation Brain (34 features)
                 f_cols = [
                     'open_norm', 'high_norm', 'low_norm', 'hl_range', 'oc_range',
                     'close_ret_1', 'close_ret_5', 'close_ret_10', 'rsi', 'atr_norm',
@@ -978,7 +1076,8 @@ class InferenceEngine:
                 
                 # ── Fallback Vol Ret ───────────────────────────────────────────────
                 if 'volume_ret' not in features.columns:
-                    features['volume_ret'] = features['volume_rel'].pct_change().fillna(0)
+                    if 'volume_rel' in features.columns:
+                        features['volume_ret'] = features['volume_rel'].pct_change().fillna(0)
                 
                 # ── Ensure exact selection and order ───────────────────────────────
                 final_f = []
@@ -991,6 +1090,7 @@ class InferenceEngine:
                 # Last resort truncation to match scaler exactly if brain v3 vs v4 mismatch
                 if len(features.columns) != expected_features:
                     features = features.iloc[:, :expected_features]
+
                 
                 logger.debug(f"Aligned {symbol} to Intelligence Matrix ({len(features.columns)} cols)")
 
@@ -1032,18 +1132,51 @@ class InferenceEngine:
             X, _ = self.feature_engineer.create_sequences(features, pd.Series(0, index=features.index), sequence_length=seq_len)
             if len(X) == 0: return None
             
-            X_last = X[-1].reshape(1, seq_len, -1)
-            if X_last.shape[2] != expected_features:
-                if X_last.shape[2] > expected_features: X_last = X_last[:, :, :expected_features]
-                else: X_last = np.pad(X_last, ((0,0), (0,0), (0, expected_features - X_last.shape[2])), 'constant')
+            if version == 'v3':
+                # ── Foundation v3 Internal Normalization (Rolling Z-Score) ──────────
+                # v3 models expect every feature to be z-scored over their history.
+                # We apply this directly to the feature matrix before sequence creation.
+                logger.info(f"Applying v3 internal normalization for {symbol}...")
+                
+                # Apply internal normalization
+                norm_features = features.copy()
+                for col in norm_features.columns:
+                    series = norm_features[col]
+                    mu = series.rolling(720, min_periods=1).mean()
+                    std = series.rolling(720, min_periods=1).std().replace(0, 1e-8)
+                    norm_features[col] = (series - mu) / std
+                
+                # Re-create sequences with normalized features
+                X_norm, _ = self.feature_engineer.create_sequences(norm_features, pd.Series(0, index=norm_features.index), sequence_length=seq_len)
+                if len(X_norm) == 0: return None
+                X_last = X_norm[-1].reshape(1, seq_len, -1)
+                
+                if X_last.shape[2] != expected_features:
+                    if X_last.shape[2] > expected_features: X_last = X_last[:, :, :expected_features]
+                    else: X_last = np.pad(X_last, ((0,0), (0,0), (0, expected_features - X_last.shape[2])), 'constant')
+                
+                X_scaled = X_last
+
+            elif scaler:
+                X_last = X[-1].reshape(1, seq_len, -1)
+                if X_last.shape[2] != expected_features:
+                    if X_last.shape[2] > expected_features: X_last = X_last[:, :, :expected_features]
+                    else: X_last = np.pad(X_last, ((0,0), (0,0), (0, expected_features - X_last.shape[2])), 'constant')
+                X_scaled = scaler.transform(X_last.reshape(-1, expected_features)).reshape(1, seq_len, expected_features)
+
+            else:
+                X_last = X[-1].reshape(1, seq_len, -1)
+                if X_last.shape[2] != expected_features:
+                    if X_last.shape[2] > expected_features: X_last = X_last[:, :, :expected_features]
+                    else: X_last = np.pad(X_last, ((0,0), (0,0), (0, expected_features - X_last.shape[2])), 'constant')
+                X_scaled = X_last
+
+
             
-            X_scaled = scaler.transform(X_last.reshape(-1, expected_features)).reshape(1, seq_len, expected_features)
-            
-            # ── Institutional Floor (Hardcoded 60%) ──────────────────────────
-            # Per user requirement: Absolute 60% conviction trigger.
-            # We ignore any higher thresholds saved in model configs.
-            buy_threshold  = 0.60
-            sell_threshold = 0.60
+            # ── Institutional Floor (Respecting Truth Map) ──────────────────────────
+            # Thresholds are inherited from the Fleet Predator Map at the top of predict_symbol.
+            # Default is 0.60 if no map entry exists.
+
             
             # Initialize default probabilities (safe defaults if a direction is blocked)
             buy_prob = 0.0
@@ -1080,7 +1213,7 @@ class InferenceEngine:
                 # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
                 # Per user requirement: Do not deal with anything < 60%.
                 # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
-                if dominant_prob < 0.60:
+                if dominant_prob < buy_threshold:
                     if signal in ('BUY', 'SELL'):
                         logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
                     signal = "WAIT"
@@ -1110,7 +1243,7 @@ class InferenceEngine:
                 # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
                 # Per user requirement: Do not deal with anything < 60%.
                 # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
-                if dominant_prob < 0.60:
+                if dominant_prob < buy_threshold:
                     if signal in ('BUY', 'SELL'):
                         logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
                     signal = "WAIT"
@@ -1119,8 +1252,8 @@ class InferenceEngine:
                 is_authorized = False
                 is_hidden = 1
                 # Check provenness for 3-class logic
-                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
-                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
+                buy_proven = (buy_prob >= buy_threshold) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
+                sell_proven = (sell_prob >= sell_threshold) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
 
                 if (buy_prob >= buy_threshold or buy_proven) and buy_prob > sell_prob:
                     signal, confidence = "BUY", buy_prob
@@ -1213,7 +1346,7 @@ class InferenceEngine:
             # --- PHASE 5: Authorization & Safety Hurdles ---
             # Use the model's threshold or whitelist approval
             # CRITICAL: Strict 60% Calibrated Conviction Floor enforced per user requirement.
-            has_calibrated_edge = (final_confidence >= 0.60)
+            has_calibrated_edge = (final_confidence >= buy_threshold)
             
             if (signal == "BUY" and has_calibrated_edge and (final_confidence >= buy_threshold or is_tier_proven)) or \
                (signal == "SELL" and has_calibrated_edge and (final_confidence >= sell_threshold or is_tier_proven)):
@@ -1253,7 +1386,7 @@ class InferenceEngine:
             # If the market is in CRISIS, we absolutely must return WAIT.
             # We record the model's intent in 'expert_intent' for dashboard transparency.
             expert_intent = "WAIT"
-            if dominant_prob >= 0.60:
+            if dominant_prob >= buy_threshold:
                 expert_intent = "BUY" if buy_prob > sell_prob else "SELL"
             
             if not tradeable:
@@ -1317,7 +1450,7 @@ class InferenceEngine:
                 'model_trades': trades,
                 'model_version': models.get('model_type', 'foundation_tft'),
                 'regime': regime_label,
-                'regime_threshold': 0.60,
+                'regime_threshold': buy_threshold,
                 'is_proven': int(is_tier_proven),
                 'is_hidden': int(is_hidden),
                 'outcome': 'ACTIVE' if (is_authorized and signal != "WAIT") else 'N/A',

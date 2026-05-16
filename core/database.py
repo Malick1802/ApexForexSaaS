@@ -454,6 +454,31 @@ class SignalDatabase:
             logger.error(f"Failed to calculate win rates for {symbol}: {e}")
             return {'buy_win_rate': 0.0, 'sell_win_rate': 0.0}
 
+    def get_validated_win_rate(self) -> Dict[str, float]:
+        """
+        Get the overall win rate for signals that were generated while the pair was proven.
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_resolved,
+                        SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins
+                    FROM signals 
+                    WHERE is_proven = 1 
+                      AND signal IN ('BUY', 'SELL')
+                      AND outcome IN ('SUCCESS', 'FAIL')
+                """)
+                row = cursor.fetchone()
+                total = row[0] or 0
+                wins = row[1] or 0
+                win_rate = (wins / total * 100) if total > 0 else 0.0
+                return {'win_rate': win_rate, 'total': total, 'wins': wins}
+        except Exception as e:
+            logger.error(f"Failed to get validated win rate: {e}")
+            return {'win_rate': 0.0, 'total': 0, 'wins': 0}
+
     def resolve_signals(self, price_map: Dict[str, float]) -> Dict[str, str]:
         """
         Check all ACTIVE BUY/SELL signals against current prices.

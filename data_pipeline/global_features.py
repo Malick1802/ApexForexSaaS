@@ -140,9 +140,12 @@ class GlobalFeatureEngineer:
 
     def add_global_features(self, symbol: str, pair_features: pd.DataFrame, aligned_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
-        Enriches a single pair's features with full global context (13 features).
+        Enriches a single pair's features with full global context (v3 — 27+ features).
         """
         enriched = pair_features.copy()
+        idx = enriched.index
+        hour = idx.hour
+        dow = idx.dayofweek
         
         # 1. Currency Strength Matrix (8 features)
         try:
@@ -150,7 +153,9 @@ class GlobalFeatureEngineer:
             for curr in self.CURRENCIES:
                 col_name = f"{curr}_strength"
                 if curr in csm.columns:
-                    enriched[col_name] = csm[curr]
+                    # Apply rolling z-score to match training
+                    val = csm[curr]
+                    enriched[col_name] = (val - val.rolling(720).mean()) / val.rolling(720).std().replace(0, 1e-8)
                 else:
                     enriched[col_name] = 0.0
         except Exception as e:
@@ -158,13 +163,18 @@ class GlobalFeatureEngineer:
             for curr in self.CURRENCIES: enriched[f"{curr}_strength"] = 0.0
 
         # 2. DXY Proxy & Returns (2 features)
-        try:
-            dxy = self.compute_dxy_proxy(aligned_data)
-            enriched['dxy_proxy'] = dxy
+        if "DXY" in aligned_data:
+            dxy = aligned_data["DXY"]['close']
+            enriched['dxy_level'] = (dxy - dxy.rolling(720).mean()) / dxy.rolling(720).std().replace(0, 1e-8)
             enriched['dxy_ret'] = np.log(dxy / dxy.shift(1)).fillna(0)
-        except:
-            enriched['dxy_proxy'] = 100.0
-            enriched['dxy_ret'] = 0.0
+        else:
+            try:
+                dxy = self.compute_dxy_proxy(aligned_data)
+                enriched['dxy_level'] = (dxy - dxy.rolling(720).mean()) / dxy.rolling(720).std().replace(0, 1e-8)
+                enriched['dxy_ret'] = np.log(dxy / dxy.shift(1)).fillna(0)
+            except:
+                enriched['dxy_level'] = 0.0
+                enriched['dxy_ret'] = 0.0
 
         # 3. Gold Return (1 feature)
         if "GOLD" in aligned_data:
@@ -173,53 +183,70 @@ class GlobalFeatureEngineer:
         else:
             enriched['gold_ret'] = 0.0
 
-        # 4. VIX Proxy (1 feature)
-        # Use EURUSD as the volatility anchor if available, otherwise the current pair
-        anchor_df = aligned_data.get("EURUSD", enriched)
-        try:
-            enriched['vix_proxy'] = self.compute_vix_proxy(anchor_df)
-        except:
-            enriched['vix_proxy'] = 0.0
+        # 4. VIX (1 feature) [v3 Real VIX]
+        if "VIX" in aligned_data:
+            vix = aligned_data["VIX"]['close']
+            enriched['vix_real'] = (vix - vix.rolling(720).mean()) / vix.rolling(720).std().replace(0, 1e-8)
+        else:
+            # Fallback to proxy
+            anchor_df = aligned_data.get("EURUSD", enriched)
+            enriched['vix_real'] = self.compute_vix_proxy(anchor_df)
 
         # 5. Yield Curve Slope (1 feature)
-        if "^TNX" in aligned_data:
-            tnx_df = aligned_data["^TNX"]
-            irx_df = aligned_data.get("^IRX") # 2Y Treasury
-            try:
-                enriched['yield_curve_slope'] = self.compute_yield_curve_slope(tnx_df, irx_df)
-            except:
-                enriched['yield_curve_slope'] = 0.0
+        if "^TNX" in aligned_data and "^IRX" in aligned_data:
+            slope = aligned_data["^TNX"]['close'] - aligned_data["^IRX"]['close']
+            enriched['yield_curve'] = (slope - slope.rolling(720).mean()) / slope.rolling(720).std().replace(0, 1e-8)
+        elif "^TNX" in aligned_data:
+            tnx = aligned_data["^TNX"]['close']
+            enriched['yield_curve'] = (tnx - tnx.rolling(720).mean()) / tnx.rolling(720).std().replace(0, 1e-8)
         else:
-            enriched['yield_curve_slope'] = 0.0
+            enriched['yield_curve'] = 0.0
 
-        # 6. S&P 500 Return (1 feature) [NEW v2]
+        # 6. SP500 Return (1 feature)
         if "SP500" in aligned_data:
             sp_df = aligned_data["SP500"]
-            try:
-                enriched['sp500_ret'] = np.log(sp_df['close'] / sp_df['close'].shift(1)).fillna(0)
-            except:
-                enriched['sp500_ret'] = 0.0
+            enriched['sp500_ret'] = np.log(sp_df['close'] / sp_df['close'].shift(1)).fillna(0)
         else:
             enriched['sp500_ret'] = 0.0
 
-        # 7. Crude Oil Return (1 feature) [NEW v2]
+        # 7. Oil Return (1 feature)
         if "OIL" in aligned_data:
             oil_df = aligned_data["OIL"]
-            try:
-                enriched['oil_ret'] = np.log(oil_df['close'] / oil_df['close'].shift(1)).fillna(0)
-            except:
-                enriched['oil_ret'] = 0.0
+            enriched['oil_ret'] = np.log(oil_df['close'] / oil_df['close'].shift(1)).fillna(0)
         else:
             enriched['oil_ret'] = 0.0
 
-        # 8. NASDAQ Return (1 feature) [NEW v2]
+        # 8. NASDAQ Return (1 feature)
         if "NASDAQ" in aligned_data:
             ndx_df = aligned_data["NASDAQ"]
-            try:
-                enriched['nasdaq_ret'] = np.log(ndx_df['close'] / ndx_df['close'].shift(1)).fillna(0)
-            except:
-                enriched['nasdaq_ret'] = 0.0
+            enriched['nasdaq_ret'] = np.log(ndx_df['close'] / ndx_df['close'].shift(1)).fillna(0)
         else:
             enriched['nasdaq_ret'] = 0.0
 
+        # 9. Copper Return (1 feature) [NEW v3]
+        if "COPPER" in aligned_data:
+            cu_df = aligned_data["COPPER"]
+            enriched['copper_ret'] = np.log(cu_df['close'] / cu_df['close'].shift(1)).fillna(0)
+        else:
+            enriched['copper_ret'] = 0.0
+
+        # 10. BTC Return (1 feature) [NEW v3]
+        if "BTC" in aligned_data:
+            btc_df = aligned_data["BTC"]
+            enriched['btc_ret'] = np.log(btc_df['close'] / btc_df['close'].shift(1)).fillna(0)
+        else:
+            enriched['btc_ret'] = 0.0
+
+        # 11. Session Timing (4 features) [NEW v3]
+        enriched['hour_sin'] = np.sin(2 * np.pi * hour / 24)
+        enriched['hour_cos'] = np.cos(2 * np.pi * hour / 24)
+        enriched['dow_sin']  = np.sin(2 * np.pi * dow  / 5)
+        enriched['dow_cos']  = np.cos(2 * np.pi * dow  / 5)
+
+        # 12. Session Flags (3 features) [NEW v3]
+        enriched['session_london'] = ((hour >= 7)  & (hour < 16)).astype(float)
+        enriched['session_ny']     = ((hour >= 13) & (hour < 21)).astype(float)
+        enriched['session_asia']   = ((hour >= 22) | (hour < 6)).astype(float)
+
         return enriched.ffill().fillna(0)
+

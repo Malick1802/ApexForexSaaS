@@ -72,7 +72,7 @@ currency_pairs:
     - correlation: 0.85
       symbol: AUDUSD
     - correlation: 0.55
-      symbol: #GDX
+      symbol: null
     pip_type: standard
     symbol: NZDUSD
   minors:
@@ -176,38 +176,60 @@ currency_pairs:
   indices:
   - symbol: NAS100
     pip_type: standard
-    correlated_assets: [{symbol: US30, correlation: 0.9}]
+    correlated_assets:
+    - symbol: US30
+      correlation: 0.9
   - symbol: US30
     pip_type: standard
-    correlated_assets: [{symbol: SPX500, correlation: 0.95}]
+    correlated_assets:
+    - symbol: SPX500
+      correlation: 0.95
   - symbol: SPX500
     pip_type: standard
-    correlated_assets: [{symbol: VIX, correlation: -0.85}]
+    correlated_assets:
+    - symbol: VIX
+      correlation: -0.85
   - symbol: GER40
     pip_type: standard
-    correlated_assets: [{symbol: EURUSD, correlation: 0.4}]
+    correlated_assets:
+    - symbol: EURUSD
+      correlation: 0.4
   - symbol: JPN225
     pip_type: standard
-    correlated_assets: [{symbol: USDJPY, correlation: 0.7}]
+    correlated_assets:
+    - symbol: USDJPY
+      correlation: 0.7
   commodities:
   - symbol: GOLD
     pip_type: standard
-    correlated_assets: [{symbol: AUDUSD, correlation: 0.8}]
+    correlated_assets:
+    - symbol: AUDUSD
+      correlation: 0.8
   - symbol: SILVER
     pip_type: standard
-    correlated_assets: [{symbol: GOLD, correlation: 0.9}]
+    correlated_assets:
+    - symbol: GOLD
+      correlation: 0.9
   - symbol: CrudeOIL
     pip_type: standard
-    correlated_assets: [{symbol: USDCAD, correlation: -0.65}]
+    correlated_assets:
+    - symbol: USDCAD
+      correlation: -0.65
   - symbol: COPPER
     pip_type: standard
-    correlated_assets: [{symbol: AUDUSD, correlation: 0.65}]
+    correlated_assets:
+    - symbol: AUDUSD
+      correlation: 0.65
   - symbol: XPTUSD
     pip_type: standard
-    correlated_assets: [{symbol: GOLD, correlation: 0.75}]
+    correlated_assets:
+    - symbol: GOLD
+      correlation: 0.75
   - symbol: XPDUSD
     pip_type: standard
-    correlated_assets: [{symbol: XPTUSD, correlation: 0.8}]
+    correlated_assets:
+    - symbol: XPTUSD
+      correlation: 0.8
 data:
   cache:
     directory: data_cache
@@ -218,7 +240,6 @@ data:
   - 1h
   - 4h
   - 1d
-  # (Rest of data remains the same)
 data_provider:
   active: mt5
   twelvedata:
@@ -232,42 +253,133 @@ data_provider:
     suffix: =X
 mt5:
   enabled: true
-  host: "127.0.0.1"    # Bridge address (Default)
-  port: 18812          # Bridge port (Default)
-  login: 0             # YOUR_MT5_LOGIN
-  password: ""         # YOUR_MT5_PASSWORD
-  server: ""           # YOUR_MT5_SERVER
-  max_open_trades: 5   # 0 = unlimited
-  risk_type: 'percent'
+  host: 127.0.0.1
+  port: 18812
+  login: 0
+  password: ''
+  server: ''
+  max_open_trades: 5
+  risk_type: percent
   risk_value: 0.5
-  max_trade_leverage: 30  # Hard limit for GetLeveraged.com compliance
+  max_trade_leverage: 30
 notifications:
   telegram:
-    bot_token: '8656723100:AAEPEbCyQ22MOvzDFAdxxD4EsxIF7Z_5KQM'
+    bot_token: 8656723100:AAEPEbCyQ22MOvzDFAdxxD4EsxIF7Z_5KQM
     chat_id: '6034739351'
     enabled: true
     notify_shadow_trades: true
-    alert_threshold: 0.60
+    alert_threshold: 0.6
 trading:
   execute_trades: true
   pip_values:
     jpy: 0.01
     standard: 0.0001
   risk_reward_ratio: 1.5
-  stop_loss_pips: 25       # Minimum floor for Forex Majors/Crosses
-  gold_min_sl_pips: 100   # Strategic floor ($1.00) to prevent over-leveraging on Gold
-  take_profit_pips: 37     # Dynamic: always 1.5x SL (this value is a fallback only)
-
+  stop_loss_pips: 25
+  gold_min_sl_pips: 100
+  take_profit_pips: 37
 safety:
-  max_daily_drawdown_pct: 2.0  # Stop trading for the day if hits
-  close_friday_hour_est: 16    # Close all trades on Friday (EST)
+  max_daily_drawdown_pct: 2.5
+  close_friday_hour_est: 16
   enabled: true
-
-# Temporarily blocked pairs (0% win rate - re-enable after model retraining)
 blocked_symbols: []
-
-# Foundation Brain version control
-# Set active_version to "v2" once training completes to activate the new model.
-# Set back to "v1" at any time to revert instantly.
 foundation:
-  active_version: "v1"   # "v1" = original model | "v2" = 5yr MT5 + SP500/Oil/NASDAQ
+  active_version: v3
+  foundation_v3: models/foundation_v3/foundation_brain.keras
+fleet:
+  routing_mode: truth
+  cooldown_bars: 24
+  predators:
+  - symbol: EURUSD
+    route: ensemble
+    threshold: 0.6
+  - symbol: GBPUSD
+    route: global
+    threshold: 0.52
+  - symbol: USDCHF
+    route: ensemble
+    threshold: 0.52
+  - symbol: AUDUSD
+    route: global
+    threshold: 0.6
+  - symbol: USDCAD
+    route: ensemble
+    threshold: 0.52
+  - symbol: NZDUSD
+    route: ensemble
+    threshold: 0.52
+  - symbol: EURGBP
+    route: ensemble
+    threshold: 0.52
+  - symbol: EURAUD
+    route: global
+    threshold: 0.6
+  - symbol: EURCAD
+    route: global
+    threshold: 0.52
+  - symbol: EURCHF
+    route: global
+    threshold: 0.52
+  - symbol: GBPAUD
+    route: ensemble
+    threshold: 0.52
+  - symbol: GBPCAD
+    route: global
+    threshold: 0.6
+  - symbol: GBPCHF
+    route: ensemble
+    threshold: 0.6
+  - symbol: AUDCAD
+    route: global
+    threshold: 0.6
+  - symbol: AUDNZD
+    route: global
+    threshold: 0.52
+  - symbol: USDJPY
+    route: ensemble
+    threshold: 0.52
+  - symbol: EURJPY
+    route: global
+    threshold: 0.52
+  - symbol: GBPJPY
+    route: global
+    threshold: 0.6
+  - symbol: AUDJPY
+    route: global
+    threshold: 0.6
+  - symbol: CADJPY
+    route: global
+    threshold: 0.52
+  - symbol: CHFJPY
+    route: ensemble
+    threshold: 0.52
+  - symbol: NZDJPY
+    route: global
+    threshold: 0.6
+  - symbol: GOLD
+    route: global
+    threshold: 0.6
+  - symbol: CrudeOIL
+    route: global
+    threshold: 0.52
+  - symbol: USDSGD
+    route: ensemble
+    threshold: 0.52
+  - symbol: CADCHF
+    route: ensemble
+    threshold: 0.52
+  - symbol: NZDCAD
+    route: global
+    threshold: 0.52
+  - symbol: NZDCHF
+    route: ensemble
+    threshold: 0.52
+  - symbol: EURNZD
+    route: ensemble
+    threshold: 0.52
+  - symbol: GBPNZD
+    route: ensemble
+    threshold: 0.52
+  - symbol: AUDCHF
+    route: ensemble
+    threshold: 0.52

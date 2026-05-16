@@ -131,6 +131,10 @@ class ExecutiveEngine:
         logger.info(f"Scan Interval: {scan_interval_minutes} minutes")
         logger.info(f"Telegram Alerts: {'Enabled' if self.notifier.enabled else 'Disabled'}")
         logger.info("="*70)
+        
+    def get_all_pairs(self) -> List[str]:
+        """Proxy for DataEngine.get_all_pairs()."""
+        return self.inference_engine.data_engine.get_all_pairs()
 
     def _run_daily_maintenance(self):
         """Automatically recompute Bayesian matrix when day rolls over."""
@@ -407,6 +411,7 @@ class ExecutiveEngine:
             # Previously this silently blocked all signals when trades count wasn't populated
             
             signal = result['signal']
+            new_tier = int(result.get('confidence_tier', 0))
             
             if signal in ('BUY', 'SELL'):
                 is_proven = bool(result.get('is_proven', False))

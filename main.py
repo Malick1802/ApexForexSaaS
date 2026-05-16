@@ -55,7 +55,8 @@ def job(exec_engine, notifier):
         # ── 2. Run New Inference Scan (Background) ──────────────────────
         logger.info("🧠 Starting comprehensive 31-pair market scan...")
         # Note: We use ExecutiveEngine's run_scan for full alert/cooldown support
-        exec_engine.run_scan()
+        symbols = exec_engine.get_all_pairs()
+        exec_engine.run_scan(symbols)
         
     except Exception as e:
         logger.error(f"❌ Cycle Failed: {e}", exc_info=True)

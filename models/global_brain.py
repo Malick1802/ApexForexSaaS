@@ -96,33 +96,24 @@ class TFTModel:
         x = layers.Dropout(0.4)(x)  # Aggressive dropout to close train/val gap
         x = layers.LayerNormalization()(x)
         
-        # 3. Temporal Fusion (Multi-Head Attention - Phase 1: Local)
-        attention_1 = layers.MultiHeadAttention(
-            num_heads=8, # Increased from 4
-            key_dim=self.units // 8
+        # 3. Temporal Fusion (Multi-Head Attention)
+        # Learns dependencies across different time steps
+        attention = layers.MultiHeadAttention(
+            num_heads=self.num_heads, 
+            key_dim=self.units // self.num_heads
         )(x, x)
-        x = layers.Add()([x, attention_1])
-        x = layers.LayerNormalization()(x)
         
-        # 3b. Temporal Fusion (Multi-Head Attention - Phase 2: Global)
-        # Deepens the temporal understanding
-        attention_2 = layers.MultiHeadAttention(
-            num_heads=8,
-            key_dim=self.units // 8
-        )(x, x)
-        x = layers.Add()([x, attention_2])
-        x = layers.Dropout(0.3)(x)
+        # Residual connection
+        x = layers.Add()([x, attention])
+        x = layers.Dropout(0.3)(x)  # Post-attention dropout
         x = layers.LayerNormalization()(x)
         
         # 4. Gated Residual Flow
         x = GatedResidualNetwork(self.units)(x)
         
         # 5. Output Processing
+        # Global Average Pooling to reduce time dimension
         x = layers.GlobalAveragePooling1D()(x)
-        
-        # Final "Global Wisdom" Bottleneck (GELU powered)
-        x = layers.Dense(self.units * 2, activation='gelu')(x)
-        x = layers.Dropout(0.2)(x)
         
         if self.num_classes == 1:
             outputs = layers.Dense(1, activation='sigmoid', name='output')(x)
@@ -131,10 +122,10 @@ class TFTModel:
             outputs = layers.Dense(self.num_classes, activation='softmax', name='output')(x)
             loss = 'sparse_categorical_crossentropy'
             
-        model = Model(inputs=inputs, outputs=outputs, name='GlobalBrain_TFT_Ultimate')
+        model = Model(inputs=inputs, outputs=outputs, name='GlobalBrain_TFT')
         
         model.compile(
-            optimizer=keras.optimizers.AdamW(learning_rate=0.0003, weight_decay=0.004),
+            optimizer=keras.optimizers.Adam(learning_rate=0.0003),  # Lower LR to prevent divergence
             loss=loss,
             metrics=['accuracy']
         )

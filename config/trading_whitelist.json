@@ -1,15 +1,139 @@
 {
-  "last_updated": "2026-05-09T00:10:52.284097+00:00",
+  "last_updated": "2026-05-16T11:03:57.877375+00:00",
   "performance_matrix": {
     "EURNZD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 0.5555555555555556,
+          "win_rate": 0.5555555555555556,
+          "trades": 9,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.865422+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.865455+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.5555555555555556,
+          "win_rate": 0.5555555555555556,
+          "trades": 9,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.865544+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.865570+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURUSD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.867606+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.867341+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.867641+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868004+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868094+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868069+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868404+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868456+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "SYSTEM": {
       "BUY": {},
@@ -18,84 +142,366 @@
         "60": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 17,
+          "trades": 142,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-05-09T00:10:52.280190+00:00",
+          "last_updated": "2026-05-16T11:03:57.873640+00:00",
           "source": "Live Data (14d)"
         },
         "70": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 17,
+          "trades": 142,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-05-09T00:10:52.280240+00:00",
+          "last_updated": "2026-05-16T11:03:57.873691+00:00",
           "source": "Live Data (14d)"
         },
         "80": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 17,
+          "trades": 142,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-05-09T00:10:52.280260+00:00",
+          "last_updated": "2026-05-16T11:03:57.873775+00:00",
           "source": "Live Data (14d)"
         },
         "90": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 17,
+          "trades": 142,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-05-09T00:10:52.280275+00:00",
+          "last_updated": "2026-05-16T11:03:57.873857+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 17,
+          "trades": 142,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-05-09T00:10:52.280291+00:00",
+          "last_updated": "2026-05-16T11:03:57.873911+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 142,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.873563+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "AUDUSD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859464+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859451+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859745+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859724+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPUSD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870523+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.7142857142857143,
+          "win_rate": 0.7142857142857143,
+          "trades": 7,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870508+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870535+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870547+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870587+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.7142857142857143,
+          "win_rate": 0.7142857142857143,
+          "trades": 7,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870575+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870599+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870611+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDUSD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872481+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872491+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872470+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872532+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872542+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872522+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "USDCAD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.873961+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874011+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "USDCHF": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874102+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874140+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDCAD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.856159+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.855825+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.857345+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.857032+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDCHF": {
       "BUY": {},
@@ -103,44 +509,804 @@
       "ALL": {}
     },
     "AUDJPY": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.857820+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.857847+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858022+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858058+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858074+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858399+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858467+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858447+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858484+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858500+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858516+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858547+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858604+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858583+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858622+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858639+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858657+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.858673+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "AUDNZD": {
-      "BUY": {},
+      "BUY": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858962+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858978+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.858989+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859000+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
       "SELL": {},
-      "ALL": {}
+      "ALL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.859060+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.859071+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.859081+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.859354+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CADCHF": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860074+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860089+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860099+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860116+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860494+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.860788+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.861534+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.861558+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.861569+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.861888+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.861924+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862586+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CADJPY": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862633+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862653+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862672+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862736+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.4,
+          "win_rate": 0.4,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862825+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.862848+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863373+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CHFJPY": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863498+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863483+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863550+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863538+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "CrudeOIL": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863609+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863633+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863654+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863666+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863692+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.4,
+          "win_rate": 0.4,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.863734+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864006+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864031+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864052+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURAUD": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864093+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864108+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864120+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864132+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864144+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864155+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864180+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864168+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864245+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864231+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864258+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864269+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864281+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864292+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURCAD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864349+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864391+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURCHF": {
       "BUY": {},
@@ -149,68 +1315,1237 @@
     },
     "EURGBP": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864596+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864584+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864648+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864637+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "EURJPY": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864681+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864692+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.864739+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864750+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864788+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.864800+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPAUD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868601+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.5714285714285714,
+          "win_rate": 0.5714285714285714,
+          "trades": 7,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868580+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868620+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868637+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868699+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.5714285714285714,
+          "win_rate": 0.5714285714285714,
+          "trades": 7,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868680+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868716+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868747+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPCAD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.6,
+          "win_rate": 0.6,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868885+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6,
+          "win_rate": 0.6,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868865+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.868902+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868918+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868934+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868951+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.6,
+          "win_rate": 0.6,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868991+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6,
+          "win_rate": 0.6,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.868972+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869008+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869024+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869040+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869056+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPCHF": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869146+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869131+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869162+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869177+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869193+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869209+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869254+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869237+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869270+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869286+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869302+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.869317+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPJPY": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869428+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869409+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869447+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869466+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869484+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869847+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869996+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.869963+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870031+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870067+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870087+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870104+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GBPNZD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 0.5714285714285714,
+          "win_rate": 0.5714285714285714,
+          "trades": 14,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870234+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870252+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870265+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870277+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870295+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870307+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 0.5714285714285714,
+          "win_rate": 0.5714285714285714,
+          "trades": 14,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870324+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870346+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870367+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870386+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870405+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870424+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "GOLD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870753+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870735+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870765+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870777+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870787+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.870798+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870826+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.75,
+          "win_rate": 0.75,
+          "trades": 8,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870813+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.870837+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871069+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871387+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871421+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDCAD": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871439+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871453+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871541+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871519+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871621+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871602+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDCHF": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871736+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871751+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871787+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871797+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "NZDJPY": {
-      "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "BUY": {
+        "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871845+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871857+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871867+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.871876+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872148+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872185+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "60": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.872217+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.8,
+          "win_rate": 0.8,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.872204+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872229+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872241+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872259+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872280+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872325+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872306+00:00",
+          "source": "Live Data (14d)"
+        },
+        "70": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872343+00:00",
+          "source": "Live Data (14d)"
+        },
+        "80": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872360+00:00",
+          "source": "Live Data (14d)"
+        },
+        "90": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872379+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.872396+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "USDJPY": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874226+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.2,
+          "win_rate": 0.2,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874213+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874324+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 0.2,
+          "win_rate": 0.2,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874309+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
     "USDSGD": {
       "BUY": {},
-      "SELL": {},
-      "ALL": {}
+      "SELL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874438+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.874412+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "ALL": {
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-05-16T11:03:57.874507+00:00",
+          "source": "Live Data (14d)"
+        },
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-05-16T11:03:57.874492+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     }
   }
 }

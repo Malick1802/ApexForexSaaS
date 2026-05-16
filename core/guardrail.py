@@ -73,44 +73,85 @@ class PropGuardrail:
             
         return False, ""
 
+    def _get_state_path(self):
+        path = Path("data_cache/drawdown_state.json")
+        path.parent.mkdir(exist_ok=True, parents=True)
+        return path
+
+    def _load_state(self):
+        import json
+        path = self._get_state_path()
+        if path.exists():
+            try:
+                with open(path, 'r') as f:
+                    return json.load(f)
+            except:
+                pass
+        return {"date": "", "hwm": 0.0}
+
+    def _save_state(self, state):
+        import json
+        with open(self._get_state_path(), 'w') as f:
+            json.dump(state, f)
+
     def _calculate_daily_drawdown(self) -> float:
         """
-        Calculate total loss for today as % of estimated account size.
-        Uses signals.db to sum realized 'FAIL' outcomes today.
+        Calculates Prop Firm Daily Drawdown based on MT5 Equity vs Balance High Water Mark
+        at the 23:00 GMT+3 (20:00 UTC) rollover.
         """
         try:
-            # We assume a base account size for % calculation if MT5 is not connected
-            # In production, this would pull real equity from MT5
-            base_equity = 100000.0 
-            risk_pct = self.config.get('mt5', {}).get('risk_value', 0.5)
+            from core.mt5_connector import get_mt5
+            mt5 = get_mt5()
             
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            # Fail-safe: If MT5 is disconnected, we cannot verify live equity.
+            # Prop firm safety dictates we must pause until we have eyes on the account.
+            if not mt5:
+                logger.error("MT5 disconnected. Failsafe activated for Drawdown check.")
+                return 999.0 # Forces a block
+                
+            account = mt5.account_info()
+            if not account:
+                logger.error("MT5 account info unavailable. Failsafe activated.")
+                return 999.0
+                
+            current_equity = float(account.equity)
+            current_balance = float(account.balance)
             
-            # Get start of today (UTC)
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()
+            # 1. Determine the "Trading Day" Date String based on 20:00 UTC rollover
+            now_utc = datetime.now(timezone.utc)
+            # If time is past 20:00 UTC, it is already the "next" trading day
+            if now_utc.hour >= 20:
+                trading_day = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
+            else:
+                trading_day = now_utc.strftime("%Y-%m-%d")
+                
+            state = self._load_state()
             
-            # Count Failed trades today
-            cursor.execute("""
-                SELECT COUNT(*) as failures 
-                FROM signals 
-                WHERE timestamp >= ? AND outcome = 'FAIL'
-            """, (today_start,))
+            # 2. If it's a new trading day, snapshot the High Water Mark
+            if state.get("date") != trading_day or state.get("hwm", 0.0) == 0.0:
+                hwm = max(current_balance, current_equity)
+                state = {"date": trading_day, "hwm": hwm}
+                self._save_state(state)
+                logger.info(f"Daily Rollover Snapshot: Trading Day {trading_day} | HWM: ${hwm:.2f}")
+            else:
+                hwm = state.get("hwm")
+                
+            # 3. Calculate True Drawdown %
+            if hwm <= 0: return 0.0
             
-            row = cursor.fetchone()
-            failures = row['failures'] if row else 0
+            # If current equity is higher than the floor, drawdown is negative or small.
+            # Drawdown = percentage drop from HWM
+            drawdown_pct = ((hwm - current_equity) / hwm) * 100.0
             
-            # Estimated Drawdown = failures * risk_per_trade
-            # This is a robust proxy for drawdown when live equity is transient
-            total_drawdown = failures * risk_pct
-            
-            conn.close()
-            return total_drawdown
+            # We don't care about negative drawdown (profits above HWM), just clamp to 0
+            if drawdown_pct < 0:
+                drawdown_pct = 0.0
+                
+            return drawdown_pct
             
         except Exception as e:
-            logger.error(f"Drawdown calculation failed: {e}")
-            return 0.0
+            logger.error(f"Drawdown calculation failed: {e}. Failsafe activated.")
+            return 999.0
 
 # Singleton
 _guard = None

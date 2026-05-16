@@ -42,6 +42,7 @@ UNITS          = 64        # 2x v2
 EARLY_STOP_PAT = 8
 STRIDE         = 4         # 2x more samples than v2
 SEQ_LEN        = 48        # 48-hour lookback (2x v2)
+DTYPE          = np.float32
 
 FOREX_PAIRS = [
     "EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD",
@@ -277,7 +278,7 @@ class ForexDataGenerator(Sequence):
     def __getitem__(self, idx):
         batch = self.samples[idx*self.batch_size:(idx+1)*self.batch_size]
         n_feat = next(iter(self.features_dict.values())).shape[1]
-        X = np.empty((len(batch), self.seq_len, n_feat), dtype=np.float32)
+        X = np.empty((len(batch), self.seq_len, n_feat), dtype=DTYPE)
         y = np.empty((len(batch),), dtype=np.int32)
         for i, (sym, s) in enumerate(batch):
             X[i] = self.features_dict[sym][s:s+self.seq_len]
@@ -343,10 +344,11 @@ class FoundationTrainerV3:
                     n_features = len(features.columns)
                     logger.info(f"  Feature vector size: {n_features}")
                 labels = triple_barrier_label(pair_df.reindex(features.index))
-                features_dict[symbol] = features.values.astype(np.float32)
+                features_dict[symbol] = features.values.astype(DTYPE)
                 labels_dict[symbol]   = labels.values.astype(np.int32)
                 logger.info(f"  {symbol}: {len(features_dict[symbol]):,} bars")
                 del features, labels, pair_df
+                gc.collect() # Force free RAM after each pair
             except Exception as e:
                 logger.warning(f"  {symbol}: FAILED — {e}")
             finally:

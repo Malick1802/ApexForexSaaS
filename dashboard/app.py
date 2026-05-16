@@ -280,6 +280,11 @@ def show_command_center():
             if not completed.empty:
                 success_rate = (len(completed[completed['outcome'] == 'SUCCESS']) / len(completed)) * 100
 
+    # Fetch Global Validated Win Rate
+    val_stats = db.get_validated_win_rate()
+    val_win_rate = val_stats.get('win_rate', 0.0)
+    val_total = val_stats.get('total', 0)
+
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.markdown(kpi_card("Monitored Pairs", len(all_pairs), "Majors · Minors · Crosses", "accent-cyan", link_url="/market?nav=true"), unsafe_allow_html=True)
@@ -287,7 +292,8 @@ def show_command_center():
         # Active Signals -> Scroll/Focus (or Analytics)
         st.markdown(kpi_card("Active Signals", active_count, "Running trades", "accent-gold", link_url="/analytics?nav=true"), unsafe_allow_html=True)
     with c3:
-        st.markdown(kpi_card("Win Rate (Week)", f"{success_rate:.1f}%", f"{completed_count} closed trades", "accent-green", link_url="/analytics?nav=true"), unsafe_allow_html=True)
+        # Replace weekly generic win rate with Validated Win Rate
+        st.markdown(kpi_card("Validated Win Rate", f"{val_win_rate:.1f}%", f"{val_total} proven trades", "accent-green", link_url="/analytics?nav=true"), unsafe_allow_html=True)
     with c4:
         # Show "Closed Trades" (TP/SL hit) as primary metric count.
         # BUT link to 'expired' filter so user can see "trades that did not complete" as requested.
