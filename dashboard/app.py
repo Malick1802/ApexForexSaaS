@@ -416,25 +416,30 @@ def show_market_overview():
             if sym not in groups: groups[sym] = []
             groups[sym].append(s)
 
-            # Select the 'Best' signal for tile display (Priority: Live > Highest Tier > Newest)
-            for sym, sigs in groups.items():
-                # Filter for real trades (Exclude WAIT/0% from being counted as 'secondary')
-                real_sigs = [s for s in sigs if s.get('signal') in ('BUY', 'SELL') and int(s.get('confidence_tier', 0)) > 0]
-                
-                sorted_sigs = sorted(
-                    sigs, 
-                    key=lambda x: (not bool(x.get('is_hidden', 0)), x.get('confidence_tier', 0), x['timestamp']),
-                    reverse=True
-                )
-                sig_map[sym] = sorted_sigs[0]
-                # Only show indicator if there are multiple REAL trade setups
-                has_secondary_tier[sym] = len(real_sigs) > 1
+        # Select the 'Best' signal for tile display (Priority: Live > Highest Tier > Newest)
+        # NOTE: This loop must be OUTSIDE the group-building loop above
+        for sym, sigs in groups.items():
+            # Filter for real trades (Exclude WAIT/0% from being counted as 'secondary')
+            real_sigs = [s for s in sigs if s.get('signal') in ('BUY', 'SELL') and int(s.get('confidence_tier') or 0) > 0]
+            
+            sorted_sigs = sorted(
+                sigs, 
+                key=lambda x: (not bool(x.get('is_hidden', 0)), x.get('confidence_tier', 0), x['timestamp']),
+                reverse=True
+            )
+            sig_map[sym] = sorted_sigs[0]
+            # Only show indicator if there are multiple REAL trade setups
+            has_secondary_tier[sym] = len(real_sigs) > 1
 
         # Fallback for symbols with only historical signals (no active ones)
-        recent = db.get_recent_signals(limit=100, include_hidden=True)
+        # Use a large limit and exclude SYSTEM heartbeats to ensure all pairs are covered
+        recent = db.get_recent_signals(limit=500, include_hidden=True)
         for s in recent:
-            if s['symbol'] not in sig_map:
-                sig_map[s['symbol']] = s
+            sym = s['symbol']
+            if sym == 'SYSTEM':
+                continue  # Skip heartbeat rows — they pollute the lookup table
+            if sym not in sig_map:
+                sig_map[sym] = s
 
         # Signal grid categories
         categories = {
