@@ -162,12 +162,12 @@ currency_pairs:
     - correlation: 0.8
       symbol: AUDUSD
     pip_type: standard
-    symbol: GOLD
+    symbol: XAUUSD
   - correlated_assets:
     - correlation: 0.6
       symbol: USDCAD
     pip_type: standard
-    symbol: CrudeOIL
+    symbol: USOIL.cash
   - correlated_assets:
     - correlation: 0.4
       symbol: USDJPY
@@ -200,7 +200,7 @@ currency_pairs:
     - symbol: USDJPY
       correlation: 0.7
   commodities:
-  - symbol: GOLD
+  - symbol: XAUUSD
     pip_type: standard
     correlated_assets:
     - symbol: AUDUSD
@@ -208,9 +208,9 @@ currency_pairs:
   - symbol: SILVER
     pip_type: standard
     correlated_assets:
-    - symbol: GOLD
+    - symbol: XAUUSD
       correlation: 0.9
-  - symbol: CrudeOIL
+  - symbol: USOIL.cash
     pip_type: standard
     correlated_assets:
     - symbol: USDCAD
@@ -223,7 +223,7 @@ currency_pairs:
   - symbol: XPTUSD
     pip_type: standard
     correlated_assets:
-    - symbol: GOLD
+    - symbol: XAUUSD
       correlation: 0.75
   - symbol: XPDUSD
     pip_type: standard
@@ -255,9 +255,9 @@ mt5:
   enabled: true
   host: 127.0.0.1
   port: 18812
-  login: 0
-  password: ''
-  server: ''
+  login: 1513419698
+  password: 'eR9PzV!L3t'
+  server: 'FTMO-Demo'
   max_open_trades: 5
   risk_type: percent
   risk_value: 0.5
@@ -266,8 +266,9 @@ notifications:
   telegram:
     bot_token: 8656723100:AAEPEbCyQ22MOvzDFAdxxD4EsxIF7Z_5KQM
     chat_id: '6034739351'
+    channel_id: '-1003866418195' # Add your channel ID here (e.g. '@channelname' or '-100...')
     enabled: true
-    notify_shadow_trades: true
+    notify_shadow_trades: false
     alert_threshold: 0.6
 trading:
   execute_trades: true
@@ -356,10 +357,10 @@ fleet:
   - symbol: NZDJPY
     route: global
     threshold: 0.6
-  - symbol: GOLD
+  - symbol: XAUUSD
     route: global
     threshold: 0.6
-  - symbol: CrudeOIL
+  - symbol: USOIL.cash
     route: global
     threshold: 0.52
   - symbol: USDSGD

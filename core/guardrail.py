@@ -41,13 +41,16 @@ class PropGuardrail:
             return {'safe': False, 'reason': weekend_reason, 'drawdown': 0.0}
 
         # 2. Check Daily Drawdown
-        drawdown = self._calculate_daily_drawdown()
-        max_dd = conf.get('max_daily_drawdown_pct', 2.0)
-        
+        result = self._calculate_daily_drawdown()
+        drawdown = result["drawdown_pct"]
+        max_dd = conf.get('max_daily_drawdown_pct', 2.5)
+
         if drawdown >= max_dd:
+            floor = result.get('floor', 0)
+            equity = result.get('equity', 0)
             return {
-                'safe': False, 
-                'reason': f"DAILY_DRAWDOWN_HIT ({drawdown:.2f}% >= {max_dd}%)",
+                'safe': False,
+                'reason': f"DAILY_DRAWDOWN_HIT ({drawdown:.2f}% >= {max_dd}% | Equity: ${equity:.2f} vs Floor: ${floor:.2f})",
                 'drawdown': drawdown
             }
 
@@ -87,71 +90,103 @@ class PropGuardrail:
                     return json.load(f)
             except:
                 pass
-        return {"date": "", "hwm": 0.0}
+        return {"date": "", "midnight_balance": 0.0, "initial_balance": 0.0}
 
     def _save_state(self, state):
         import json
         with open(self._get_state_path(), 'w') as f:
             json.dump(state, f)
 
-    def _calculate_daily_drawdown(self) -> float:
+    def _calculate_daily_drawdown(self) -> dict:
         """
-        Calculates Prop Firm Daily Drawdown based on MT5 Equity vs Balance High Water Mark
-        at the 23:00 GMT+3 (20:00 UTC) rollover.
+        Calculates FTMO-compliant Daily Drawdown.
+
+        FTMO Rule:
+          - Daily floor = (account balance at midnight CEST) - (max_daily_drawdown_pct% x initial_balance)
+          - Block if current_equity (includes floating P&L) <= daily floor
+          - Rollover: 00:00 CEST = 22:00 UTC (summer / CEST = UTC+2)
+          - Loss amount is FIXED per day based on initial challenge balance.
         """
         try:
             from core.mt5_connector import get_mt5
             mt5 = get_mt5()
-            
-            # Fail-safe: If MT5 is disconnected, we cannot verify live equity.
-            # Prop firm safety dictates we must pause until we have eyes on the account.
+
             if not mt5:
-                logger.error("MT5 disconnected. Failsafe activated for Drawdown check.")
-                return 999.0 # Forces a block
-                
+                logger.error("MT5 disconnected. Failsafe activated.")
+                return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
+
             account = mt5.account_info()
             if not account:
                 logger.error("MT5 account info unavailable. Failsafe activated.")
-                return 999.0
-                
-            current_equity = float(account.equity)
-            current_balance = float(account.balance)
-            
-            # 1. Determine the "Trading Day" Date String based on 20:00 UTC rollover
+                return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
+
+            current_equity = float(account.equity)   # includes open floating P&L
+            current_balance = float(account.balance) # closed trades only
+
+            # --- CEST Rollover: 00:00 CEST = 22:00 UTC (UTC+2 in summer) ---
             now_utc = datetime.now(timezone.utc)
-            # If time is past 20:00 UTC, it is already the "next" trading day
-            if now_utc.hour >= 20:
-                trading_day = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
-            else:
-                trading_day = now_utc.strftime("%Y-%m-%d")
-                
+            now_cest = now_utc + timedelta(hours=2)  # CEST = UTC+2
+            trading_day = now_cest.strftime("%Y-%m-%d")
+
             state = self._load_state()
-            
-            # 2. If it's a new trading day, snapshot the High Water Mark
-            if state.get("date") != trading_day or state.get("hwm", 0.0) == 0.0:
-                hwm = max(current_balance, current_equity)
-                state = {"date": trading_day, "hwm": hwm}
+            conf = self.config.get('safety', {})
+            max_dd_pct = conf.get('max_daily_drawdown_pct', 2.5)
+
+            # --- Midnight snapshot: store balance at the start of each CEST day ---
+            if state.get("date") != trading_day or state.get("midnight_balance", 0.0) == 0.0:
+                # First time seeing this trading day — snapshot the balance
+                midnight_balance = current_balance
+
+                # Persist initial balance if this is the first ever run
+                initial_balance = state.get("initial_balance", 0.0)
+                if initial_balance <= 0.0:
+                    initial_balance = current_balance
+                    logger.info(f"Initial Balance Locked: ${initial_balance:.2f}")
+
+                state = {
+                    "date": trading_day,
+                    "midnight_balance": midnight_balance,
+                    "initial_balance": initial_balance
+                }
                 self._save_state(state)
-                logger.info(f"Daily Rollover Snapshot: Trading Day {trading_day} | HWM: ${hwm:.2f}")
+                logger.info(
+                    f"[FTMO Guardrail] Daily Rollover | Date: {trading_day} "
+                    f"| Midnight Balance: ${midnight_balance:.2f} "
+                    f"| Initial Balance: ${initial_balance:.2f}"
+                )
             else:
-                hwm = state.get("hwm")
-                
-            # 3. Calculate True Drawdown %
-            if hwm <= 0: return 0.0
-            
-            # If current equity is higher than the floor, drawdown is negative or small.
-            # Drawdown = percentage drop from HWM
-            drawdown_pct = ((hwm - current_equity) / hwm) * 100.0
-            
-            # We don't care about negative drawdown (profits above HWM), just clamp to 0
-            if drawdown_pct < 0:
-                drawdown_pct = 0.0
-                
-            return drawdown_pct
-            
+                midnight_balance = state["midnight_balance"]
+                initial_balance = state.get("initial_balance", midnight_balance)
+
+            # --- FTMO Formula ---
+            # max_loss_amount = fixed dollar amount per day (e.g. 2.5% of $10,000 = $250)
+            max_loss_amount = (max_dd_pct / 100.0) * initial_balance
+            daily_floor = midnight_balance - max_loss_amount
+
+            # Drawdown = how far equity has fallen below midnight balance
+            # (negative means we are in profit, clamped to 0)
+            dollar_drawdown = midnight_balance - current_equity
+            if dollar_drawdown < 0:
+                dollar_drawdown = 0.0
+
+            drawdown_pct = (dollar_drawdown / initial_balance) * 100.0
+
+            logger.debug(
+                f"[FTMO Guardrail] Equity: ${current_equity:.2f} | "
+                f"Floor: ${daily_floor:.2f} | Drawdown: {drawdown_pct:.2f}%"
+            )
+
+            return {
+                "drawdown_pct": drawdown_pct,
+                "equity": current_equity,
+                "floor": daily_floor,
+                "midnight_balance": midnight_balance,
+                "max_loss_amount": max_loss_amount
+            }
+
         except Exception as e:
             logger.error(f"Drawdown calculation failed: {e}. Failsafe activated.")
-            return 999.0
+            return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
 
 # Singleton
 _guard = None
