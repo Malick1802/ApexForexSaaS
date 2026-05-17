@@ -689,9 +689,13 @@ def show_trading_terminal():
                         last_ts = last_ts.tz_convert('UTC')
                     
                     diff_hours = (pd.Timestamp.now(tz='UTC') - last_ts).total_seconds() / 3600.0
-                    if diff_hours > 4.0:
+                    # Use 55h threshold so weekend gaps (Fri 22:00 -> Sun 22:00 = ~48h) don't false-trigger
+                    if diff_hours > 55.0:
                         is_market_closed = True
                         st.warning(f"⛔ MARKET CLOSED · Displaying analysis from last close ({last_ts.strftime('%d %b %H:%M UTC')})")
+                    elif diff_hours > 4.0:
+                        # Weekend gap — market just reopened or about to open
+                        st.info(f"⏳ Weekend · Market reopening · Last candle: {last_ts.strftime('%d %b %H:%M UTC')} · First new candle forming soon")
                 except:
                     pass
 
