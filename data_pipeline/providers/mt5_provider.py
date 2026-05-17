@@ -149,6 +149,7 @@ class MT5Provider(DataProviderBase):
             raise ValueError(f"Cannot select symbol {mt5_symbol} in MT5 (Thread Context Issue)")
         
         # Determine date range
+        original_end = end
         if end is None:
             end = datetime.now(timezone.utc)
         elif end.tzinfo is None:
@@ -168,7 +169,19 @@ class MT5Provider(DataProviderBase):
         )
         
         # Fetch rates from MT5
-        rates = self.mt5.copy_rates_range(mt5_symbol, timeframe, start, end)
+        # MT5's copy_rates_range has a known bug where it serves stale local cache 
+        # if the terminal hasn't synced recently. copy_rates_from_pos forces a live sync.
+        
+        # Calculate approximate number of bars needed (overestimate by 50% to handle weekends, then filter)
+        interval_minutes = {
+            "1m": 1, "5m": 5, "15m": 15, "30m": 30, 
+            "1h": 60, "4h": 240, "1d": 1440, "1w": 10080
+        }.get(interval, 60)
+        
+        total_minutes = (end - start).total_seconds() / 60.0
+        num_bars = int((total_minutes / interval_minutes) * 1.5) + 100
+        
+        rates = self.mt5.copy_rates_from_pos(mt5_symbol, timeframe, 0, num_bars)
         
         if rates is None or len(rates) == 0:
             error = self.mt5.last_error()
@@ -182,6 +195,14 @@ class MT5Provider(DataProviderBase):
         # MT5 returns 'time' as Unix timestamp
         df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
         df.set_index('time', inplace=True)
+        
+        # Filter strictly to requested range
+        # MT5 broker time (e.g. FTMO UTC+3) can be ahead of local UTC.
+        # If the caller requested up to "now" (original_end is None), do not clip the latest candles.
+        if original_end is None:
+            df = df[df.index >= start]
+        else:
+            df = df[(df.index >= start) & (df.index <= end)]
         
         # MT5 columns: time, open, high, low, close, tick_volume, spread, real_volume
         # Map to standard format
