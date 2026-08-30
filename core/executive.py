@@ -3,8 +3,7 @@
 # =============================================================================
 """
 Autonomous signal generation engine that:
-- Polls TwelveData API every 15 minutes
-- Respects free tier limit (8 requests/minute)
+- Polls MT5/yfinance every 15 minutes
 - Uses specialist models for prediction
 - Sends Telegram alerts for high-confidence signals (>85%)
 - Logs all activity to system.log
@@ -64,7 +63,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Rate limiting is now handled centrally in data_pipeline/providers/twelvedata_provider.py
+# Rate limiting is handled centrally by providers
 
 
 # =============================================================================
@@ -78,7 +77,7 @@ class ExecutiveEngine:
     
     Features:
     - 15-minute scanning interval
-    - TwelveData rate limiting (via InferenceEngine's DataEngine)
+    - Rate limiting (via InferenceEngine's DataEngine)
     - High-Confidence "Apex" signals (Default)
     - Telegram alerts
     - Full activity logging
@@ -87,8 +86,8 @@ class ExecutiveEngine:
     def __init__(
         self,
         config_path: str = "config.yaml",
-        target_win_rate: str = "70%",  # Set to user default (institutional floor)
-        scan_interval_minutes: int = 5
+        target_win_rate: str = "61%",  # Optimal institutional floor
+        scan_interval_minutes: int = 1
     ):
         logger.info("="*70)
         logger.info("EXECUTIVE ENGINE - STARTING")
@@ -108,8 +107,6 @@ class ExecutiveEngine:
         self.notifier = NotificationManager()
         
         # MT5 Trade Engine
-        from core.mt5_connector import get_mt5
-        self.mt5 = get_mt5()
         self.risk_pct = 0.005 # GetLeveraged.com compliance: 0.5% risk per trade
         
         # Recent signals tracker (deduplication)
@@ -130,7 +127,32 @@ class ExecutiveEngine:
         logger.info(f"Target Win Rate: {target_win_rate}")
         logger.info(f"Scan Interval: {scan_interval_minutes} minutes")
         logger.info(f"Telegram Alerts: {'Enabled' if self.notifier.enabled else 'Disabled'}")
+
+        # ── STARTUP GATE RECOMPUTE ─────────────────────────────────────────────
+        # Critical: recompute the performance gate on every startup before scanning.
+        # Rationale: If the executive was offline (restart, crash, maintenance), any
+        # signals that resolved via the sentinel or MT5 while we were down will NOT
+        # have triggered the in-process recompute. The whitelist.json on disk could be
+        # stale (e.g., showing APPROVED for a pair that later hit its SL). Without this,
+        # the first scan after a restart reads the outdated gate and can authorize
+        # a live signal for a BENCHED pair — exactly the EURUSD #968 incident.
+        try:
+            logger.info("Startup: Recomputing performance gate from live DB...")
+            from core.performance_gate import PerformanceGate
+            startup_gate = PerformanceGate()
+            startup_gate.recompute_from_db(lookback_days=14)
+            startup_gate.save_whitelist()
+            logger.info("Startup: Performance gate synchronized. Ready to scan.")
+        except Exception as _gate_err:
+            logger.error(f"Startup gate recompute failed (non-fatal): {_gate_err}")
+
         logger.info("="*70)
+
+    @property
+    def mt5(self):
+        """Dynamic connection to MT5 (prevents stale connection issues)."""
+        from core.mt5_connector import get_mt5
+        return get_mt5()
         
     def get_all_pairs(self) -> List[str]:
         """Proxy for DataEngine.get_all_pairs()."""
@@ -297,9 +319,23 @@ class ExecutiveEngine:
                 logger.info("Trading Disabled in config. Skipping MT5 execution.")
                 return False
 
-            # --- PROP FIRM DRAWDOWN SAFETY GATE ---
-            if not self._check_drawdown_limits():
-                logger.error(f"BLOCK: {signal['symbol']} trade canceled by Drawdown Safety Shield. Saving as SHADOW instead.")
+            # --- COMMODITY / BLOCKED SYMBOL / DIRECTIONAL SAFETY GATE ---
+            from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+            if is_symbol_blocked(signal['symbol']):
+                logger.critical(f"🛑 COMMODITY SHIELD: {signal['symbol']} is a blacklisted commodity. Blocking Live MT5 Trade execution!")
+                signal['is_hidden'] = 1
+                return False
+            if is_direction_blocked(signal['symbol'], signal.get('signal')):
+                logger.critical(f"🛑 DIRECTIONAL SHIELD: {signal['symbol']} {signal.get('signal')} is blacklisted by directional shield. Blocking Live MT5 Trade execution!")
+                signal['is_hidden'] = 1
+                return False
+
+            # --- PROP FIRM DRAWDOWN & WEEKEND SAFETY GATE ---
+            from core.guardrail import get_guardrail
+            guard = get_guardrail()
+            safety_status = guard.get_safety_status()
+            if not safety_status['safe']:
+                logger.error(f"BLOCK: {signal['symbol']} trade canceled by Safety Guardrail ({safety_status['reason']}). Saving as SHADOW instead.")
                 signal['is_hidden'] = 1 # Force it into shadow log
                 return False
 
@@ -349,15 +385,15 @@ class ExecutiveEngine:
                 err_msg = result.comment if result else "Connection Timeout"
                 err_code = result.retcode if result else "N/A"
                 logger.error(f"MT5 ORDER FAILED: {err_msg} (Code: {err_code}) | Mode: {filling_type}")
-                return False
+                return None
 
                 
-            logger.info(f"LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price}")
-            return True
+            logger.info(f"LIVE TRADE PLACED: {symbol} {action} {lots} lots @ {price} | Ticket: {result.order}")
+            return result.order
             
         except Exception as e:
             logger.error(f"Critical error in MT5 execution: {e}")
-            return False
+            return None
 
     def _is_duplicate_signal(self, symbol: str, last_candle_time: pd.Timestamp) -> bool:
         """
@@ -389,24 +425,31 @@ class ExecutiveEngine:
             logger.warning(f"Deduplication check failed: {e}")
             return False
 
-    def analyze_symbol(self, symbol: str) -> Optional[Dict[str, Any]]:
+    def analyze_symbol(self, symbol: str, precalculated_result: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
         Analyze a single symbol and generate signal if criteria met.
         Only saves a new BUY/SELL signal if there's no existing active signal for this pair.
         Returns signal dict or None.
         """
         try:
-            # Use InferenceEngine for prediction
-            # save_to_db=False because we handle DB saving here after deduplication
-            result = self.inference_engine.predict_symbol(
-                symbol,
-                save_to_db=False,
-                win_rate=self.target_win_rate
-            )
+            if precalculated_result is not None:
+                result = precalculated_result
+            else:
+                # Use InferenceEngine for prediction
+                # save_to_db=False because we handle DB saving here after deduplication
+                result = self.inference_engine.predict_symbol(
+                    symbol,
+                    save_to_db=False,
+                    win_rate=self.target_win_rate
+                )
             
             if not result:
                 return None
             
+            if result.get('is_locked'):
+                logger.info(f"🔒 {symbol}: Active trade lock propagated from InferenceEngine. Skipping scan.")
+                return None
+
             # Note: model_trades gate removed — all loaded models are specialist models
             # Previously this silently blocked all signals when trades count wasn't populated
             
@@ -414,6 +457,12 @@ class ExecutiveEngine:
             new_tier = int(result.get('confidence_tier', 0))
             
             if signal in ('BUY', 'SELL'):
+                from core.symbol_guard import is_direction_blocked
+                if is_direction_blocked(symbol, signal):
+                    logger.warning(f"🚫 DIRECTIONAL BLOCK: {symbol} {signal} is blacklisted by directional shield. Skipping live executive entry.")
+                    result['is_hidden'] = 1
+                    return None
+
                 is_proven = bool(result.get('is_proven', False))
                 
                 # 1. Temporal Cooldown Check (Deduplication)
@@ -424,51 +473,57 @@ class ExecutiveEngine:
                         logger.info(f"SKIP: {symbol}: Signal for this candle already exists in DB.")
                         return None
 
-                # Directional Cooldown: Only block if the NEW signal matches the LAST one
-                cooldown_key = f"{symbol}_{signal}"
-                last_time = self._recent_signals.get(cooldown_key)
+                # Query the database for the most recent actual BUY/SELL trade for this symbol
+                # to prevent standard 'WAIT' signals from bypassing cooldown checks.
+                recent_trade = None
+                import sqlite3
+                try:
+                    with sqlite3.connect(self.db.db_path) as conn:
+                        conn.row_factory = sqlite3.Row
+                        cur = conn.cursor()
+                        cur.execute(
+                            "SELECT * FROM signals WHERE symbol = ? AND signal IN ('BUY', 'SELL') ORDER BY timestamp DESC LIMIT 1",
+                            (symbol,)
+                        )
+                        row = cur.fetchone()
+                        if row:
+                            recent_trade = dict(row)
+                except Exception as db_err:
+                    logger.error(f"Failed to query recent trades for cooldown: {db_err}")
+
+                # Directional Cooldown: Check if the last trade was a WIN or LOSS
+                last_time = None
+                is_last_fail = False
+                is_last_success = False
+                is_last_active = False
                 
-                # If not in memory, check DB (persistent cooldown across restarts)
-                if not last_time:
-                    recent = self.db.get_recent_signals(limit=1, symbol=symbol)
-                    if recent and recent[0]['signal'] == signal:
-                        try:
-                            last_time = pd.to_datetime(recent[0]['timestamp'])
-                            if last_time.tzinfo is None:
-                                last_time = last_time.tz_localize('UTC')
-                            # Populate memory cache
-                            self._recent_signals[cooldown_key] = last_time
-                        except Exception:
-                            pass
+                if recent_trade:
+                    try:
+                        # Helper to parse timezone-aware datetime consistently
+                        ts_str = recent_trade['timestamp']
+                        if ts_str.endswith('Z'):
+                            ts_str = ts_str[:-1] + '+00:00'
+                        last_time = datetime.fromisoformat(ts_str)
+                        if last_time.tzinfo is None:
+                            last_time = last_time.replace(tzinfo=timezone.utc)
+                        outcome = recent_trade.get('outcome')
+                        is_last_fail = (outcome == 'FAIL')
+                        is_last_success = (outcome == 'SUCCESS')
+                        # Ignore benched/shadow trades for active live lockups
+                        is_last_active = (outcome in ('ACTIVE', 'NEW', 'PENDING') and not bool(recent_trade.get('is_hidden', 0)))
+                    except Exception as parse_err:
+                        logger.error(f"Error parsing cooldown timestamp for {symbol}: {parse_err}")
 
                 if last_time:
-                    elapsed = (datetime.now(timezone.utc) - last_time).total_seconds() / 60
-                    if elapsed < self._cooldown_minutes:
-                        logger.info(f"SKIP: {symbol} {signal}: Cooldown active ({elapsed:.1f}/{self._cooldown_minutes} min).")
+                    # Active trade lock: prevent double-entry on same symbol
+                    # (Cooldowns disabled — loss and win time-blocks removed)
+                    if is_last_active:
+                        logger.info(f"🛡️ ACTIVE TRADE LOCK: {symbol} has an active trade (ID {recent_trade.get('id')}) — blocking new trade.")
                         return None
 
-                # 1b. Loss Cooldown Check (Anti-Revenge Trading)
-                # If the last resolved signal for this symbol was a FAIL, block new entries for 4 hours.
-                if symbol not in self._loss_cooldowns:
-                    # Lazily populate from DB on first encounter
-                    recent_fail = self.db.get_recent_signals(limit=1, symbol=symbol)
-                    if recent_fail and recent_fail[0].get('outcome') == 'FAIL':
-                        try:
-                            fail_ts = datetime.fromisoformat(recent_fail[0]['timestamp'])
-                            if fail_ts.tzinfo is None:
-                                fail_ts = fail_ts.replace(tzinfo=timezone.utc)
-                            self._loss_cooldowns[symbol] = fail_ts
-                        except Exception:
-                            pass
-
-                if symbol in self._loss_cooldowns:
-                    elapsed_loss = (datetime.now(timezone.utc) - self._loss_cooldowns[symbol]).total_seconds() / 60
-                    if elapsed_loss < self._loss_cooldown_minutes:
-                        logger.info(f"🛡️ LOSS COOLDOWN: {symbol}: SL hit {elapsed_loss:.0f} min ago — blocked for {self._loss_cooldown_minutes - elapsed_loss:.0f} more min (4h anti-revenge guard).")
-                        return None
-                    else:
-                        # Cooldown expired — remove it
-                        del self._loss_cooldowns[symbol]
+                # REGIME CONFIDENCE GATE (DISABLED per user requirement: All 60%+ signals are authorized LIVE)
+                # Previously downgraded ranging signals < 65% to shadow. Now all >= 60% signals go LIVE.
+                pass
 
                 # 2. Smart Stacking & Promotion Logic
                 # Only count real trades (BUY/SELL) as active signals. Ignore 'WAIT'.
@@ -485,21 +540,58 @@ class ExecutiveEngine:
                         logger.info(f"STACKING: {symbol} {signal}: Live trade active. Downgrading {new_tier}% signal to SHADOW for data tracking.")
                         result['is_hidden'] = 1
                     
-                    # RULE 2: Deduplication - Don't save the EXACT same tier if it's already active.
+                    # RULE 2: Deduplication — only deduplicate LIVE (is_hidden=0) trades at the same tier.
+                    # Shadow 50% signals are record-only telemetry — they MUST NOT block each other.
+                    # A new shadow signal in the same direction means conviction is persisting: expire
+                    # the old one and save the fresh snapshot, so history stays accurate.
+                    new_is_shadow = bool(result.get('is_hidden', 0))
+                    new_confidence = float(result.get('confidence', 0))
+                    new_price = float(result.get('price_at_signal', 0))
                     for active in active_signals:
                         active_tier = active.get('confidence_tier', 0)
-                        # Use int(float()) to safely convert "90" or "90.0" strings/numbers to 90
+                        active_is_shadow = bool(active.get('is_hidden', 0))
                         try:
-                            if active['signal'] == signal and int(float(active_tier)) == int(new_tier):
-                                logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Already active. Skipping duplicate.")
-                                return None
+                            same_tier = int(float(active_tier)) == int(new_tier)
+                            same_dir  = active['signal'] == signal
+                            if same_dir and same_tier:
+                                if active_is_shadow and new_is_shadow:
+                                    # IMPORTANT: Shadow trades have FIXED TP/SL from first detection.
+                                    # We NEVER roll based on price movement — that would move the goalposts
+                                    # and prevent the trade from ever resolving to SUCCESS or FAIL.
+                                    # We ONLY roll if conviction changes meaningfully (>=1%), which
+                                    # represents a genuinely new signal, not just market drift.
+                                    active_confidence = float(active.get('confidence', 0))
+                                    conviction_delta = abs(new_confidence - active_confidence)
+
+                                    if conviction_delta >= 0.01:
+                                        # Meaningfully different signal — roll to fresh snapshot
+                                        logger.info(f"SHADOW ROLL: {symbol} {signal} {new_tier}%: Conviction changed by {conviction_delta:.3f}. Expiring stale shadow (ID {active['id']}) and recording fresh snapshot.")
+                                        self.db.update_signal_outcome(active['id'], 'EXPIRED', exit_reason='Shadow Rolled — Conviction Changed')
+                                    else:
+                                        # Same conviction — keep existing shadow alive with its original
+                                        # TP/SL so the watchdog can resolve it naturally.
+                                        logger.debug(f"SHADOW HOLD: {symbol} {signal} {new_tier}%: Conviction unchanged ({conviction_delta:.4f}). Preserving original TP/SL for clean resolution.")
+                                        return None
+                                elif active_is_shadow and not new_is_shadow:
+                                    # PROMOTION: Old was shadow (sub-61%), new is LIVE (>=61%). Expire shadow and promote!
+                                    logger.info(f"PROMOTION: {symbol} {signal} {new_tier}% ({new_confidence*100:.1f}%): Upgrading shadow trade (ID {active['id']}) to LIVE entry.")
+                                    self.db.update_signal_outcome(active['id'], 'EXPIRED', exit_reason='Promoted to Live')
+                                else:
+                                    # Live duplicate: block as before.
+                                    logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Live trade already active. Skipping duplicate.")
+                                    return None
                         except (ValueError, TypeError):
                             continue
 
                     # RULE 3: Tier Promotion - If a benched shadow is running, and we hit a VALIDATED tier, allow it to go LIVE.
                     if not existing_live and is_approved:
-                        logger.info(f"PROMOTION: {symbol} {signal} {new_tier}%: Approved tier found while shadows are active. Authorizing LIVE entry.")
-                        result['is_hidden'] = 0
+                        from core.symbol_guard import is_direction_blocked
+                        if not is_direction_blocked(symbol, signal):
+                            logger.info(f"PROMOTION: {symbol} {signal} {new_tier}%: Approved tier found while shadows are active. Authorizing LIVE entry.")
+                            result['is_hidden'] = 0
+                        else:
+                            logger.warning(f"🚫 PROMOTION BLOCKED: {symbol} {signal} is blacklisted by directional shield.")
+                            result['is_hidden'] = 1
 
                 # DEDUP GUARD: Final check to ensure we didn't just save an identical signal 
                 # in the last few seconds (prevents triplicate race conditions)
@@ -517,11 +609,25 @@ class ExecutiveEngine:
                     return None
 
             # ALWAYS persist the latest analysis outcome for the dashboard
-            self.db.save_signal(result)
+            sig_id = self.db.save_signal(result)
+            result['id'] = sig_id
             # Track in memory to block near-instant triplicates
             self._recent_signals[f"{symbol}_{signal}_{new_tier}"] = datetime.now(timezone.utc)
 
+            # ── CRITICAL: Flush the final is_hidden flag back to DB ──────────────
+            # inference.py may have saved is_hidden=0 (live), but the regime gate,
+            # stacking rules, or promotion logic may have changed it in memory.
+            # We must write the corrected value to DB NOW, before apex_connect.py
+            # polls the DB and potentially executes a trade that should be shadow.
             if signal in ('BUY', 'SELL'):
+                self.db.update_signal_hidden(sig_id, int(result.get('is_hidden', 0)))
+
+            if signal in ('BUY', 'SELL'):
+                from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+                if is_symbol_blocked(symbol) or is_direction_blocked(symbol, signal):
+                    result['is_hidden'] = 1
+                    self.db.update_signal_hidden(sig_id, 1)
+
                 # 3. Certification Gate: Only alert and log as NEW if proven for MT5
                 # and NOT hidden (Shadow Training)
                 is_hidden = bool(result.get('is_hidden', False))
@@ -533,12 +639,30 @@ class ExecutiveEngine:
                         f"(Conf: {result['confidence']:.1%})"
                     )
                     
-                    # LIVE TRADE EXECUTION
-                    if self.place_mt5_trade(result):
-                        result['is_live'] = True
-                    
-                    # Send Telegram alert (Unless CRISIS)
+                    # LIVE TRADE EXECUTION — all regimes (regime-based model routing handled in inference.py)
                     regime = result.get('regime', 'NORMAL')
+                    ticket = self.place_mt5_trade(result)
+                    if ticket:
+                        result['is_live'] = True
+                        result['mt5_ticket'] = ticket
+                        self.db.update_signal_ticket(result['id'], ticket)
+
+                    # 2b. Broadcast to copy trading accounts (Multi-User)
+                    try:
+                        from scripts.multi_executor import execute_signal_for_all_users
+                        execute_signal_for_all_users(result)
+                        # Restore master terminal context after multi-account loop
+                        mt5_conf = self.config.get('mt5', {})
+                        if self.mt5 and mt5_conf.get('login'):
+                            self.mt5.initialize(
+                                login=int(mt5_conf['login']),
+                                password=str(mt5_conf.get('password', '')),
+                                server=str(mt5_conf.get('server', ''))
+                            )
+                    except Exception as _me:
+                        logger.error(f"Multi-user copy execution error: {_me}")
+
+                    # Send Telegram alert (Unless CRISIS)
                     if 'CRISIS' in str(regime).upper():
                         logger.warning(f"BLOCK: Telegram alert suppressed for {symbol} due to CRISIS regime.")
                     else:
@@ -576,6 +700,16 @@ class ExecutiveEngine:
     
     def run_scan(self, symbols: List[str]):
         """Execute a single market scan across all symbols."""
+        # Unconditionally monitor outcomes first, before checking the safety gate
+        self.monitor_active_signals()
+
+        from core.guardrail import get_guardrail
+        guard = get_guardrail()
+        status = guard.get_safety_status()
+        if not status['safe']:
+            logger.warning(f"🛑 SAFETY HALT: {status['reason']} (Drawdown: {status['drawdown']:.1f}%) - Skipping Setup Scan.")
+            return
+            
         start_time = time.time()
         logger.info(f"--- MARKET SCAN STARTED: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} ---")
         logger.info(f"Scanning {len(symbols)} pairs for {self.target_win_rate} setups...")
@@ -602,11 +736,114 @@ class ExecutiveEngine:
                 time.sleep(7.5)
         elapsed = time.time() - start_time
         logger.info(f"--- SCAN COMPLETE: {signals_generated} new signals in {elapsed:.1f}s ---")
-        
-        # Monitor outcomes after each scan
-        self.monitor_active_signals()
         logger.info("")
-    
+    def check_and_execute_friday_exit(self, mt5_conn, broker_offset: int = 3) -> bool:
+        """
+        Friday Auto-Exit: Closes all open positions and resolves all active signals (live & shadow)
+        30 minutes before market close on Friday (16:30 New York time, accounting for seasonal DST).
+        """
+        try:
+            from core.market_hours import is_friday_auto_exit_time, get_ny_time
+            
+            if is_friday_auto_exit_time():
+                ny_now = get_ny_time()
+                logger.warning(f"🕒 Friday Exit Triggered: New York time is {ny_now.strftime('%Y-%m-%d %H:%M:%S %Z')} (30 min before market close). Closing all active signals.")
+                
+                # Fetch all ACTIVE signals from database
+                active_signals = self.db.get_active_signals(include_hidden=True)
+                if not active_signals:
+                    logger.debug("Friday Exit: No active signals to resolve in DB.")
+                    return False
+                
+                # Close live MT5 positions if connected
+                if mt5_conn:
+                    positions = mt5_conn.positions_get()
+                    if positions:
+                        logger.info(f"Friday Exit: Found {len(positions)} open MT5 positions to close.")
+                        for p in positions:
+                            logger.info(f"Friday Exit: Closing position {p.symbol} (Ticket: {p.ticket})")
+                            tick_sym = mt5_conn.symbol_info_tick(p.symbol)
+                            if not tick_sym:
+                                logger.error(f"Cannot get tick for {p.symbol} — skipping MT5 close.")
+                                continue
+                                
+                            close_price = tick_sym.bid if p.type == mt5_conn.POSITION_TYPE_BUY else tick_sym.ask
+                            close_type = mt5_conn.ORDER_TYPE_SELL if p.type == mt5_conn.POSITION_TYPE_BUY else mt5_conn.ORDER_TYPE_BUY
+                            
+                            filling = mt5_conn.ORDER_FILLING_FOK
+                            s_info = mt5_conn.symbol_info(p.symbol)
+                            if s_info:
+                                if (s_info.filling_mode & 1):
+                                    filling = mt5_conn.ORDER_FILLING_FOK
+                                elif (s_info.filling_mode & 2):
+                                    filling = mt5_conn.ORDER_FILLING_IOC
+                                else:
+                                    filling = mt5_conn.ORDER_FILLING_RETURN
+                                    
+                            close_request = {
+                                "action": mt5_conn.TRADE_ACTION_DEAL,
+                                "symbol": p.symbol,
+                                "volume": p.volume,
+                                "type": close_type,
+                                "position": p.ticket,
+                                "price": close_price,
+                                "deviation": 20,
+                                "magic": 999000,
+                                "comment": "Apex Friday Exit",
+                                "type_time": mt5_conn.ORDER_TIME_GTC,
+                                "type_filling": filling,
+                            }
+                            
+                            res = mt5_conn.order_send(close_request)
+                            if res and res.retcode == mt5_conn.TRADE_RETCODE_DONE:
+                                logger.info(f"✅ Friday Exit: Closed {p.symbol} ticket {p.ticket} at {close_price}")
+                            else:
+                                comment = res.comment if res else "No response"
+                                logger.error(f"❌ Friday Exit: Failed to close ticket {p.ticket}: {comment}")
+                    else:
+                        logger.info("Friday Exit: No open MT5 positions found.")
+
+                # Resolve all active signals (both live and shadow) in DB
+                for sig in active_signals:
+                    symbol = sig['symbol']
+                    sig_id = sig['id']
+                    direction = sig['signal']
+                    price_at_sig = sig.get('price_at_signal')
+
+                    # Skip heartbeats / non-trade signals
+                    if direction not in ('BUY', 'SELL') or not price_at_sig:
+                        self.db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason="Friday Auto-Exit (Non-trade)")
+                        continue
+
+                    # Fetch current price estimate
+                    current_price = None
+                    if mt5_conn:
+                        tick = mt5_conn.symbol_info_tick(symbol)
+                        if tick:
+                            current_price = tick.bid if direction == 'BUY' else tick.ask
+
+                    # Grade outcome:
+                    # - If we got a live tick and price moved meaningfully → SUCCESS/FAIL
+                    # - If no tick or price == entry (market closed, no data) → EXPIRED
+                    min_pip = 0.0001
+                    if current_price is not None and abs(current_price - price_at_sig) > min_pip:
+                        profit = (current_price - price_at_sig) if direction == 'BUY' else (price_at_sig - current_price)
+                        outcome = 'SUCCESS' if profit > 0 else 'FAIL'
+                        reason = "Friday Auto-Exit (Terminated)"
+                    else:
+                        # Market closed or no real movement — don't penalise as FAIL
+                        outcome = 'EXPIRED'
+                        reason = "Friday Auto-Exit (Market Closed)"
+                        current_price = current_price or price_at_sig
+
+                    logger.info(f"🏁 Friday Exit Resolved: {symbol} ID {sig_id} -> {outcome} ({reason}) @ {current_price:.5f}")
+                    self.db.update_signal_outcome(sig_id, outcome, exit_price=current_price, exit_reason=reason)
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error in check_and_execute_friday_exit: {e}", exc_info=True)
+            return False
+
     def monitor_active_signals(self):
         """
         High-Reliability Watchdog: Resolves active signals using Triple-Check logic:
@@ -615,15 +852,53 @@ class ExecutiveEngine:
         3. Data Engine Fetch (Fallback)
         """
         active_signals = self.db.get_active_signals(include_hidden=True)
-        if not active_signals:
-            return
-            
-        logger.info(f"Watchdog: Syncing {len(active_signals)} active signals with market reality...")
-        resolutions_found = False
         
         # Initialize MT5 for the highest quality resolution
         from core.mt5_connector import get_mt5
         mt5_conn = get_mt5()
+
+        # Determine broker timezone offset dynamically.
+        # CRITICAL: Do NOT use symbol_info_tick().time for offset detection.
+        # On Sunday market open, the last tick can still be Friday's stale price,
+        # causing the watchdog to think it's Friday 23:59 and fire a false Friday Auto-Exit,
+        # killing all freshly-generated Monday open signals.
+        # Instead, use tick.time ONLY if it's fresh (< 2 hours old). Otherwise fall back to +3.
+        broker_offset = 3.0  # Safe default: FTMO / EET summer (UTC+3)
+        if mt5_conn:
+            try:
+                tick = mt5_conn.symbol_info_tick("EURUSD")
+                if tick:
+                    tick_dt = datetime.fromtimestamp(tick.time, timezone.utc)
+                    staleness_hours = (datetime.now(timezone.utc) - tick_dt).total_seconds() / 3600
+                    if staleness_hours < 2.0:
+                        # Tick is fresh (market open) — safe to derive real offset
+                        dynamic_offset = round((tick_dt - datetime.now(timezone.utc)).total_seconds() / 3600.0)
+                        broker_offset = dynamic_offset
+                        logger.info(f"Watchdog: Live tick detected. MT5 broker offset = {broker_offset:+.1f}h (tick age: {staleness_hours:.1f}h)")
+                    else:
+                        logger.info(f"Watchdog: Tick is stale ({staleness_hours:.1f}h old — market closed). Using safe default offset of {broker_offset:+.1f}h.")
+            except Exception as e:
+                logger.warning(f"Watchdog: Failed to detect MT5 broker timezone offset: {e}")
+
+        # Check and execute Friday exit before evaluating regular SL/TP outcomes
+        if self.check_and_execute_friday_exit(mt5_conn, broker_offset):
+            # If Friday exit triggered, it resolved all active signals. Refresh list.
+            active_signals = self.db.get_active_signals(include_hidden=True)
+
+        if not active_signals:
+            return
+            
+        # ── MT5 DISCONNECTION GUARD ──────────────────────────────────────────
+        # If MT5 is completely unreachable (auth failed, bridge down, account expired),
+        # do NOT attempt to resolve any signals. Every check would fall through to 
+        # the data-engine fallback which can produce false FAILs on stale data.
+        # Keep all signals ACTIVE and wait for reconnection.
+        if not mt5_conn:
+            logger.warning("Watchdog: MT5 is unreachable. Skipping all signal resolution to prevent false FAILs. Signals remain ACTIVE.")
+            return
+            
+        logger.info(f"Watchdog: Syncing {len(active_signals)} active signals with market reality...")
+        resolutions_found = False
         
         for sig in active_signals:
             symbol = sig['symbol']
@@ -645,27 +920,87 @@ class ExecutiveEngine:
             current_price = 0.0
 
             # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
-            if mt5_conn and ticket:
-                try:
-                    # Check if position is still open
-                    pos = mt5_conn.positions_get(ticket=int(ticket))
-                    if not pos:
-                        # Position closed in MT5! Find out why in history.
-                        import MetaTrader5 as mt
-                        from datetime import datetime, timedelta
-                        hist = mt5_conn.history_deals_get(ticket=int(ticket))
-                        if hist:
-                            deal = hist[-1]
-                            current_price = deal.price
-                            profit = deal.profit
-                            outcome = 'SUCCESS' if profit > 0 else 'FAIL'
-                            reason = f"MT5 Native Close (Profit: ${profit:.2f})"
+            if ticket and str(ticket).isdigit() and int(ticket) > 0:
+                if mt5_conn:
+                    try:
+                        # Check if position is still open
+                        pos = mt5_conn.positions_get(ticket=int(ticket))
+                        if pos:
+                            # Position is still open in MT5! Check if it has hit SL/TP on our side as a safety fallback.
+                            tick = mt5_conn.symbol_info_tick(symbol)
+                            if tick:
+                                current_price = tick.bid if direction == 'BUY' else tick.ask
+                                hit_tp = (direction == 'BUY' and current_price >= tp) or (direction == 'SELL' and current_price <= tp)
+                                hit_sl = (direction == 'BUY' and current_price <= sl) or (direction == 'SELL' and current_price >= sl)
+                                
+                                if hit_tp or hit_sl:
+                                    logger.warning(f"⚠️ SAFETY FALLBACK: Position {ticket} ({symbol}) hit {'TP' if hit_tp else 'SL'} but is still open in MT5. Manually closing.")
+                                    close_type = mt5_conn.ORDER_TYPE_SELL if direction == 'BUY' else mt5_conn.ORDER_TYPE_BUY
+                                    
+                                    filling = mt5_conn.ORDER_FILLING_FOK
+                                    s_info = mt5_conn.symbol_info(symbol)
+                                    if s_info:
+                                        if (s_info.filling_mode & 1):
+                                            filling = mt5_conn.ORDER_FILLING_FOK
+                                        elif (s_info.filling_mode & 2):
+                                            filling = mt5_conn.ORDER_FILLING_IOC
+                                        else:
+                                            filling = mt5_conn.ORDER_FILLING_RETURN
+                                            
+                                    close_request = {
+                                        "action": mt5_conn.TRADE_ACTION_DEAL,
+                                        "symbol": symbol,
+                                        "volume": pos[0].volume,
+                                        "type": close_type,
+                                        "position": int(ticket),
+                                        "price": current_price,
+                                        "deviation": 20,
+                                        "magic": 202404,
+                                        "comment": f"APEX SAFETY CLOSE ({'TP' if hit_tp else 'SL'})",
+                                        "type_time": mt5_conn.ORDER_TIME_GTC,
+                                        "type_filling": filling,
+                                    }
+                                    res = mt5_conn.order_send(close_request)
+                                    if res and res.retcode == mt5_conn.TRADE_RETCODE_DONE:
+                                        outcome = 'SUCCESS' if hit_tp else 'FAIL'
+                                        reason = f"{'TP' if hit_tp else 'SL'} Hit (Safety Fallback Close)"
+                                        logger.info(f"✅ Safety fallback close succeeded for ticket {ticket}")
+                                    else:
+                                        comment = res.comment if res else "No response"
+                                        logger.error(f"❌ Safety fallback close failed for ticket {ticket}: {comment}")
+                                        continue
+                                else:
+                                    logger.info(f"Position {ticket} ({symbol}) is still active in MT5. Keeping ACTIVE.")
+                                    continue
+                            else:
+                                logger.info(f"Position {ticket} ({symbol}) is still active in MT5. Keeping ACTIVE (No Tick data).")
+                                continue
                         else:
-                            # Fallback if history deal not found yet
-                            outcome = 'SUCCESS' # Optimistic until proven otherwise
-                            reason = "MT5 Position Closed (History pending)"
-                except Exception as e:
-                    logger.warning(f"MT5 Ticket check failed for {symbol}: {e}")
+                            # Position closed in MT5! Find out why in history.
+                            import MetaTrader5 as mt
+                            hist = mt5_conn.history_deals_get(position=int(ticket))
+                            if hist:
+                                # Filter for exit deals (entry: 1=OUT, 2=INOUT, 3=OUT_BY)
+                                exit_deals = [d for d in hist if getattr(d, 'entry', None) in (1, 2, 3)]
+                                if exit_deals:
+                                    last_exit = exit_deals[-1]
+                                    current_price = last_exit.price
+                                    # Sum the profits of all deals associated with this position
+                                    total_profit = sum(getattr(d, 'profit', 0.0) for d in hist)
+                                    outcome = 'SUCCESS' if total_profit > 0 else 'FAIL'
+                                    reason = f"MT5 Native Close (Profit: ${total_profit:.2f})"
+                                else:
+                                    logger.info(f"MT5 Position {ticket} closed, but exit deals not available in history yet. Waiting.")
+                                    continue
+                            else:
+                                logger.info(f"MT5 Position {ticket} closed, but history deals not available yet. Waiting.")
+                                continue
+                    except Exception as e:
+                        logger.warning(f"MT5 Ticket check failed for {symbol}: {e}. Keeping ACTIVE to prevent premature resolution.")
+                        continue
+                else:
+                    logger.warning(f"Live trade ticket {ticket} exists but MT5 is not connected. Keeping ACTIVE to prevent premature resolution.")
+                    continue
 
             # ── CHECK 2: MT5 Live Ticks (Medium Priority) ──────────────
             if not outcome and mt5_conn:
@@ -693,15 +1028,36 @@ class ExecutiveEngine:
                             sig_ts = pd.to_datetime(sig['timestamp'])
                             if sig_ts.tzinfo is None: sig_ts = sig_ts.tz_localize('UTC')
                             if df.index.tzinfo is None: df.index = df.index.tz_localize('UTC')
+                            else: df.index = df.index.tz_convert('UTC')
+                            
+                            # Shift MT5 time index to true UTC
+                            if self.inference_engine.data_engine.provider.name == 'mt5' and broker_offset != 0:
+                                df.index = df.index - pd.Timedelta(hours=broker_offset)
                             
                             relevant = df[df.index >= sig_ts]
                             if not relevant.empty:
                                 if direction == 'BUY':
-                                    if (relevant['high'] >= tp).any(): outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
-                                    elif (relevant['low'] <= sl).any(): outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                    tp_hits = relevant[relevant['high'] >= tp]
+                                    sl_hits = relevant[relevant['low'] <= sl]
+                                    tp_idx = tp_hits.index[0] if not tp_hits.empty else None
+                                    sl_idx = sl_hits.index[0] if not sl_hits.empty else None
+                                    
+                                    if tp_idx and sl_idx:
+                                        if tp_idx < sl_idx: outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                        else: outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                    elif tp_idx: outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                    elif sl_idx: outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
                                 else: # SELL
-                                    if (relevant['low'] <= tp).any(): outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
-                                    elif (relevant['high'] >= sl).any(): outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                    tp_hits = relevant[relevant['low'] <= tp]
+                                    sl_hits = relevant[relevant['high'] >= sl]
+                                    tp_idx = tp_hits.index[0] if not tp_hits.empty else None
+                                    sl_idx = sl_hits.index[0] if not sl_hits.empty else None
+                                    
+                                    if tp_idx and sl_idx:
+                                        if tp_idx < sl_idx: outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                        else: outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
+                                    elif tp_idx: outcome, reason = 'SUCCESS', f'TP Hit ({interval} data)'
+                                    elif sl_idx: outcome, reason = 'FAIL', f'SL Hit ({interval} data)'
                                 
                                 if outcome:
                                     current_price = relevant['close'].iloc[-1]
