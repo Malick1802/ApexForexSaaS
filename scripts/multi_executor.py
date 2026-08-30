@@ -34,11 +34,20 @@ def _connect_user(mt5, user: dict) -> bool:
         login = int(user["mt5_login"])
         password = str(user["mt5_password"])
         server = str(user["mt5_server"])
+        
+        # 1. Try standard initialize with login
         ok = mt5.initialize(login=login, password=password, server=server)
+        if not ok:
+            # 2. Try with standard MetaTrader 5 terminal path if installed
+            std_path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+            from pathlib import Path
+            if Path(std_path).exists():
+                ok = mt5.initialize(path=std_path, login=login, password=password, server=server)
+                
         if ok:
             acc = mt5.account_info()
             if acc:
-                logger.info(f"  ✅ Connected: {user['name']} → {acc.server} (Balance: {acc.balance:.2f})")
+                logger.info(f"  ✅ Connected: {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
                 return True
         err = mt5.last_error()
         logger.error(f"  ❌ Failed to connect {user['name']}: {err}")
