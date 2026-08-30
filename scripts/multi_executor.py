@@ -35,20 +35,30 @@ def _connect_user(mt5, user: dict) -> bool:
         password = str(user["mt5_password"])
         server = str(user["mt5_server"])
         
-        # 1. Try standard initialize with login
-        ok = mt5.initialize(login=login, password=password, server=server)
-        if not ok:
-            # 2. Try with standard MetaTrader 5 terminal path if installed
-            std_path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
-            from pathlib import Path
-            if Path(std_path).exists():
-                ok = mt5.initialize(path=std_path, login=login, password=password, server=server)
-                
-        if ok:
-            acc = mt5.account_info()
-            if acc:
-                logger.info(f"  ✅ Connected: {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
-                return True
+        # 1. Try direct login on currently active terminal session
+        try:
+            if mt5.login(login=login, password=password, server=server):
+                acc = mt5.account_info()
+                if acc and acc.login == login:
+                    logger.info(f"  ✅ Connected (Direct): {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
+                    return True
+        except Exception:
+            pass
+
+        # 2. If server belongs to standard terminal or direct login fails, switch to standard terminal
+        std_path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+        from pathlib import Path
+        if Path(std_path).exists():
+            try:
+                mt5.shutdown()
+            except Exception:
+                pass
+            if mt5.initialize(path=std_path, login=login, password=password, server=server, timeout=15000):
+                acc = mt5.account_info()
+                if acc and acc.login == login:
+                    logger.info(f"  ✅ Connected (Terminal Switch): {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
+                    return True
+
         err = mt5.last_error()
         logger.error(f"  ❌ Failed to connect {user['name']}: {err}")
         return False
@@ -59,8 +69,8 @@ def _connect_user(mt5, user: dict) -> bool:
 
 def _calculate_lots(mt5, user: dict, symbol: str, sl_price: float, entry_price: float) -> float:
     """Calculate lot size based on user's risk settings."""
-    risk_type = user.get("risk_type", "fixed")
-    risk_value = float(user.get("risk_value", 0.01))
+    risk_type = user.get("risk_type", "percent")
+    risk_value = float(user.get("risk_value", 0.5))
 
     if risk_type == "fixed":
         return risk_value
@@ -76,8 +86,8 @@ def _calculate_lots(mt5, user: dict, symbol: str, sl_price: float, entry_price: 
         if not symbol_info:
             return 0.01
 
-        tick_size = symbol_info.trade_tick_size
-        tick_value = symbol_info.trade_tick_value
+        tick_size = symbol_info.trade_tick_size or 0.00001
+        tick_value = symbol_info.trade_tick_value or 1.0
         price_dist = abs(entry_price - sl_price)
         dist_in_ticks = price_dist / tick_size if tick_size > 0 else 0
 
@@ -87,8 +97,8 @@ def _calculate_lots(mt5, user: dict, symbol: str, sl_price: float, entry_price: 
         loss_per_lot = dist_in_ticks * tick_value
         risk_lots = risk_amount / loss_per_lot
 
-        # Clamp to symbol min/max
-        step = symbol_info.volume_step
+        # Clamp to symbol min/max and volume step
+        step = symbol_info.volume_step or 0.01
         risk_lots = round(risk_lots / step) * step
         return max(symbol_info.volume_min, min(symbol_info.volume_max, risk_lots))
 
@@ -127,24 +137,19 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
 
     for user in users:
         user_name = user["name"]
-        logger.info(f"→ Processing: {user_name}")
+        logger.info(f"→ Processing Copy Trade for: {user_name}")
 
         try:
             mt5 = _get_mt5_module()
 
             if not _connect_user(mt5, user):
                 results[user_name] = "CONNECTION_FAILED"
-                try:
-                    mt5.shutdown()
-                except Exception:
-                    pass
                 continue
 
             # Select symbol
             if not mt5.symbol_select(symbol, True):
                 logger.error(f"  Symbol {symbol} not visible for {user_name}")
                 results[user_name] = "SYMBOL_NOT_FOUND"
-                mt5.shutdown()
                 continue
 
             # Get live tick
@@ -152,7 +157,6 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
             if not tick:
                 logger.error(f"  No tick for {symbol} for {user_name}")
                 results[user_name] = "NO_TICK"
-                mt5.shutdown()
                 continue
 
             price = tick.ask if signal_type == "BUY" else tick.bid
@@ -165,8 +169,12 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
             symbol_info = mt5.symbol_info(symbol)
             filling_type = mt5.ORDER_FILLING_FOK
             if symbol_info:
-                if (symbol_info.filling_mode & 2) != 0:
+                if (symbol_info.filling_mode & 1) != 0:
+                    filling_type = mt5.ORDER_FILLING_FOK
+                elif (symbol_info.filling_mode & 2) != 0:
                     filling_type = mt5.ORDER_FILLING_IOC
+                else:
+                    filling_type = mt5.ORDER_FILLING_RETURN
 
             request = {
                 "action":       mt5.TRADE_ACTION_DEAL,
@@ -184,10 +192,9 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
             }
 
             result = mt5.order_send(request)
-            mt5.shutdown()
 
             if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                logger.info(f"  ✅ {user_name}: Ticket {result.order}")
+                logger.info(f"  ✅ {user_name}: Order Placed! Ticket {result.order} | Volume: {volume} lots")
                 results[user_name] = result.order
                 mark_last_trade(user["id"])
             else:
@@ -199,10 +206,25 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
         except Exception as e:
             logger.error(f"  ❌ {user_name}: Exception — {e}")
             results[user_name] = f"EXCEPTION:{e}"
+
+    # Always restore Master FTMO connection after broadcasting
+    try:
+        import yaml
+        from pathlib import Path
+        cfg_path = Path(__file__).resolve().parent.parent / "config.yaml"
+        with open(cfg_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        m = cfg.get('mt5', {})
+        if m.get('login'):
+            mt5 = _get_mt5_module()
             try:
                 mt5.shutdown()
             except Exception:
                 pass
+            mt5.initialize(login=int(m['login']), password=str(m.get('password', '')), server=str(m.get('server', '')))
+            logger.info("  🔁 Restored master FTMO terminal session.")
+    except Exception as _re:
+        logger.error(f"Failed to restore master connection: {_re}")
 
     logger.info(f"✅ Multi-Executor complete. Results: {results}")
 
