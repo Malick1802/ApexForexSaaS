@@ -1,4 +1,57 @@
+blocked_symbols:
+- XAUUSD
+- GOLD
+- XAGUSD
+- SILVER
+- USOIL
+- USOIL.cash
+- UKOIL
+- UKOIL.cash
+- BRENT
+- WTI
+- CrudeOIL
+- COPPER
+- XPTUSD
+- XPDUSD
+- NGAS
+- NATGAS
+blocked_directions:
+  EURUSD:
+    - "BUY"
+  EURCAD:
+    - "BUY"
 currency_pairs:
+  commodities:
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: AUDUSD
+    pip_type: standard
+    symbol: XAUUSD
+  - correlated_assets:
+    - correlation: 0.9
+      symbol: XAUUSD
+    pip_type: standard
+    symbol: SILVER
+  - correlated_assets:
+    - correlation: -0.65
+      symbol: USDCAD
+    pip_type: standard
+    symbol: USOIL.cash
+  - correlated_assets:
+    - correlation: 0.65
+      symbol: AUDUSD
+    pip_type: standard
+    symbol: COPPER
+  - correlated_assets:
+    - correlation: 0.75
+      symbol: XAUUSD
+    pip_type: standard
+    symbol: XPTUSD
+  - correlated_assets:
+    - correlation: 0.8
+      symbol: XPTUSD
+    pip_type: standard
+    symbol: XPDUSD
   crosses:
   - correlated_assets:
     - correlation: 0.55
@@ -32,6 +85,32 @@ currency_pairs:
       symbol: VIX
     pip_type: standard
     symbol: AUDCHF
+  indices:
+  - correlated_assets:
+    - correlation: 0.9
+      symbol: US30
+    pip_type: standard
+    symbol: NAS100
+  - correlated_assets:
+    - correlation: 0.95
+      symbol: SPX500
+    pip_type: standard
+    symbol: US30
+  - correlated_assets:
+    - correlation: -0.85
+      symbol: VIX
+    pip_type: standard
+    symbol: SPX500
+  - correlated_assets:
+    - correlation: 0.4
+      symbol: EURUSD
+    pip_type: standard
+    symbol: GER40
+  - correlated_assets:
+    - correlation: 0.7
+      symbol: USDJPY
+    pip_type: standard
+    symbol: JPN225
   majors:
   - correlated_assets:
     - correlation: -0.95
@@ -173,63 +252,6 @@ currency_pairs:
       symbol: USDJPY
     pip_type: standard
     symbol: USDSGD
-  indices:
-  - symbol: NAS100
-    pip_type: standard
-    correlated_assets:
-    - symbol: US30
-      correlation: 0.9
-  - symbol: US30
-    pip_type: standard
-    correlated_assets:
-    - symbol: SPX500
-      correlation: 0.95
-  - symbol: SPX500
-    pip_type: standard
-    correlated_assets:
-    - symbol: VIX
-      correlation: -0.85
-  - symbol: GER40
-    pip_type: standard
-    correlated_assets:
-    - symbol: EURUSD
-      correlation: 0.4
-  - symbol: JPN225
-    pip_type: standard
-    correlated_assets:
-    - symbol: USDJPY
-      correlation: 0.7
-  commodities:
-  - symbol: XAUUSD
-    pip_type: standard
-    correlated_assets:
-    - symbol: AUDUSD
-      correlation: 0.8
-  - symbol: SILVER
-    pip_type: standard
-    correlated_assets:
-    - symbol: XAUUSD
-      correlation: 0.9
-  - symbol: USOIL.cash
-    pip_type: standard
-    correlated_assets:
-    - symbol: USDCAD
-      correlation: -0.65
-  - symbol: COPPER
-    pip_type: standard
-    correlated_assets:
-    - symbol: AUDUSD
-      correlation: 0.65
-  - symbol: XPTUSD
-    pip_type: standard
-    correlated_assets:
-    - symbol: XAUUSD
-      correlation: 0.75
-  - symbol: XPDUSD
-    pip_type: standard
-    correlated_assets:
-    - symbol: XPTUSD
-      correlation: 0.8
 data:
   cache:
     directory: data_cache
@@ -242,145 +264,146 @@ data:
   - 1d
 data_provider:
   active: mt5
-  twelvedata:
-    api_key: 91d80548bd2a4c7689b21f07043cfaa5
-    base_url: https://api.twelvedata.com
-    rate_limit_delay: 1.0
-    retry_count: 5
-    timeout: 30
   yfinance:
     rate_limit_delay: 0.5
     suffix: =X
+fleet:
+  cooldown_bars: 24
+  predators:
+  - route: ensemble
+    symbol: EURUSD
+    threshold: 0.6
+  - route: global
+    symbol: GBPUSD
+    threshold: 0.52
+  - route: ensemble
+    symbol: USDCHF
+    threshold: 0.52
+  - route: global
+    symbol: AUDUSD
+    threshold: 0.6
+  - route: ensemble
+    symbol: USDCAD
+    threshold: 0.52
+  - route: ensemble
+    symbol: NZDUSD
+    threshold: 0.52
+  - route: ensemble
+    symbol: EURGBP
+    threshold: 0.52
+  - route: global
+    symbol: EURAUD
+    threshold: 0.6
+  - route: global
+    symbol: EURCAD
+    threshold: 0.52
+  - route: global
+    symbol: EURCHF
+    threshold: 0.52
+  - route: ensemble
+    symbol: GBPAUD
+    threshold: 0.52
+  - route: global
+    symbol: GBPCAD
+    threshold: 0.6
+  - route: ensemble
+    symbol: GBPCHF
+    threshold: 0.6
+  - route: global
+    symbol: AUDCAD
+    threshold: 0.6
+  - route: global
+    symbol: AUDNZD
+    threshold: 0.52
+  - route: ensemble
+    symbol: USDJPY
+    threshold: 0.52
+  - route: global
+    symbol: EURJPY
+    threshold: 0.52
+  - route: global
+    symbol: GBPJPY
+    threshold: 0.6
+  - route: global
+    symbol: AUDJPY
+    threshold: 0.6
+  - route: global
+    symbol: CADJPY
+    threshold: 0.52
+  - route: ensemble
+    symbol: CHFJPY
+    threshold: 0.52
+  - route: global
+    symbol: NZDJPY
+    threshold: 0.6
+  - route: global
+    symbol: XAUUSD
+    threshold: 0.6
+  - route: global
+    symbol: USOIL.cash
+    threshold: 0.52
+  - route: ensemble
+    symbol: USDSGD
+    threshold: 0.52
+  - route: ensemble
+    symbol: CADCHF
+    threshold: 0.52
+  - route: global
+    symbol: NZDCAD
+    threshold: 0.52
+  - route: ensemble
+    symbol: NZDCHF
+    threshold: 0.52
+  - route: ensemble
+    symbol: EURNZD
+    threshold: 0.52
+  - route: ensemble
+    symbol: GBPNZD
+    threshold: 0.52
+  - route: ensemble
+    symbol: AUDCHF
+    threshold: 0.52
+  routing_mode: truth
+foundation:
+  active_version: v3
+  foundation_v3: models/foundation_v3/foundation_brain.keras
 mt5:
   enabled: true
   host: 127.0.0.1
+  login: 1514462922
+  max_open_trades: 9
+  max_trade_leverage: 30
+  password: 'TG@5@!kl3r@Ih'
   port: 18812
-  login: 1513419698
-  password: 'eR9PzV!L3t'
-  server: 'FTMO-Demo'
-  max_open_trades: 5
   risk_type: percent
   risk_value: 0.5
-  max_trade_leverage: 30
+  server: FTMO-Demo
 notifications:
   telegram:
+    alert_threshold: 0.61
     bot_token: 8656723100:AAEPEbCyQ22MOvzDFAdxxD4EsxIF7Z_5KQM
+    channel_id: '-1003866418195'
     chat_id: '6034739351'
-    channel_id: '-1003866418195' # Add your channel ID here (e.g. '@channelname' or '-100...')
     enabled: true
     notify_shadow_trades: false
-    alert_threshold: 0.6
+safety:
+  friday_entry_cutoff_ny_hour: 16  # 1 hour before market close (16:00 New York time, seasonal DST aware)
+  friday_auto_exit_ny_time: "16:30" # 30 minutes before market close (16:30 New York time, seasonal DST aware)
+  sunday_trading_start_ny_hour: 19 # 2-hour cool-off buffer (19:00 / 7:00 PM New York time, seasonal DST aware)
+  enabled: true
+  max_daily_drawdown_pct: 2.5
+technical:
+  currency: USD
+  log_level: INFO
+  theme: Light Mode
+  timezone: UTC
 trading:
   execute_trades: true
+  target_win_rate: "61%"
+  gold_min_sl_pips: 100
   pip_values:
     jpy: 0.01
     standard: 0.0001
   risk_reward_ratio: 1.5
   stop_loss_pips: 25
-  gold_min_sl_pips: 100
   take_profit_pips: 37
-safety:
-  max_daily_drawdown_pct: 2.5
-  close_friday_hour_est: 16
-  enabled: true
-blocked_symbols: []
-foundation:
-  active_version: v3
-  foundation_v3: models/foundation_v3/foundation_brain.keras
-fleet:
-  routing_mode: truth
-  cooldown_bars: 24
-  predators:
-  - symbol: EURUSD
-    route: ensemble
-    threshold: 0.6
-  - symbol: GBPUSD
-    route: global
-    threshold: 0.52
-  - symbol: USDCHF
-    route: ensemble
-    threshold: 0.52
-  - symbol: AUDUSD
-    route: global
-    threshold: 0.6
-  - symbol: USDCAD
-    route: ensemble
-    threshold: 0.52
-  - symbol: NZDUSD
-    route: ensemble
-    threshold: 0.52
-  - symbol: EURGBP
-    route: ensemble
-    threshold: 0.52
-  - symbol: EURAUD
-    route: global
-    threshold: 0.6
-  - symbol: EURCAD
-    route: global
-    threshold: 0.52
-  - symbol: EURCHF
-    route: global
-    threshold: 0.52
-  - symbol: GBPAUD
-    route: ensemble
-    threshold: 0.52
-  - symbol: GBPCAD
-    route: global
-    threshold: 0.6
-  - symbol: GBPCHF
-    route: ensemble
-    threshold: 0.6
-  - symbol: AUDCAD
-    route: global
-    threshold: 0.6
-  - symbol: AUDNZD
-    route: global
-    threshold: 0.52
-  - symbol: USDJPY
-    route: ensemble
-    threshold: 0.52
-  - symbol: EURJPY
-    route: global
-    threshold: 0.52
-  - symbol: GBPJPY
-    route: global
-    threshold: 0.6
-  - symbol: AUDJPY
-    route: global
-    threshold: 0.6
-  - symbol: CADJPY
-    route: global
-    threshold: 0.52
-  - symbol: CHFJPY
-    route: ensemble
-    threshold: 0.52
-  - symbol: NZDJPY
-    route: global
-    threshold: 0.6
-  - symbol: XAUUSD
-    route: global
-    threshold: 0.6
-  - symbol: USOIL.cash
-    route: global
-    threshold: 0.52
-  - symbol: USDSGD
-    route: ensemble
-    threshold: 0.52
-  - symbol: CADCHF
-    route: ensemble
-    threshold: 0.52
-  - symbol: NZDCAD
-    route: global
-    threshold: 0.52
-  - symbol: NZDCHF
-    route: ensemble
-    threshold: 0.52
-  - symbol: EURNZD
-    route: ensemble
-    threshold: 0.52
-  - symbol: GBPNZD
-    route: ensemble
-    threshold: 0.52
-  - symbol: AUDCHF
-    route: ensemble
-    threshold: 0.52

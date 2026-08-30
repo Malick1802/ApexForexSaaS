@@ -18,8 +18,7 @@ import pandas as pd
 import numpy as np
 import time
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 # Shared design system
 from theme import (
@@ -40,7 +39,7 @@ except ImportError:
 
 # ── Page Config (Main Entry) ────────────────────────────────
 st.set_page_config(
-    page_title="ApexForex · AI Trading Intelligence",
+    page_title="ForexAlert · AI Trading Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -218,12 +217,10 @@ def show_command_center():
     # including hidden/shadow signals so we can filter/show them correctly.
     raw_active = db.get_active_signals(include_hidden=True)
     
-    # Filter: Show signals ≥ 60% as "Active Signals" (matching Telegram strategy)
-    # but still track BUY/SELL specifically for trades vs monitoring
-    # Filter: Show ONLY real trade signals (BUY/SELL)
+    # Filter: Show ONLY real live trade signals (BUY/SELL >= 61% and non-hidden)
     active_signals = [
         s for s in raw_active 
-        if s.get('signal') in ['BUY', 'SELL'] and int(s.get('confidence_tier', 0)) > 0
+        if s.get('signal') in ['BUY', 'SELL'] and not bool(s.get('is_hidden', 0)) and float(s.get('confidence') or 0) >= 0.61
     ]
     active_count = len(active_signals)
 
@@ -244,7 +241,7 @@ def show_command_center():
         # Filter recent signals by time and remove WAIT noise
         recent_window = []
         for s in recent:
-            if s.get('signal') == 'WAIT':
+            if s.get('signal') in ['WAIT', 'HEARTBEAT']:
                 continue
             try:
                 # Parse ISO timestamp
@@ -280,30 +277,53 @@ def show_command_center():
             if not completed.empty:
                 success_rate = (len(completed[completed['outcome'] == 'SUCCESS']) / len(completed)) * 100
 
-    # Fetch Global Validated Win Rate
+    # Fetch Real Live Win Rate (ALL non-shadow trades, not just is_proven)
+    live_stats = db.get_live_win_rate()
+    live_win_rate = live_stats.get('win_rate', 0.0)
+    live_total = live_stats.get('total', 0)
+    live_wins = live_stats.get('wins', 0)
+    live_losses = live_stats.get('losses', 0)
+
+    # Also fetch certified (is_proven) rate for the secondary label
     val_stats = db.get_validated_win_rate()
     val_win_rate = val_stats.get('win_rate', 0.0)
     val_total = val_stats.get('total', 0)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        st.markdown(kpi_card("Monitored Pairs", len(all_pairs), "Majors · Minors · Crosses", "accent-cyan", link_url="/market?nav=true"), unsafe_allow_html=True)
+        st.markdown(kpi_card("Monitored Pairs", len(all_pairs), "Majors · Minors · Crosses", "accent-cyan"), unsafe_allow_html=True)
+        if st.button("🌍 View Pairs", key="btn_kpi_pairs", use_container_width=True):
+            st.session_state['nav_target'] = 'market'
+            st.rerun()
     with c2:
-        # Active Signals -> Scroll/Focus (or Analytics)
-        st.markdown(kpi_card("Active Signals", active_count, "Running trades", "accent-gold", link_url="/analytics?nav=true"), unsafe_allow_html=True)
+        st.markdown(kpi_card("Active Signals", active_count, "Running trades", "accent-gold"), unsafe_allow_html=True)
+        if st.button("⚡ Active Trades", key="btn_kpi_active", use_container_width=True):
+            st.session_state['analytics_filter'] = 'active'
+            st.session_state['nav_target'] = 'analytics'
+            st.rerun()
     with c3:
-        # Replace weekly generic win rate with Validated Win Rate
-        st.markdown(kpi_card("Validated Win Rate", f"{val_win_rate:.1f}%", f"{val_total} proven trades", "accent-green", link_url="/analytics?nav=true"), unsafe_allow_html=True)
+        # v1 Model Live Win Rate (all routing now goes through v1)
+        wr_color = "accent-green" if live_win_rate >= 60 else "accent-gold" if live_win_rate >= 50 else "accent-red"
+        st.markdown(kpi_card("v1 Win Rate", f"{live_win_rate:.1f}%", f"{live_wins}W · {live_losses}L · {live_total} certified", wr_color), unsafe_allow_html=True)
+        if st.button("📊 View Outcomes", key="btn_kpi_winrate", use_container_width=True):
+            st.session_state['analytics_filter'] = 'all'
+            st.session_state['nav_target'] = 'analytics'
+            st.rerun()
     with c4:
-        # Show "Closed Trades" (TP/SL hit) as primary metric count.
-        # BUT link to 'expired' filter so user can see "trades that did not complete" as requested.
-        st.markdown(kpi_card("Closed Trades (Week)", completed_count, "Hit TP or SL", "accent-cyan", link_url="/analytics?nav=true&filter=expired"), unsafe_allow_html=True)
+        st.markdown(kpi_card("Closed Trades (Week)", completed_count, "Hit TP or SL", "accent-cyan"), unsafe_allow_html=True)
+        if st.button("📜 Closed History", key="btn_kpi_closed", use_container_width=True):
+            st.session_state['analytics_filter'] = 'closed'
+            st.session_state['nav_target'] = 'analytics'
+            st.rerun()
     with c5:
         training_status = get_training_status()
         if training_status:
             st.markdown(kpi_card("System Health", "Training v2", training_status, "accent-gold"), unsafe_allow_html=True)
         else:
             st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan"), unsafe_allow_html=True)
+        if st.button("🛡️ Matrix Audit", key="btn_kpi_health", use_container_width=True):
+            st.session_state['nav_target'] = 'audit'
+            st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     section_header("🎯", "High Confidence Opportunities")
@@ -322,7 +342,7 @@ def show_command_center():
             df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'Detected']
             
             # Formatting
-            df_display['Confidence'] = df_display['Confidence'].apply(lambda x: f"{x:.0%}")
+            df_display['Confidence'] = df_display['Confidence'].apply(lambda x: float(x) * 100)
             
             # Render styled table
             event = st.dataframe(
@@ -335,7 +355,7 @@ def show_command_center():
                 column_config={
                     "Confidence": st.column_config.ProgressColumn(
                         "Confidence",
-                        format="%s",
+                        format="%.0f%%",
                         min_value=0,
                         max_value=100,
                     )
@@ -347,8 +367,9 @@ def show_command_center():
                     selected_idx = event.selection.rows[0]
                     symbol = df_display.iloc[selected_idx]['Pair']
                     st.session_state['pair_selector'] = symbol
-                    # Navigate to Trading Terminal via URL path (robust)
-                    st.switch_page("terminal")
+                    # Navigate to Trading Terminal via router
+                    st.session_state['nav_target'] = 'terminal'
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Navigation failed: {e}")
             
@@ -392,6 +413,9 @@ def show_market_overview():
 
     hero_banner("Market Overview", "Real-time AI signal grid across 31 global currency pairs")
 
+    # RANGING-approved whitelist (must match core/inference.py)
+    RANGING_APPROVED = {'EURAUD', 'AUDNZD', 'GBPUSD', 'XAUUSD', 'USOIL.cash', 'USDJPY', 'EURNZD', 'USDSGD'}
+
     db = get_db()
 
     try:
@@ -408,6 +432,24 @@ def show_market_overview():
         active_signals = db.get_active_signals(include_hidden=True)
         sig_map = {}
         has_secondary_tier = {}
+
+        # Resolve certified / validated symbols from the performance matrix
+        from core.performance_gate import get_performance_gate
+        gate = get_performance_gate()
+        try:
+            gate.recompute_from_db(lookback_days=14)
+        except:
+            pass
+            
+        certified_symbols = set()
+        if gate and gate.performance_matrix:
+            for sym, contents in gate.performance_matrix.items():
+                if isinstance(contents, dict):
+                    for d, tiers in contents.items():
+                        if isinstance(tiers, dict):
+                            for t_str, data in tiers.items():
+                                if isinstance(data, dict) and data.get('status') == 'APPROVED':
+                                    certified_symbols.add(sym)
 
         # Group by symbol
         groups = {}
@@ -451,21 +493,55 @@ def show_market_overview():
         for cat_name, pair_list in categories.items():
             if not pair_list: continue
             st.markdown(f'<div class="section-header"><span class="section-header-text">{cat_name}</span></div>', unsafe_allow_html=True)
-            cols = st.columns(4)
+            cols = st.columns(3)
             symbols = [p['symbol'] for p in pair_list]
             for i, symbol in enumerate(symbols):
                 sig_data = sig_map.get(symbol)
-                with cols[i % 4]:
+                with cols[i % 3]:
                     # Wrap tile in a link to the terminal (relative path matches st.Page url_path)
                     # MUST include nav=true to persist authentication state on reload
-                    link = f'terminal?nav=true&symbol={symbol}'
+                    link = f'terminal?symbol={symbol}'
                     
+                    is_ranging_regime = symbol in RANGING_APPROVED
+                    pair_regime = "RANGING" if is_ranging_regime else "TRENDING"
+                    is_validated = symbol in certified_symbols
+
+                    if is_validated:
+                        badge_bg = "rgba(0, 229, 255, 0.12)"
+                        badge_border = "rgba(0, 229, 255, 0.3)"
+                        badge_color = "#00E5FF"
+                        badge_text = "🛡️ CERTIFIED"
+                    else:
+                        badge_bg = "rgba(255, 255, 255, 0.04)"
+                        badge_border = "rgba(255, 255, 255, 0.1)"
+                        badge_color = "var(--text-muted)"
+                        badge_text = "⚠️ SHADOW"
+
+                    validation_badge_html = f'''
+                    <div style="
+                        margin-top: 8px;
+                        font-size: 0.65rem;
+                        font-weight: 700;
+                        letter-spacing: 0.05em;
+                        font-family: var(--font-mono);
+                        color: {badge_color};
+                        background: {badge_bg};
+                        border: 1px solid {badge_border};
+                        padding: 3px 8px;
+                        border-radius: 6px;
+                        display: inline-block;
+                    ">
+                        {badge_text}
+                    </div>
+                    '''
+
                     if not sig_data:
                         tile_html = (
-                            f'<div class="signal-tile tile-wait">'
+                            f'<div class="signal-tile tile-wait" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 175px;">'
                             f'<div class="tile-symbol">{symbol}</div>'
-                            f'<div class="tile-signal tile-signal-wait">—</div>'
+                            f'<div class="tile-signal tile-signal-wait" style="margin: 4px 0;">—</div>'
                             f'<div class="tile-conf">Awaiting Data</div>'
+                            f'{validation_badge_html}'
                             f'</div>'
                         )
                     else:
@@ -478,13 +554,26 @@ def show_market_overview():
                         r_upper = str(regime).upper()
                         is_crisis = "CRISIS" in r_upper or "VOLATILE" in r_upper
                         
+                        sig_is_hidden = bool(sig_data.get('is_hidden', False))
+                        is_cert = symbol in certified_symbols
+                        # A signal state is LIVE if certified AND either we are not in an active trade (WAIT) OR the trade is visible
+                        is_live_badge = is_cert and (sig == 'WAIT' or not sig_is_hidden)
+
                         if regime:
                             if is_crisis:
                                 regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #FF4466; background: rgba(255,68,102,0.15); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(255,68,102,0.3); box-shadow: 0 0 10px rgba(255,68,102,0.2);">⚡ CRISIS</div>'
                             elif "TRENDING" in r_upper:
-                                regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: #00FF88; background: rgba(0,255,136,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid rgba(0,255,136,0.2);">TRENDING</div>'
+                                _badge_title = "TRENDING ⭐ LIVE" if is_live_badge else "TRENDING · SHADOW"
+                                _color = "#00FF88" if is_live_badge else "#aaa"
+                                _bg = "rgba(0,255,136,0.1)" if is_live_badge else "rgba(255,255,255,0.05)"
+                                _border = "rgba(0,255,136,0.2)" if is_live_badge else "rgba(255,255,255,0.1)"
+                                regime_badge = f'<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: {_color}; background: {_bg}; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid {_border};">{_badge_title}</div>'
                             elif "RANGING" in r_upper:
-                                regime_badge = '<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em;">RANGING</div>'
+                                _badge_title = "RANGING ⭐ LIVE" if is_live_badge else "RANGING · SHADOW"
+                                _color = "#00E5FF" if is_live_badge else "#aaa"
+                                _bg = "rgba(0,229,255,0.1)" if is_live_badge else "rgba(255,255,255,0.05)"
+                                _border = "rgba(0,229,255,0.2)" if is_live_badge else "rgba(255,255,255,0.1)"
+                                regime_badge = f'<div style="position: absolute; top: 10px; right: 10px; font-size: 0.55rem; color: {_color}; background: {_bg}; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); letter-spacing: 0.1em; border: 1px solid {_border};">{_badge_title}</div>'
 
                         display_sig = sig
                         css_tile = "tile-wait"
@@ -499,22 +588,13 @@ def show_market_overview():
                             display_sig = "SAFE"
                             css_tile = "tile-wait"
                             css_signal = "tile-signal-wait"
-                            # Use raw_confidence if available to show why it's a crisis (overextended)
-                            f_conf = sig_data.get('raw_confidence', conf)
+                            # Use wait_prob or calibrated conf
+                            f_conf = sig_data.get('wait_prob', conf)
                             conf_display = f"{(f_conf or 0.0):.0%}" if (f_conf or 0.0) > 0 else "Blocked"
                             # Force red border for crisis tiles
                             extra_styles = "border: 1px solid rgba(255,68,102,0.4); background: rgba(255,68,102,0.03); box-shadow: inset 0 0 20px rgba(255,68,102,0.05);"
-                        elif outcome == 'ACTIVE':
-                            if is_hidden:
-                                # Shadow / Watch Only signal
-                                display_sig = sig
-                                css_tile = "tile-buy" if sig == "BUY" else "tile-sell"
-                                css_signal = "tile-signal-wait" # Keep signal text muted so it doesn't pop as much
-                                conf_display = f"{sig_data.get('raw_confidence', conf):.0%}"
-                                conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar" style="width: {conf if conf else 0.0:.1%}; background: var(--text-muted);"></div></div>'
-                                regime_badge += '<div style="position: absolute; top: 30px; right: 10px; font-size: 0.55rem; color: #aaa; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); border: 1px dashed rgba(255,255,255,0.2);">SHADOW</div>'
-                                extra_styles = "opacity: 0.6; filter: grayscale(50%);"
-                            elif sig == "BUY":
+                        elif outcome == 'ACTIVE' and not is_hidden and float(conf or 0) >= 0.61:
+                            if sig == "BUY":
                                 css_tile = "tile-buy"
                                 css_signal = "tile-signal-buy"
                                 conf_display = f"{conf:.0%}"
@@ -526,22 +606,43 @@ def show_market_overview():
                                 conf_bar = f'<div class="conf-bar-bg"><div class="conf-bar conf-bar-sell" style="width: {conf:.1%}"></div></div>'
                         else:
                             display_sig = "WAIT"
-                            conf_display = f"{(sig_data.get('raw_confidence') or 0.0):.0%}" if (sig_data.get('raw_confidence') or 0.0) > 0 else "Monitoring..."
+                            conf_display = f"{(sig_data.get('wait_prob', conf) or 0.0):.0%}" if (sig_data.get('wait_prob', conf) or 0.0) > 0 else "Monitoring..."
 
                         ghost_html = '<div class="ghost-indicator" title="Secondary Tier Active"></div>' if has_secondary_tier.get(symbol) else ""
                         tile_html = (
                             f'<div class="signal-tile {css_tile}" '
-                            f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles}">'
+                            f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles} display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 175px;">'
                             f'{regime_badge}'
                             f'{ghost_html}'
-                            f'<div class="tile-symbol">{symbol}</div>'
-                            f'<div class="tile-signal {css_signal}">{display_sig}</div>'
+                            f'<div class="tile-symbol" style="margin-top: 15px;">{symbol}</div>'
+                            f'<div class="tile-signal {css_signal}" style="margin: 4px 0;">{display_sig}</div>'
                             f'<div class="tile-conf">{conf_display}</div>'
                             f'{conf_bar}'
+                            f'{validation_badge_html}'
                             f'</div>'
                         )
 
-                    st.markdown(f'<a href="{link}" target="_parent" style="text-decoration: none; color: inherit; display: block;">{tile_html}</a>', unsafe_allow_html=True)
+                    # Use a Streamlit button instead of an HTML <a> link.
+                    # HTML anchor navigation destroys the Streamlit WebSocket session
+                    # and clears session_state (logging the user out).
+                    # st.button keeps everything in the same session.
+                    btn_key = f"pair_tile_{symbol}"
+                    if st.button(
+                        label=" ",  # invisible label — tile_html is the visual
+                        key=btn_key,
+                        use_container_width=True,
+                        help=f"Open {symbol} in Trading Terminal",
+                    ):
+                        st.session_state['pair_selector'] = symbol
+                        st.session_state['nav_to_terminal'] = True
+                        st.rerun()
+                    # Render the tile HTML on top of the button using negative margin
+                    st.markdown(
+                        f'<div style="margin-top:-2.8rem;pointer-events:none;">'
+                        f'{tile_html}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
     # Initial Pulse Trigger
     _market_overview_pulse()
@@ -623,6 +724,10 @@ def show_trading_terminal():
         pred = "WAIT"
         conf = 0.0
         df = pd.DataFrame()
+        is_on_cooldown = False
+        cooldown_remaining_min = 0.0
+        locked_trade = None
+        is_market_closed = False
 
         col_main, col_side = st.columns([3, 1])
 
@@ -642,7 +747,8 @@ def show_trading_terminal():
                     raise Exception(f"No candlestick data received for {symbol}")
 
                 # 1. Check for EXISTING ACTIVE SIGNAL (to manage PnL and Locked state)
-                active_signals = db.get_active_signals(symbol=symbol, include_hidden=True)
+                # IMPORTANT: include_hidden=False ensures 50% shadow trades NEVER lock a terminal
+                active_signals = db.get_active_signals(symbol=symbol, include_hidden=False)
                 locked_trade = active_signals[0] if active_signals else None
                 
                 # 2. ALWAYS Run FRESH INFERENCE for Live Pulse (Background stats)
@@ -655,20 +761,37 @@ def show_trading_terminal():
                     use_cache=False
                 )
 
-                # 3. LOCKING LOGIC: If a trade is active, use the LOCKED data for the main box
+                # ── UI READ-ONLY SYNC (Execution handled exclusively by background Executive daemon) ──
+                pass
+
+                # 3. DIRECTIONAL / COMMODITY BLACKLIST & LOCKING LOGIC
+                from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+                is_sym_blocked = is_symbol_blocked(symbol)
+                is_buy_blocked = is_direction_blocked(symbol, 'BUY')
+                is_sell_blocked = is_direction_blocked(symbol, 'SELL')
+
                 if locked_trade:
                     result = locked_trade
                     st.caption(f"🔒 TERMINAL LOCKED TO ACTIVE POSITION (ID #{locked_trade['id']})")
                 else:
                     result = live_result
-                    if live_result:
+                    if is_sym_blocked:
+                        st.caption(f"🛑 COMMODITY SHIELD · {symbol} is blacklisted from live execution")
+                    elif is_buy_blocked and is_sell_blocked:
+                        st.caption(f"🚫 DIRECTIONAL BLACKLIST · {symbol} is blacklisted from live execution")
+                    elif is_buy_blocked:
+                        st.caption(f"🚫 DIRECTIONAL BLACKLIST · {symbol} BUY is permanently blacklisted (SELL enabled)")
+                    elif is_sell_blocked:
+                        st.caption(f"🚫 DIRECTIONAL BLACKLIST · {symbol} SELL is permanently blacklisted (BUY enabled)")
+                    elif live_result:
                         st.caption("📡 LIVE AI PULSE (Real-Time Monitoring)")
                     else:
                         st.caption("⚠️ AI PULSE OFFLINE (Awaiting Market Data)")
 
                 # 4. FALLBACK: If inference failed and no locked trade, show most recent DB signal
                 if not result:
-                    sym_signals = db.get_recent_signals(symbol=symbol, limit=1, include_hidden=True)
+                    # Fallback: show last non-shadow signal for this symbol
+                    sym_signals = db.get_recent_signals(symbol=symbol, limit=1, include_hidden=False)
                     if sym_signals:
                         result = sym_signals[0]
                         st.caption(f"📋 Showing last recorded signal · {result.get('outcome', 'UNKNOWN')}")
@@ -850,10 +973,21 @@ def show_trading_terminal():
                     status_text = "PASSED" if (conf > 0 and pred != "WAIT") else "FILTERED (Caution)" if (pred == "WAIT" and conf > 0.1) else "FILTERED"
                     status_color = "var(--text-muted)" # Initial fallback
                     
-                    # Dynamic override for Crisis/Safety blocks
+                    # Dynamic override for Crisis/Safety/Blacklist blocks
                     if is_crisis:
                         status_text = "⚠️ CRISIS BLOCK (Safety)"
                         status_color = "#FF4466" # Bright Red
+                        pred = "WAIT"
+                    elif is_sym_blocked or (pred == "BUY" and is_buy_blocked) or (pred == "SELL" and is_sell_blocked):
+                        if is_sym_blocked:
+                            status_text = "🛑 COMMODITY SHIELD (Live Blocked)"
+                        elif pred == "BUY" and is_buy_blocked:
+                            status_text = "🚫 DIRECTIONAL BLACKLIST (BUY Blocked)"
+                        elif pred == "SELL" and is_sell_blocked:
+                            status_text = "🚫 DIRECTIONAL BLACKLIST (SELL Blocked)"
+                        else:
+                            status_text = "🚫 BLACKLISTED (Live Blocked)"
+                        status_color = "#FF4466"
                         pred = "WAIT"
                     elif is_market_closed:
                         status_text = "HISTORICAL ANALYSIS"
@@ -861,7 +995,10 @@ def show_trading_terminal():
                         if pred in ('BUY', 'SELL'): pred = "WAIT"
                     elif pred in ('BUY', 'SELL'):
                         is_hidden = bool(result.get('is_hidden', 0))
-                        if not is_actively_trading:
+                        # If terminal is locked to an active trade, ignore global 'is_actively_trading' resting filter 
+                        # so that shadow/live active positions keep their locked state and show correct indicators.
+                        is_locked_trade = locked_trade is not None and result.get('id') == locked_trade.get('id')
+                        if not is_actively_trading and not is_locked_trade:
                             status_text = f"RESTING (AI Conviction: {pred})"
                             status_color = "var(--text-muted)"
                             pred = "WAIT"
@@ -889,12 +1026,14 @@ def show_trading_terminal():
                 # --- 3. Render AI Verdict Card ---
                 try:
                     ts_display = "Just Now"
+                    ts_full = ""
                     try:
                         ts_obj = datetime.fromisoformat(result.get('timestamp', datetime.now().isoformat()))
                         ts_display = ts_obj.strftime("%d %b %H:%M")
+                        ts_full = ts_obj.strftime("%Y-%m-%d %H:%M:%S UTC")
                     except: pass
 
-                    display_conf = result.get('raw_confidence', conf) or 0.0
+                    display_conf = conf or 0.0
                     vol_trades = result.get('model_trades', 0) or 0
                     
                     css = f"signal-{pred.lower()}"
@@ -902,13 +1041,16 @@ def show_trading_terminal():
                     st.markdown(f"""
 <div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
 <!-- 1. DECISION LAYER -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
     <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase;">
     Target: {winning_tier}%
     </div>
     <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);">
     🕒 {ts_display}
     </div>
+</div>
+<div style="text-align: right; font-family: var(--font-mono); font-size: 0.58rem; color: rgba(255,255,255,0.25); margin-bottom: 16px; letter-spacing: 0.05em;">
+Signal Generated: {ts_full}
 </div>
 <div class="signal-badge {css}" style="margin-bottom: 20px;">{pred}</div>
 {f'<div style="font-family: var(--font-mono); font-size: 0.6rem; color: #00FF88; margin-top: -15px; margin-bottom: 15px;">AI INTENT: {result.get("expert_intent")}</div>' if (pred == "WAIT" and result.get("expert_intent") and result.get("expert_intent") != "WAIT") else ''}
@@ -1021,11 +1163,144 @@ STATUS: {status_text}
     # Invoke the fragment — first call renders, subsequent calls auto-rerun every 15s
     _live_terminal_data()
 
+def render_periodic_performance_matrix():
+    section_header("📈", "Performance & Return Matrix (Weekly & Monthly)")
+    
+    try:
+        import sys
+        import importlib
+        import core.performance_report
+        import core.notifications
+        importlib.reload(core.performance_report)
+        importlib.reload(core.notifications)
+        from core.performance_report import PerformanceReporter
+        reporter = PerformanceReporter()
+    except Exception as e:
+        st.error(f"Failed to load PerformanceReporter: {e}")
+        return
+
+    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([2.2, 1.4, 1.4])
+    with col_ctrl1:
+        mode_opt = st.selectbox(
+            "Evaluation Policy",
+            [
+                "🎯 61.0%+ Live Production (All Months & Weeks)",
+                "📲 Live Telegram Signals (August 2026+)",
+                "🏦 Actual MT5 Closed Deals (August 2026+)",
+                "📊 All 50.0%+ Baseline Signals"
+            ],
+            key="perf_matrix_policy_mode"
+        )
+    with col_ctrl2:
+        risk_opt = st.selectbox(
+            "Account / Base Risk",
+            [
+                "$50 (0.5% on $10k)",
+                "$100 (1.0% on $10k)",
+                "$500 (0.5% on $100k Prop)"
+            ],
+            key="perf_matrix_risk_mode"
+        )
+    with col_ctrl3:
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("📲 Send to Telegram", key="perf_matrix_tg_btn", use_container_width=True):
+            try:
+                from core.notifications import NotificationManager
+                notif = NotificationManager()
+                risk_val = 50.0 if "$50" in risk_opt else (100.0 if "$100" in risk_opt else 500.0)
+                m_key = "production" if "Production" in mode_opt else ("telegram_live" if "Telegram" in mode_opt else ("mt5_live" if "MT5" in mode_opt else "baseline"))
+                s_date = None if "Production" in mode_opt else "2026-08-01"
+                if notif.send_periodic_performance_report(period="both", risk_per_trade=risk_val, mode=m_key, start_date=s_date):
+                    st.toast("✅ Scorecard dispatched to Telegram!", icon="🚀")
+                    st.success("Scorecard sent to Telegram!")
+                else:
+                    st.warning("Telegram disabled or failed to dispatch. Check config.yaml.")
+            except Exception as ex:
+                st.error(f"Telegram error: {ex}")
+
+    if "Telegram" in mode_opt:
+        mode_key = "telegram_live"
+        start_date_val = "2026-08-01"
+    elif "MT5" in mode_opt:
+        mode_key = "mt5_live"
+        start_date_val = "2026-08-01"
+    elif "Production" in mode_opt:
+        mode_key = "production"
+        start_date_val = None
+    else:
+        mode_key = "baseline"
+        start_date_val = "2026-08-01"
+
+    risk_val = 50.0 if "$50" in risk_opt else (100.0 if "$100" in risk_opt else 500.0)
+
+    t_month, t_week = st.tabs(["🗓️ Monthly Performance", "📅 Weekly Performance"])
+
+    with t_month:
+        df_m = reporter.get_performance_matrix(period="monthly", mode=mode_key, risk_per_trade=risk_val, start_date=start_date_val, use_close_time=True)
+        if not df_m.empty:
+            m1, m2, m3, m4 = st.columns(4)
+            tot_trades = int(df_m['Trades'].sum())
+            tot_wins = int(df_m['Wins'].sum())
+            tot_pnl = float(df_m['Net PnL ($)'].sum())
+            tot_r = float(df_m['Net R'].sum())
+            wr = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+
+            m1.metric("Total Closed Trades", f"{tot_trades}", f"{tot_wins} Wins")
+            m2.metric("Win Rate", f"{wr:.1f}%", f"{wr-40.0:+.1f}% vs BE")
+            m3.metric("Realized Edge", f"{tot_r:+.2f}R", "1:1.5 RRR")
+            m4.metric("Net Realized PnL", f"${tot_pnl:+,.2f}", f"{tot_pnl/(risk_val/0.005)*100:+.1f}%")
+
+            st.dataframe(
+                df_m,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Period": "Month",
+                    "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                    "Wins": st.column_config.NumberColumn("Wins", format="%d"),
+                    "Losses": st.column_config.NumberColumn("Losses", format="%d"),
+                    "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                    "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                    "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                    "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                    "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+                }
+            )
+        else:
+            st.info("No data available for selected monthly policy.")
+
+    with t_week:
+        df_w = reporter.get_performance_matrix(period="weekly", mode=mode_key, risk_per_trade=risk_val, start_date=start_date_val, use_close_time=True)
+        if not df_w.empty:
+            st.dataframe(
+                df_w,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Period": "Week (UTC)",
+                    "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                    "Wins": st.column_config.NumberColumn("Wins", format="%d"),
+                    "Losses": st.column_config.NumberColumn("Losses", format="%d"),
+                    "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                    "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                    "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                    "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                    "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+                }
+            )
+        else:
+            st.info("No data available for selected weekly policy.")
+
+
 # =============================================================================
 # VIEW 4: Analytics (Performance Audit)
 # =============================================================================
 def show_analytics():
     hero_banner("Analytics Suite", "Signal history, outcomes, and win rate analytics")
+
+    # Render Weekly and Monthly Performance Matrix Card
+    render_periodic_performance_matrix()
+    st.markdown("<br><hr style='opacity:0.15;'><br>", unsafe_allow_html=True)
 
     db = get_db()
     
@@ -1049,7 +1324,7 @@ def show_analytics():
 
     df = pd.DataFrame(recent_signals)
     if 'signal' in df.columns:
-        df = df[df['signal'] != 'WAIT']
+        df = df[~df['signal'].isin(['WAIT', 'HEARTBEAT'])]
         
     if df.empty:
         st.info("📊 No actionable signals found in history.")
@@ -1065,7 +1340,11 @@ def show_analytics():
     win_rate = (wins / len(completed)) * 100 if not completed.empty else 0
     
     # Active: Must be ACTIVE AND (BUY or SELL). exclude WAIT.
-    active_df = df[(df['outcome'] == 'ACTIVE') & (df['signal'].isin(['BUY', 'SELL']))]
+    # Exclude hidden (shadow) trades so the KPI only reflects true live MT5 positions.
+    if 'is_hidden' in df.columns:
+        active_df = df[(df['outcome'] == 'ACTIVE') & (df['signal'].isin(['BUY', 'SELL'])) & (df['is_hidden'] == 0)]
+    else:
+        active_df = df[(df['outcome'] == 'ACTIVE') & (df['signal'].isin(['BUY', 'SELL']))]
     active_count = len(active_df)
 
     c1, c2, c3, c4 = st.columns(4)
@@ -1084,17 +1363,23 @@ def show_analytics():
         st.markdown(kpi_card("Best Pair", best or "N/A", "Highest win rate", "accent-cyan"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    # 3. Check for external filters (e.g. from KPI card)
+    # 3. Check for external filters (e.g. from KPI card or session state)
     default_outcomes = ["ACTIVE", "SUCCESS", "FAIL"]
+    filter_mode = st.session_state.pop("analytics_filter", None) or st.query_params.get("filter")
     
     # "closed" filter = Only TP/SL outcomes (ignore expired timeouts)
-    if st.query_params.get("filter") == "closed":
+    if filter_mode == "closed":
         default_outcomes = ["SUCCESS", "FAIL"]
         st.info("🎯 Showing Completed Trades (TP/SL Hit Only)")
-        
-    elif st.query_params.get("filter") == "expired":
+    elif filter_mode == "active":
+        default_outcomes = ["ACTIVE"]
+        st.info("⚡ Showing Active Running Trades")
+    elif filter_mode == "expired":
         default_outcomes = ["SUCCESS", "FAIL", "EXPIRED", "N/A"]
         st.info("🔍 Showing All History (Including Timeouts)")
+    elif filter_mode == "all":
+        default_outcomes = ["ACTIVE", "SUCCESS", "FAIL"]
+        st.info("📊 Showing All Live & Resolved Trade Outcomes")
 
     fc1, fc2, fc3 = st.columns(3)
     with fc1:
@@ -1106,11 +1391,23 @@ def show_analytics():
                                      default=default_outcomes)
 
     filtered = df.copy()
+    
+    # Clearly label hidden/benched signals so users don't think they are live MT5 trades
+    if 'is_hidden' in filtered.columns:
+        filtered.loc[filtered['is_hidden'] == 1, 'outcome'] = 'SHADOW'
+
     if sym_filter: filtered = filtered[filtered['symbol'].isin(sym_filter)]
     if sig_filter: filtered = filtered[filtered['signal'].isin(sig_filter)]
-    if out_filter: filtered = filtered[filtered['outcome'].isin(out_filter)]
+    if out_filter: 
+        # Allow filtering to still catch shadow trades if ACTIVE was selected
+        filtered = filtered[filtered['outcome'].isin(out_filter) | (filtered['outcome'] == 'SHADOW')]
 
-    display_cols = ['timestamp', 'symbol', 'signal', 'confidence', 'price_at_signal', 'tp_price', 'sl_price', 'outcome']
+    display_cols = [
+        'timestamp', 'symbol', 'signal', 'confidence', 'price_at_signal', 
+        'tp_price', 'sl_price', 'exit_price', 'exit_time', 'duration_seconds', 
+        'outcome', 'regime', 'rsi', 'adx', 'atr', 'vix_proxy', 'yield_slope',
+        'macd', 'stoch_k', 'stoch_d', 'cci', 'bb_position'
+    ]
     display_cols = [c for c in display_cols if c in filtered.columns]
 
     st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True,
@@ -1119,8 +1416,22 @@ def show_analytics():
                      "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
                      "tp_price": st.column_config.NumberColumn("TP", format="%.5f"),
                      "sl_price": st.column_config.NumberColumn("SL", format="%.5f"),
+                     "exit_price": st.column_config.NumberColumn("Exit Price", format="%.5f"),
+                     "exit_time": "Exit Time",
+                     "duration_seconds": st.column_config.NumberColumn("Duration (s)", format="%d"),
                      "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=1),
-                     "outcome": "Outcome"
+                     "outcome": "Outcome",
+                     "regime": "Regime",
+                     "rsi": st.column_config.NumberColumn("RSI", format="%.1f"),
+                     "adx": st.column_config.NumberColumn("ADX", format="%.1f"),
+                     "atr": st.column_config.NumberColumn("ATR", format="%.5f"),
+                     "vix_proxy": st.column_config.NumberColumn("VIX Proxy", format="%.4f"),
+                     "yield_slope": st.column_config.NumberColumn("Yield Slope", format="%.4f"),
+                     "macd": st.column_config.NumberColumn("MACD", format="%.6f"),
+                     "stoch_k": st.column_config.NumberColumn("Stoch %K", format="%.1f"),
+                     "stoch_d": st.column_config.NumberColumn("Stoch %D", format="%.1f"),
+                     "cci": st.column_config.NumberColumn("CCI", format="%.1f"),
+                     "bb_position": st.column_config.NumberColumn("BB Pos", format="%.2f")
                  })
 
 
@@ -1132,7 +1443,11 @@ def show_performance_matrix():
     db = get_db()
     gate = get_performance_gate()
 
-    hero_banner("Performance Matrix", "Real-time AI surveillance, rolling window analytics, and certification status")
+    hero_banner("Performance Matrix", "Real-time AI surveillance, rolling window analytics, and periodic performance scorecard")
+
+    # Render Weekly and Monthly Return Performance Matrix
+    render_periodic_performance_matrix()
+    st.markdown("<br><hr style='opacity:0.15;'><br>", unsafe_allow_html=True)
 
     @st.fragment(run_every=timedelta(minutes=5))
     def _matrix_grid():
@@ -1142,20 +1457,32 @@ def show_performance_matrix():
         # FILTER: Show only real trade signals (BUY/SELL). Skip neutral 'WAIT' noise.
         active = [s for s in raw_active if s.get('signal') in ('BUY', 'SELL')]
         
+        RANGING_APPROVED_SET = {'EURAUD', 'AUDNZD', 'GBPUSD', 'XAUUSD', 'USOIL.cash', 'USDJPY', 'EURNZD', 'USDSGD'}
         if active:
             df_active = pd.DataFrame(active)
             # Add Display columns
             df_active['Type'] = df_active['is_hidden'].apply(lambda x: "🛸 SHADOW" if x else "🚀 REAL")
             df_active['Conviction'] = df_active['confidence'].apply(lambda x: f"{x:.1%}")
+            # Regime column
+            def _regime_label(row):
+                r = str(row.get('regime') or '').upper()
+                if 'RANGING' in r:
+                    return '↔️ RANGING'
+                elif 'TRENDING' in r:
+                    return '📈 TRENDING'
+                elif 'CRISIS' in r:
+                    return '⚡ CRISIS'
+                return r or '—'
+            df_active['Regime'] = df_active.apply(_regime_label, axis=1)
             
-            show_cols = ['symbol', 'signal', 'Type', 'Conviction', 'confidence_tier', 'timestamp']
+            show_cols = ['symbol', 'signal', 'Regime', 'Type', 'Conviction', 'confidence_tier', 'timestamp']
             st.dataframe(
                 df_active[show_cols],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    "symbol": "Pair", "signal": "Signal", "confidence_tier": "Tier %",
-                    "timestamp": "Detected"
+                    "symbol": "Pair", "signal": "Signal", "Regime": "Market Regime",
+                    "confidence_tier": "Tier %", "timestamp": "Detected"
                 }
             )
         else:
@@ -1169,17 +1496,67 @@ def show_performance_matrix():
         if stats_14:
             df_14 = pd.DataFrame(stats_14)
             df_14['Win Rate'] = df_14.apply(lambda row: (row['wins'] / row['total_trades']) if row['total_trades'] > 0 else 0, axis=1)
+
+            # Pull regime breakdown per symbol from recent resolved signals
+            import sqlite3
+            _db_path = str(db.db_path) if hasattr(db, 'db_path') else None
+            regime_map = {}
+            if _db_path:
+                try:
+                    with sqlite3.connect(_db_path) as _conn:
+                        _cur = _conn.execute("""
+                            SELECT symbol,
+                                   SUM(CASE WHEN regime LIKE '%RANGING%' THEN 1 ELSE 0 END) AS ranging_cnt,
+                                   SUM(CASE WHEN regime LIKE '%TRENDING%' THEN 1 ELSE 0 END) AS trending_cnt
+                            FROM signals
+                            WHERE outcome IN ('SUCCESS','FAIL')
+                              AND timestamp >= datetime('now','-14 days')
+                            GROUP BY symbol
+                        """)
+                        for _row in _cur.fetchall():
+                            _sym, _r, _t = _row
+                            if _r > 0 and _t == 0:
+                                regime_map[_sym] = '↔️ Ranging'
+                            elif _t > 0 and _r == 0:
+                                regime_map[_sym] = '📈 Trending'
+                            elif _r > 0 and _t > 0:
+                                regime_map[_sym] = f'📈 {_t}T / ↔️ {_r}R'
+                except Exception:
+                    pass
+
+            df_14['Regime Mix'] = df_14['symbol'].map(lambda s: regime_map.get(s, '—'))
             
-            st.dataframe(
-                df_14[['symbol', 'total_trades', 'Win Rate', 'wins', 'losses', 'last_trade']],
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "symbol": "Pair", "total_trades": "Volume", 
-                    "Win Rate": st.column_config.ProgressColumn("Win Rate", format="%.0f%%", min_value=0, max_value=1),
-                    "last_trade": "Last Activity"
-                }
-            )
+            # Render custom layout to allow clicking pair to navigate
+            cols = st.columns([1.5, 2, 1, 1.5, 1, 1, 2])
+            cols[0].markdown("**Pair**")
+            cols[1].markdown("**Regime (14-Day)**")
+            cols[2].markdown("**Volume**")
+            cols[3].markdown("**Win Rate**")
+            cols[4].markdown("**Wins**")
+            cols[5].markdown("**Losses**")
+            cols[6].markdown("**Last Activity**")
+            st.markdown("<hr style='margin:0.25rem 0 0.75rem 0; opacity:0.1;'>", unsafe_allow_html=True)
+            
+            for _, row_data in df_14.iterrows():
+                sym = row_data['symbol']
+                cols = st.columns([1.5, 2, 1, 1.5, 1, 1, 2])
+                
+                # Dynamic navigation button
+                if cols[0].button(f"📈 {sym}", key=f"act14_{sym}", use_container_width=True):
+                    st.session_state['pair_selector'] = sym
+                    st.session_state['nav_to_terminal'] = True
+                    st.rerun()
+                    
+                cols[1].text(row_data['Regime Mix'])
+                cols[2].text(str(row_data['total_trades']))
+                
+                # Show win rate nicely
+                wr = row_data['Win Rate']
+                cols[3].text(f"{wr * 100:.0f}%")
+                
+                cols[4].text(str(int(row_data['wins'])))
+                cols[5].text(str(int(row_data['losses'])))
+                cols[6].text(str(row_data['last_trade'])[:19] if row_data['last_trade'] else '—')
         else:
             st.info("Insufficient trading data in the 14-day window.")
 
@@ -1194,6 +1571,8 @@ def show_performance_matrix():
             
         matrix = gate.performance_matrix
         cert_records = []
+        # Approved ranging list to distinguish RANGING vs TRENDING certifications
+        RANGING_APPROVED_SET = {'EURAUD', 'AUDNZD', 'GBPUSD', 'XAUUSD', 'USOIL.cash', 'USDJPY', 'EURNZD', 'USDSGD'}
         if matrix:
             for sym, contents in matrix.items():
                 for k, v in contents.items():
@@ -1202,32 +1581,50 @@ def show_performance_matrix():
                         
                     # Check if this is a direct tier (Legacy) or a Direction dict (New)
                     if 'status' in v:
-                        # Legacy Format: sym -> tier -> data
-                        if v.get('status') == 'APPROVED':
-                            cert_records.append({
-                                "Symbol": sym, "Direction": "ALL", "Tier": f"{k}%",
-                                "Acc": v.get('accuracy', 0.0), "Trades": v.get('trades', 0),
-                                "Source": v.get('source', 'Legacy')
-                            })
+                        # Legacy Format: sym -> tier -> data (skip, has no direction)
+                        pass
                     else:
                         # New Format: sym -> direction -> tier -> data
+                        # Only show BUY or SELL — skip ALL
+                        if k not in ('BUY', 'SELL'):
+                            continue
                         for t_str, data in v.items():
                             if isinstance(data, dict) and data.get('status') == 'APPROVED':
                                 cert_records.append({
-                                    "Symbol": sym, "Direction": k, "Tier": f"{t_str}%",
+                                    "Symbol": sym,
+                                    "Direction": k, "Tier": f"{t_str}%",
                                     "Acc": data.get('accuracy', 0.0), "Trades": data.get('trades', 0),
                                     "Source": data.get('source', 'System')
                                 })
         
         if cert_records:
             df_cert = pd.DataFrame(cert_records)
-            st.dataframe(
-                df_cert, use_container_width=True, hide_index=True,
-                column_config={
-                    "Acc": st.column_config.NumberColumn("Realized Acc", format="%.1%"),
-                    "Tier": "Strategy Tier"
-                }
-            )
+            
+            # Render interactive columns for whitelisted symbols
+            cols = st.columns([1.5, 1.5, 1.5, 1.5, 1, 2])
+            cols[0].markdown("**Pair**")
+            cols[1].markdown("**Direction**")
+            cols[2].markdown("**Strategy Tier**")
+            cols[3].markdown("**Realized Acc**")
+            cols[4].markdown("**Trades**")
+            cols[5].markdown("**Source**")
+            st.markdown("<hr style='margin:0.25rem 0 0.75rem 0; opacity:0.1;'>", unsafe_allow_html=True)
+            
+            for idx, row_data in df_cert.iterrows():
+                sym = row_data['Symbol']
+                cols = st.columns([1.5, 1.5, 1.5, 1.5, 1, 2])
+                
+                # Clickable symbol button
+                if cols[0].button(f"🛡️ {sym}", key=f"cert_{sym}_{idx}", use_container_width=True):
+                    st.session_state['pair_selector'] = sym
+                    st.session_state['nav_to_terminal'] = True
+                    st.rerun()
+                    
+                cols[1].text(row_data.get('Direction', 'ALL'))
+                cols[2].text(row_data.get('Tier', '—'))
+                cols[3].text(f"{row_data.get('Acc', 0.0) * 100:.1f}%")
+                cols[4].text(str(row_data.get('Trades', 0)))
+                cols[5].text(row_data.get('Source', '—'))
         else:
             st.warning("No pairs currently meet the 70% institutional certification threshold.")
 
@@ -1285,29 +1682,15 @@ def show_control_panel():
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        api_key = st.text_input("TwelveData API Key",
-                                 value=config.get('data_provider', {}).get('twelvedata', {}).get('api_key', ''),
-                                 type="password")
+        new_provider = st.selectbox("Select Active Data Provider", ["mt5", "yfinance"], index=0 if active == 'mt5' else 1)
 
-        bc1, bc2 = st.columns(2)
-        with bc1:
-            if st.button("💾 Save & Switch to TwelveData", use_container_width=True):
-                if api_key:
-                    config.setdefault('data_provider', {}).setdefault('twelvedata', {})['api_key'] = api_key
-                    config['data_provider']['active'] = 'twelvedata'
-                    with open(config_path, "w") as f:
-                        yaml.dump(config, f, default_flow_style=False)
-                    st.toast("Provider switched to TwelveData", icon="🚀")
-                    time.sleep(1)
-                    st.rerun()
-        with bc2:
-            if st.button("🔄 Revert to MT5", use_container_width=True):
-                config['data_provider']['active'] = 'mt5'
-                with open(config_path, "w") as f:
-                    yaml.dump(config, f, default_flow_style=False)
-                st.toast("Reverted to MT5", icon="🔄")
-                time.sleep(1)
-                st.rerun()
+        if st.button("💾 Save Provider Settings", use_container_width=True):
+            config.setdefault('data_provider', {})['active'] = new_provider
+            with open(config_path, "w") as f:
+                yaml.dump(config, f, default_flow_style=False)
+            st.toast(f"Provider switched to {new_provider.upper()}", icon="🚀")
+            time.sleep(1)
+            st.rerun()
 
     with t2:
         section_header("🔔", "Telegram Bot")
@@ -1337,7 +1720,7 @@ def show_control_panel():
             try:
                 import requests
                 url = f"https://api.telegram.org/bot{token}/sendMessage"
-                resp = requests.post(url, data={"chat_id": chat, "text": "⚡ ApexForex: Test alert!"})
+                resp = requests.post(url, data={"chat_id": chat, "text": "⚡ ForexAlert: Test alert!"})
                 if resp.status_code == 200:
                     st.balloons()
                     st.success("Test message sent!")
@@ -1527,27 +1910,66 @@ def show_fleet_status():
 
 
 # =============================================================================
-# NAVIGATION & ROUTING (Streamlit 1.34+)
+# AUTH — Persistent Session Restore
 # =============================================================================
+# Streamlit session_state is wiped whenever the WebSocket reconnects
+# (fragment timers firing, memory pressure, server restart, etc.).
+# We persist auth using a server-side token stored in the URL query param ?t=
+# so the session is silently restored on every reconnect.
 
-# Auth State Initialization
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
+from core.sessions import validate_session, create_session, delete_session, purge_expired
 
-# Deep Link Auth Bypass (for KPI Cards)
-# If a user clicks a link with ?nav=true, we auto-authenticate to allow the route to load.
-# In a production app, verify a token here. For local app, this is safe.
-if st.query_params.get("nav") == "true":
-    st.session_state['authenticated'] = True
+# ── 1. Initialize defaults ────────────────────────────────────────────────────
+for _key in ('authenticated', 'user_email', 'user_name', 'user_role', 'user_id', '_session_token'):
+    if _key not in st.session_state:
+        st.session_state[_key] = False if _key == 'authenticated' else ''
 
-# Import Landing Page
+# ── 2. Restore session from URL token (survives WebSocket drops) ──────────────
+if not st.session_state.get('authenticated'):
+    _url_token = st.query_params.get('t', '')
+    if _url_token and len(_url_token) == 64:
+        _user = validate_session(_url_token)
+        if _user:
+            st.session_state['authenticated']   = True
+            st.session_state['user_email']      = _user['email']
+            st.session_state['user_name']       = _user['name']
+            st.session_state['user_role']       = _user['role']
+            st.session_state['user_id']         = _user['id']
+            st.session_state['_session_token']  = _url_token
+
+# ── 3. Top-level pending-auth handler (fires right after login form submit) ───
+# landing.py forms set _pending_auth then call st.rerun().
+# We catch it HERE at the absolute top level (no column/tab context).
+if "_pending_auth" in st.session_state:
+    _p = st.session_state.pop("_pending_auth")
+    _tok = _p.get("token", "")
+    st.session_state["authenticated"]  = True
+    st.session_state["user_email"]     = _p["email"]
+    st.session_state["user_name"]      = _p["name"]
+    st.session_state["user_role"]      = _p["role"]
+    st.session_state["user_id"]        = _p["id"]
+    st.session_state["_session_token"] = _tok
+    # Embed token in URL so reconnects auto-restore the session
+    if _tok:
+        st.query_params["t"] = _tok
+    st.rerun()
+
+# ── 4. Periodically purge expired tokens (lightweight, ~1ms) ─────────────────
+try:
+    purge_expired()
+except Exception:
+    pass
+
+# ── 5. Import Landing Page ────────────────────────────────────────────────────
 from landing import show_landing
 
 if not st.session_state['authenticated']:
-    # LANDING PAGE MODE
-    pg = st.navigation([st.Page(show_landing, title="ApexForex", icon="⚡")], position="hidden")
-    pg.run()
-    
+    # Clear any stale token from URL if it failed validation
+    if st.query_params.get('t'):
+        st.query_params.clear()
+    show_landing()
+    st.stop()
+
 else:
     # DASHBOARD MODE
     # Define Pages
@@ -1567,26 +1989,50 @@ else:
 
     # External Pages (mapped from existing files)
     import os
-    
-    path_profile = os.path.join(BASE_DIR, "pages", "1_User_Profile.py")
-    path_vault = os.path.join(BASE_DIR, "pages", "2_Financials_Vault.py")
-    path_settings = os.path.join(BASE_DIR, "pages", "3_System_Settings.py")
 
-    pg_profile = st.Page(path_profile, title="User Profile", icon="👤", url_path="profile")
-    pg_vault = st.Page(path_vault, title="Financials Vault", icon="💳", url_path="vault")
-    pg_settings = st.Page(path_settings, title="System Settings", icon="⚙", url_path="advanced")
+    path_profile      = os.path.join(BASE_DIR, "pages", "1_User_Profile.py")
+    path_vault        = os.path.join(BASE_DIR, "pages", "2_Financials_Vault.py")
+    path_settings     = os.path.join(BASE_DIR, "pages", "3_System_Settings.py")
+    path_copy_trading = os.path.join(BASE_DIR, "pages", "4_Copy_Trading.py")
+    path_admin        = os.path.join(BASE_DIR, "pages", "5_Admin_Panel.py")
 
-    # Build Navigation
-    pg = st.navigation({
+    pg_profile      = st.Page(path_profile,      title="User Profile",    icon="👤", url_path="profile")
+    pg_vault        = st.Page(path_vault,         title="Financials Vault",icon="💳", url_path="vault")
+    pg_settings_ext = st.Page(path_settings,     title="System Settings", icon="⚙", url_path="advanced")
+    pg_copy_trading = st.Page(path_copy_trading,  title="Copy Trading Hub",icon="🔁", url_path="copy-trading")
+    pg_admin        = st.Page(path_admin,         title="Admin Panel",     icon="🛠️", url_path="admin")
+
+    # Build Navigation — admin gets an extra group
+    is_admin = st.session_state.get("user_role") == "admin"
+    nav_dict = {
         "Intelligence": [pg_home, pg_market, pg_terminal, pg_fleet],
-        "Analytics": [pg_analytics, pg_models],
-        "Management": [pg_control, pg_profile, pg_vault, pg_settings]
-    })
+        "Analytics":    [pg_analytics, pg_models],
+        "Management":   [pg_profile, pg_vault, pg_settings_ext],
+        "Services":     [pg_copy_trading],
+    }
+    if is_admin:
+        nav_dict["Admin"] = [pg_admin]
+    pg = st.navigation(nav_dict)
 
     # Sidebar Logo/Footer (Stays constant)
     with st.sidebar:
         sidebar_logo()
         # st.navigation handles the menu rendering automatically here
+
+    # ── Global Page Switcher ────────────────────────────────────────────────
+    target_page = st.session_state.pop("nav_target", None)
+    if target_page == "terminal" or st.session_state.pop("nav_to_terminal", False):
+        st.switch_page(pg_terminal)
+    elif target_page == "analytics":
+        st.switch_page(pg_analytics)
+    elif target_page == "market":
+        st.switch_page(pg_market)
+    elif target_page == "audit":
+        st.switch_page(pg_models)
+    elif target_page == "fleet":
+        st.switch_page(pg_fleet)
+    elif target_page == "home":
+        st.switch_page(pg_home)
 
     # Run!
     pg.run()
@@ -1594,11 +2040,36 @@ else:
     # Sidebar Footer & Global Rerun (Native approach)
     with st.sidebar:
         st.markdown("---")
+        # ── Logged-in user info + Log Out ──────────────────────────────────
+        _uname = st.session_state.get("user_name", "")
+        _uemail = st.session_state.get("user_email", "")
+        _urole  = st.session_state.get("user_role", "subscriber")
+        if _uname:
+            role_icon = "🛠️" if _urole == "admin" else "👤"
+            st.markdown(
+                f"<div style='font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;'>"
+                f"{role_icon} <strong style='color:var(--text-primary);'>{_uname}</strong><br>"
+                f"<span style='font-size:0.75rem;'>{_uemail}</span></div>",
+                unsafe_allow_html=True,
+            )
+            if st.button("🚪 Log Out", use_container_width=True, key="logout_btn"):
+                # Delete server-side session token so URL ?t= can't restore it
+                _tok = st.session_state.get("_session_token", "")
+                if _tok:
+                    try:
+                        delete_session(_tok)
+                    except Exception:
+                        pass
+                for _k in ('authenticated', 'user_email', 'user_name', 'user_role', 'user_id', '_session_token'):
+                    st.session_state[_k] = False if _k == 'authenticated' else ''
+                st.query_params.clear()
+                st.rerun()
+        st.markdown("")
         sidebar_footer()
-        
+
         # Use the unified system monitor diagnostic
         render_system_monitor()
-        
+
         # Simple manual refresh button to bypass health-check lag
         if st.button("🔄 Force Data Refresh"):
             st.rerun()

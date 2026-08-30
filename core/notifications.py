@@ -33,36 +33,44 @@ class NotificationManager:
         self.enabled = self.telegram_config.get('enabled', False)
         self.bot_token = self.telegram_config.get('bot_token', '')
         self.chat_id = self.telegram_config.get('chat_id', '')
+        self.channel_id = self.telegram_config.get('channel_id', '')
         self.alert_threshold = self.telegram_config.get('alert_threshold', 0.52) # Default to 52% while Platt Calibrator trains
         self.notify_shadow = self.telegram_config.get('notify_shadow_trades', True)
 
     def send_telegram_message(self, message: str) -> bool:
         """
-        Send a raw message to Telegram.
+        Send a message to Telegram (Chat and Channel if configured).
         """
-        if not self.enabled:
-            logger.debug("Telegram alerts disabled.")
+        if not self.enabled or not self.bot_token:
             return False
             
-        if not self.bot_token or not self.chat_id:
-            logger.warning("Telegram enabled but credentials missing.")
-            return False
-            
-        url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
-        payload = {
-            "chat_id": self.chat_id,
-            "text": message,
-            "parse_mode": "Markdown"
-        }
+        targets = []
+        if self.chat_id: targets.append(self.chat_id)
+        if self.channel_id: targets.append(self.channel_id)
         
-        try:
-            response = requests.post(url, json=payload, timeout=5)
-            response.raise_for_status()
-            logger.info("Telegram message sent successfully.")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to send Telegram message: {e}")
+        if not targets:
+            logger.warning("Telegram enabled but no targets (chat_id/channel_id) configured.")
             return False
+            
+        success = False
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+        
+        for target in targets:
+            payload = {
+                "chat_id": target,
+                "text": message,
+                "parse_mode": "Markdown"
+            }
+            
+            try:
+                response = requests.post(url, json=payload, timeout=15)
+                response.raise_for_status()
+                logger.info(f"Telegram message sent to {target}")
+                success = True # At least one succeeded
+            except Exception as e:
+                logger.error(f"Failed to send Telegram message to {target}: {e}")
+                
+        return success
 
     def send_signal_alert(self, signal_data: Dict[str, Any]):
         """
@@ -112,10 +120,24 @@ class NotificationManager:
         volume = signal_data.get('model_trades', 0)
         vol_label = f"`{volume} Trades`" if volume > 0 else "`Standard Pool`"
         
+        # Format dynamically using the live config risk
+        try:
+            mt5_cfg = self.config.get('mt5', {})
+            risk_type = mt5_cfg.get('risk_type', 'percent')
+            risk_value = mt5_cfg.get('risk_value', 0.5)
+            if risk_type == 'fixed_usd':
+                risk_label = f"${risk_value:.2f} fixed"
+            elif risk_type == 'fixed':
+                risk_label = f"{risk_value} lots fixed"
+            else:
+                risk_label = f"{risk_value:.2f}%"
+        except Exception:
+            risk_label = "N/A"
+
         msg = (
             f"{icon} *{signal_data['signal']} {signal_data['symbol']}*\n"
             f"Precision: `{signal_data['confidence']:.1%}`\n"
-            f"📊 *Risk: 0.5% | Lots: {signal_data.get('suggested_lots', 0.01)}*\n"
+            f"📊 *Risk: {risk_label} | Lots: {signal_data.get('suggested_lots', 0.01)}*\n"
             f"Entry: `{signal_data['price_at_signal']:.5f}`\n"
             f"{tp_str}\n"
             f"{sl_str}\n"
@@ -126,3 +148,24 @@ class NotificationManager:
             msg = f"👻 *SHADOW / PAPER TRADE* 👻\n" + msg
             
         return self.send_telegram_message(msg)
+
+    def send_periodic_performance_report(
+        self,
+        period: str = "both",
+        risk_per_trade: float = 50.0,
+        mode: str = "production",
+        start_date: Optional[str] = None
+    ) -> bool:
+        """
+        Generate and dispatch comprehensive weekly/monthly performance scorecard to Telegram.
+        """
+        try:
+            from core.performance_report import PerformanceReporter
+            reporter = PerformanceReporter()
+            scorecard = reporter.generate_telegram_scorecard(period=period, risk_per_trade=risk_per_trade, start_date=start_date)
+            return self.send_telegram_message(scorecard)
+        except Exception as e:
+            logger.error(f"Failed to generate or send periodic performance report: {e}")
+            return False
+
+
