@@ -166,6 +166,20 @@ class PerformanceReporter:
         if filtered.empty:
             return pd.DataFrame()
 
+        if mode == "mt5_live":
+            def parse_exact(row):
+                reason = str(row.get('exit_reason') or '')
+                import re
+                m = re.search(r'Profit:\s*\$([+-]?[\d,.]+)', reason)
+                if m:
+                    return float(m.group(1).replace(',', ''))
+                if row.get('outcome') == 'SUCCESS':
+                    return risk_per_trade * reward_multiplier
+                elif row.get('outcome') == 'FAIL':
+                    return -risk_per_trade
+                return 0.0
+            filtered['pnl_amount'] = filtered.apply(parse_exact, axis=1)
+
         t_naive = filtered['time_metric'].dt.tz_localize(None)
         if period == "monthly":
             filtered['period_obj'] = t_naive.dt.to_period('M')
@@ -183,15 +197,25 @@ class PerformanceReporter:
             tot = len(sub)
             if tot == 0:
                 continue
-            w = len(sub[sub['outcome'] == 'SUCCESS'])
-            l = tot - w
-            wr = (w / tot * 100.0) if tot > 0 else 0.0
-            net_r = (w * reward_multiplier) - (l * 1.0)
-            pnl = (w * reward_per_trade) - (l * risk_per_trade)
-            
-            gross_win = w * reward_multiplier
-            gross_loss = l * 1.0
-            pf = (gross_win / gross_loss) if gross_loss > 0 else np.nan
+
+            if mode == "mt5_live" and 'pnl_amount' in sub.columns:
+                pnl = float(sub['pnl_amount'].sum())
+                gross_win = float(sub[sub['pnl_amount'] > 0]['pnl_amount'].sum())
+                gross_loss = abs(float(sub[sub['pnl_amount'] < 0]['pnl_amount'].sum()))
+                pf = (gross_win / gross_loss) if gross_loss > 0 else 999.0
+                net_r = pnl / risk_per_trade
+                w = len(sub[sub['pnl_amount'] > 0])
+                l = len(sub[sub['pnl_amount'] < 0])
+                wr = (w / tot * 100.0) if tot > 0 else 0.0
+            else:
+                w = len(sub[sub['outcome'] == 'SUCCESS'])
+                l = tot - w
+                wr = (w / tot * 100.0) if tot > 0 else 0.0
+                net_r = (w * reward_multiplier) - (l * 1.0)
+                pnl = (w * reward_per_trade) - (l * risk_per_trade)
+                gross_win = w * reward_multiplier
+                gross_loss = l * 1.0
+                pf = (gross_win / gross_loss) if gross_loss > 0 else 999.0
 
             rows.append({
                 'Period': format_fn(p_obj),
@@ -200,7 +224,7 @@ class PerformanceReporter:
                 'Losses': l,
                 'Win Rate (%)': round(wr, 1),
                 'Net R': round(net_r, 2),
-                'Profit Factor': round(pf, 2) if not np.isnan(pf) else 999.0,
+                'Profit Factor': round(pf, 2),
                 'Net PnL ($)': round(pnl, 2),
                 'Return (%)': round((pnl / (risk_per_trade / 0.005)) * 100.0, 2) # based on 0.5% risk
             })
