@@ -113,51 +113,6 @@ class PerformanceReporter:
         start_date: Optional[str] = "2026-08-01",
         use_close_time: bool = True # Base grouping on time of trade close
     ) -> pd.DataFrame:
-        if mode == "mt5_live":
-            df_mt5 = self._get_mt5_deals_df()
-            if not df_mt5.empty:
-                if start_date:
-                    df_mt5 = df_mt5[df_mt5['t_utc'] >= pd.to_datetime(start_date, utc=True)].copy()
-
-                t_naive = df_mt5['t_utc'].dt.tz_localize(None)
-                if period == "monthly":
-                    df_mt5['period'] = t_naive.dt.to_period('M').astype(str)
-                else:
-                    df_mt5['period'] = t_naive.dt.to_period('W-SUN').apply(lambda p: f"{p.start_time.strftime('%b %d')} - {p.end_time.strftime('%b %d')} (W{p.week:02d})")
-
-                periods = sorted(df_mt5['period'].unique(), reverse=True)
-                rows = []
-                for p in periods:
-                    sub = df_mt5[df_mt5['period'] == p]
-                    tot = len(sub)
-                    if tot == 0:
-                        continue
-                    w = len(sub[sub['profit'] > 0])
-                    l = len(sub[sub['profit'] < 0])
-                    be = len(sub[sub['profit'] == 0])
-                    wr = (w / tot * 100.0) if tot > 0 else 0.0
-                    pnl = float(sub['profit'].sum())
-                    comm = float(sub['commission'].sum()) if 'commission' in sub.columns else 0.0
-                    swap = float(sub['swap'].sum()) if 'swap' in sub.columns else 0.0
-                    net_pnl = pnl + comm + swap
-                    gross_profit = float(sub[sub['profit'] > 0]['profit'].sum())
-                    gross_loss = abs(float(sub[sub['profit'] < 0]['profit'].sum()))
-                    pf = (gross_profit / gross_loss) if gross_loss > 0 else 999.0
-                    net_r = (net_pnl / risk_per_trade)
-
-                    rows.append({
-                        'Period': p,
-                        'Trades': tot,
-                        'Wins': w,
-                        'Losses': l,
-                        'Win Rate (%)': round(wr, 1),
-                        'Net R': round(net_r, 2),
-                        'Profit Factor': round(pf, 2),
-                        'Net PnL ($)': round(net_pnl, 2),
-                        'Return (%)': round((net_pnl / 10000.0) * 100.0, 2)
-                    })
-                return pd.DataFrame(rows)
-
         df = self._get_signals_df()
         if df.empty:
             return pd.DataFrame()
@@ -169,7 +124,11 @@ class PerformanceReporter:
         if start_date:
             df = df[df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
 
-        if mode == "telegram_live":
+        if mode == "mt5_live":
+            # Master MT5 Account Executed Live Trades (August 2026+)
+            filtered = df[df['mt5_ticket'].notnull() & (~df['symbol'].isin(COMMODITY_SYMBOLS))].copy()
+            filtered = self._dedup(filtered)
+        elif mode == "telegram_live":
             # Live Alerts Sent to Telegram: non-hidden signals, Forex only, shielded
             def is_valid_tg(r):
                 sym = r['symbol']

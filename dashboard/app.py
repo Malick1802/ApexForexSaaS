@@ -1186,7 +1186,7 @@ def render_periodic_performance_matrix():
             [
                 "🎯 61.0%+ Live Production (All Months & Weeks)",
                 "📲 Live Telegram Signals (August 2026+)",
-                "🏦 Actual MT5 Closed Deals (August 2026+)",
+                "🏦 Master MT5 Executed Trades (August 2026+)",
                 "📊 All 50.0%+ Baseline Signals"
             ],
             key="perf_matrix_policy_mode"
