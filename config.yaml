@@ -369,6 +369,7 @@ foundation:
   foundation_v3: models/foundation_v3/foundation_brain.keras
 mt5:
   enabled: true
+  path: 'C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe'
   host: 127.0.0.1
   login: 1514462922
   max_open_trades: 9

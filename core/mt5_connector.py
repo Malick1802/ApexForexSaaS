@@ -115,12 +115,18 @@ class MT5Connector:
                     server=server
                 )
             else:
-                logger.info(f"Connecting to native terminal (Account: {login})")
-                success = conn.initialize(
-                    login=login,
-                    password=password,
-                    server=server
-                )
+                path = self.config.get('path') or (r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe" if "FTMO" in str(server).upper() else None)
+                init_kwargs = {
+                    "login": int(login) if login else None,
+                    "password": str(password) if password else None,
+                    "server": str(server) if server else None,
+                    "timeout": 15000
+                }
+                if path and Path(path).exists():
+                    init_kwargs["path"] = str(path)
+
+                logger.info(f"Connecting to native terminal: path={init_kwargs.get('path')} (Account: {login} on {server})")
+                success = conn.initialize(**{k: v for k, v in init_kwargs.items() if v is not None})
 
             if success:
                 acc = conn.account_info()

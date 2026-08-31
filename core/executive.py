@@ -666,18 +666,10 @@ class ExecutiveEngine:
                         result['mt5_ticket'] = ticket
                         self.db.update_signal_ticket(result['id'], ticket)
 
-                    # 2b. Broadcast to copy trading accounts (Multi-User)
+                    # 2b. Broadcast to copy trading accounts via isolated subprocess workers
                     try:
                         from scripts.multi_executor import execute_signal_for_all_users
                         execute_signal_for_all_users(result)
-                        # Restore master terminal context after multi-account loop
-                        mt5_conf = self.config.get('mt5', {})
-                        if self.mt5 and mt5_conf.get('login'):
-                            self.mt5.initialize(
-                                login=int(mt5_conf['login']),
-                                password=str(mt5_conf.get('password', '')),
-                                server=str(mt5_conf.get('server', ''))
-                            )
                     except Exception as _me:
                         logger.error(f"Multi-user copy execution error: {_me}")
 

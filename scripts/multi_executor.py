@@ -1,13 +1,17 @@
 """
 Multi-User MT5 Executor — executes a signal across ALL registered user accounts.
-Called by apex_connect after each new signal is detected.
+Uses isolated subprocess workers to guarantee zero IPC interference with the master FTMO scanner.
 """
 import logging
 import sys
+import json
+import subprocess
+import argparse
 from pathlib import Path
 from datetime import datetime, timezone
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 logger = logging.getLogger("MultiExecutor")
 if not logger.handlers:
@@ -17,323 +21,345 @@ if not logger.handlers:
 logger.setLevel(logging.INFO)
 
 
-def _get_mt5_module():
-    """Return the correct MT5 module depending on OS."""
-    import platform
-    if platform.system() == "Windows":
-        import MetaTrader5 as mt5
-        return mt5
-    else:
-        from mt5linux import MetaTrader5 as mt5
-        return mt5()
+def _get_terminal_path_for_server(server: str) -> str:
+    """Return the correct terminal64.exe path based on broker server."""
+    if "FTMO" in server.upper():
+        ftmo_path = r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe"
+        if Path(ftmo_path).exists():
+            return ftmo_path
+    std_path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+    if Path(std_path).exists():
+        return std_path
+    return ""
 
 
-def _connect_user(mt5, user: dict) -> bool:
-    """Initialize MT5 with a specific user's credentials. Returns True if connected."""
+def _worker_execute_order(user: dict, signal_row: dict) -> dict:
+    """
+    Executed inside an ISOLATED worker subprocess.
+    Maintains a private MT5 context that never touches the master process.
+    """
+    import MetaTrader5 as mt5
+
+    login = int(user["mt5_login"])
+    password = str(user["mt5_password"])
+    server = str(user["mt5_server"])
+    user_name = user.get("name", f"User_{login}")
+
+    symbol = signal_row["symbol"]
+    signal_type = signal_row["signal"].upper()
+    sl = float(signal_row.get("sl_price") or signal_row.get("stop_loss") or signal_row.get("sl") or 0)
+    tp = float(signal_row.get("tp_price") or signal_row.get("take_profit") or signal_row.get("tp") or 0)
+    regime = signal_row.get("regime", "NORMAL")
+
+    term_path = _get_terminal_path_for_server(server)
+
+    logger.info(f"Worker init: {user_name} (#{login}) on {server} via terminal [{term_path}]")
+
     try:
-        login = int(user["mt5_login"])
-        password = str(user["mt5_password"])
-        server = str(user["mt5_server"])
-        
-        # 1. Try direct login on currently active terminal session
-        try:
-            if mt5.login(login=login, password=password, server=server):
-                acc = mt5.account_info()
-                if acc and acc.login == login:
-                    logger.info(f"  ✅ Connected (Direct): {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
-                    return True
-        except Exception:
-            pass
+        mt5.shutdown()
+    except Exception:
+        pass
 
-        # 2. If server belongs to standard terminal or direct login fails, switch to standard terminal
-        std_path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
-        from pathlib import Path
-        if Path(std_path).exists():
-            try:
-                mt5.shutdown()
-            except Exception:
-                pass
-            if mt5.initialize(path=std_path, login=login, password=password, server=server, timeout=15000):
-                acc = mt5.account_info()
-                if acc and acc.login == login:
-                    logger.info(f"  ✅ Connected (Terminal Switch): {user['name']} → {acc.server} (Balance: ${acc.balance:,.2f})")
-                    return True
+    init_kwargs = {"timeout": 5000}
+    if term_path:
+        init_kwargs["path"] = term_path
 
+    if not mt5.initialize(**init_kwargs):
         err = mt5.last_error()
-        logger.error(f"  ❌ Failed to connect {user['name']}: {err}")
-        return False
-    except Exception as e:
-        logger.error(f"  ❌ Exception connecting {user['name']}: {e}")
-        return False
+        logger.error(f"❌ Worker MT5 initialize failed for {user_name}: {err}")
+        return {"status": "FAILED", "error": f"INIT_FAILED_{err}"}
 
+    acc = mt5.account_info()
+    if not acc or acc.login != login:
+        logger.info(f"Switching login to #{login} on {server}...")
+        if not mt5.login(login=login, password=password, server=server):
+            err = mt5.last_error()
+            logger.error(f"❌ Worker login failed for #{login} on {server}: {err}")
+            mt5.shutdown()
+            return {"status": "FAILED", "error": f"LOGIN_FAILED_{err}"}
+        acc = mt5.account_info()
 
-def _calculate_lots(mt5, user: dict, symbol: str, sl_price: float, entry_price: float) -> float:
-    """Calculate lot size based on user's risk settings."""
-    risk_type = user.get("risk_type", "percent")
+    if not acc or acc.login != login:
+        logger.error(f"❌ Account mismatch in worker! Target #{login}, but connected to #{getattr(acc, 'login', 'None')}")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": "ACCOUNT_MISMATCH"}
+
+    logger.info(f"✅ Worker logged in: {acc.name} (#{acc.login}) on {acc.server} | Balance: ${acc.balance:,.2f}")
+
+    # Check if position already open on this account (Deduplication)
+    existing_pos = mt5.positions_get(symbol=symbol)
+    if existing_pos:
+        for p in existing_pos:
+            if (signal_type == "BUY" and p.type == 0) or (signal_type == "SELL" and p.type == 1):
+                logger.warning(f"🛑 DEDUP: {symbol} {signal_type} already open on #{login} (Ticket #{p.ticket}). Blocking duplicate.")
+                mt5.shutdown()
+                return {"status": "SKIPPED", "ticket": p.ticket, "reason": "ALREADY_OPEN"}
+
+    if not mt5.symbol_select(symbol, True):
+        logger.error(f"❌ Symbol {symbol} not available on {server}")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": "SYMBOL_NOT_FOUND"}
+
+    tick = mt5.symbol_info_tick(symbol)
+    if not tick:
+        logger.error(f"❌ No live tick for {symbol}")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": "NO_TICK"}
+
+    price = tick.ask if signal_type == "BUY" else tick.bid
+    order_type = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
+
+    # Dynamic 0.5% risk lot size calculation
     risk_value = float(user.get("risk_value", 0.5))
+    risk_amount = acc.balance * (risk_value / 100.0)
 
-    if risk_type == "fixed":
-        return risk_value
+    s_info = mt5.symbol_info(symbol)
+    default_pips = 0.28 if "JPY" in symbol else 0.0028
+    if sl <= 0:
+        price_dist = default_pips
+    else:
+        price_dist = abs(price - sl)
+        if price_dist > (price * 0.05):
+            price_dist = default_pips
+
+    tick_size = s_info.trade_tick_size or 0.00001
+    tick_val = s_info.trade_tick_value or 1.0
+    dist_in_ticks = price_dist / tick_size if tick_size > 0 else 0
+    loss_per_lot = dist_in_ticks * tick_val if (dist_in_ticks > 0 and tick_val > 0) else 1.0
+
+    raw_lots = risk_amount / loss_per_lot
+    step = s_info.volume_step or 0.01
+    volume = round(raw_lots / step) * step
+    volume = max(s_info.volume_min, min(s_info.volume_max, volume))
+
+    # Supported filling mode
+    filling_type = mt5.ORDER_FILLING_FOK
+    if s_info:
+        if (s_info.filling_mode & 1) != 0:
+            filling_type = mt5.ORDER_FILLING_FOK
+        elif (s_info.filling_mode & 2) != 0:
+            filling_type = mt5.ORDER_FILLING_IOC
+        else:
+            filling_type = mt5.ORDER_FILLING_RETURN
+
+    request = {
+        "action":       mt5.TRADE_ACTION_DEAL,
+        "symbol":       symbol,
+        "volume":       volume,
+        "type":         order_type,
+        "price":        price,
+        "sl":           sl if sl > 0 else 0.0,
+        "tp":           tp if tp > 0 else 0.0,
+        "deviation":    30,
+        "magic":        20260622,
+        "comment":      f"ForexAlert {regime}",
+        "type_time":    mt5.ORDER_TIME_GTC,
+        "type_filling": filling_type,
+    }
+
+    logger.info(f"📤 Placing order: {symbol} {signal_type} | Lots: {volume:.2f} (Risk: ${risk_amount:.2f}) | Filling: {filling_type}")
+    res = mt5.order_send(request)
+
+    if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+        logger.info(f"  ✅ SUCCESS: Placed {symbol} {signal_type} {volume:.2f} lots! Ticket #{res.order}")
+        mt5.shutdown()
+        return {"status": "SUCCESS", "ticket": res.order, "volume": volume}
+    else:
+        comment = res.comment if res else "No response"
+        code = res.retcode if res else -1
+        logger.error(f"  ❌ FAILED: {comment} (Code: {code})")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": f"{comment} ({code})"}
+
+
+def _worker_close_order(user: dict, symbol: str) -> dict:
+    """Executed inside an ISOLATED worker subprocess to close positions for a symbol."""
+    import MetaTrader5 as mt5
+
+    login = int(user["mt5_login"])
+    password = str(user["mt5_password"])
+    server = str(user["mt5_server"])
+    user_name = user.get("name", f"User_{login}")
+
+    term_path = _get_terminal_path_for_server(server)
 
     try:
-        account_info = mt5.account_info()
-        if not account_info:
-            return 0.01
+        mt5.shutdown()
+    except Exception:
+        pass
 
-        # Percent of balance risk calculation
-        risk_amount = account_info.balance * (risk_value / 100.0)
-        symbol_info = mt5.symbol_info(symbol)
-        if not symbol_info:
-            return 0.01
+    init_kwargs = {"login": login, "password": password, "server": server, "timeout": 15000}
+    if term_path:
+        init_kwargs["path"] = term_path
 
-        tick_size = symbol_info.trade_tick_size or 0.00001
-        tick_value = symbol_info.trade_tick_value or 1.0
+    if not mt5.initialize(**init_kwargs):
+        return {"status": "FAILED", "error": "INIT_FAILED"}
 
-        # If sl_price is missing or zero, use standard 28-pip distance
-        default_pips = 0.28 if "JPY" in symbol else 0.0028
-        if sl_price <= 0:
-            price_dist = default_pips
-        else:
-            price_dist = abs(entry_price - sl_price)
-            # If distance exceeds 5% of price, it's invalid SL price
-            if price_dist > (entry_price * 0.05):
-                price_dist = default_pips
+    positions = mt5.positions_get(symbol=symbol)
+    if not positions:
+        mt5.shutdown()
+        return {"status": "NO_OPEN_POSITIONS"}
 
-        dist_in_ticks = price_dist / tick_size if tick_size > 0 else 0
-        if dist_in_ticks <= 0 or tick_value <= 0:
-            return 0.01
+    closed_tickets = []
+    for pos in positions:
+        ticket = pos.ticket
+        vol = pos.volume
+        calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+        tick = mt5.symbol_info_tick(symbol)
+        if not tick:
+            continue
+        price = tick.bid if calc_type == mt5.ORDER_TYPE_SELL else tick.ask
 
-        loss_per_lot = dist_in_ticks * tick_value
-        risk_lots = risk_amount / loss_per_lot
+        s_info = mt5.symbol_info(symbol)
+        filling_type = mt5.ORDER_FILLING_IOC
+        if s_info:
+            if (s_info.filling_mode & 2) != 0:
+                filling_type = mt5.ORDER_FILLING_IOC
+            elif (s_info.filling_mode & 1) != 0:
+                filling_type = mt5.ORDER_FILLING_FOK
+            else:
+                filling_type = mt5.ORDER_FILLING_RETURN
 
-        # Clamp to symbol min/max and volume step
-        step = symbol_info.volume_step or 0.01
-        risk_lots = round(risk_lots / step) * step
-        return max(symbol_info.volume_min, min(symbol_info.volume_max, risk_lots))
+        req = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": symbol,
+            "volume": vol,
+            "type": calc_type,
+            "position": ticket,
+            "price": price,
+            "deviation": 30,
+            "magic": 20260622,
+            "comment": "ForexAlert Close",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": filling_type,
+        }
+        res = mt5.order_send(req)
+        if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+            closed_tickets.append(str(ticket))
 
-    except Exception as e:
-        logger.error(f"  Lot calculation error: {e}")
-        return 0.01
+    mt5.shutdown()
+    return {"status": "CLOSED", "tickets": closed_tickets}
 
 
 def execute_signal_for_all_users(signal_row: dict) -> dict:
     """
-    Execute a single signal across all enabled registered users.
-    Returns a summary dict: {user_name: ticket_or_error, ...}
+    Broadcast a signal across all enabled user accounts using ISOLATED worker subprocesses.
+    The calling process (main.py / executive.py) NEVER disconnects from FTMO.
     """
     from core.user_accounts import get_enabled_users, mark_last_trade
 
     users = get_enabled_users()
     if not users:
-        logger.info("No enabled users registered — skipping multi-execution.")
-    symbol = signal_row["symbol"]
-    signal_type = signal_row["signal"]
-    sl = float(signal_row.get("sl_price") or signal_row.get("stop_loss") or signal_row.get("sl") or 0)
-    tp = float(signal_row.get("tp_price") or signal_row.get("take_profit") or signal_row.get("tp") or 0)
-    regime = signal_row.get("regime", "NORMAL")
-
-    # ── COMMODITY / BLOCKED SYMBOL SAFETY GATE ──
-    from core.symbol_guard import is_symbol_blocked
-    if is_symbol_blocked(symbol):
-        logger.critical(f"🛑 COMMODITY SHIELD: Symbol {symbol} is a blacklisted commodity. Skipping multi-user execution entirely!")
+        logger.info("No enabled copy trading users registered.")
         return {}
 
-    logger.info(f"🌐 Multi-Executor: Broadcasting {symbol} {signal_type} to {len(users)} account(s)")
+    symbol = signal_row["symbol"]
+    signal_type = signal_row["signal"]
+
+    from core.symbol_guard import is_symbol_blocked
+    if is_symbol_blocked(symbol):
+        logger.critical(f"🛑 COMMODITY SHIELD: Symbol {symbol} is blacklisted. Skipping multi-user execution!")
+        return {}
+
+    logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Broadcasting {symbol} {signal_type} to {len(users)} user(s)")
 
     results = {}
 
     for user in users:
         user_name = user["name"]
-        logger.info(f"→ Processing Copy Trade for: {user_name}")
+        user_id = user["id"]
+        logger.info(f"→ Spawning isolated worker for: {user_name} (#{user['mt5_login']})")
+
+        cmd = [
+            sys.executable,
+            "-X", "utf8",
+            "-m", "scripts.multi_executor",
+            "--worker-exec",
+            "--user-json", json.dumps(dict(user)),
+            "--signal-json", json.dumps(dict(signal_row))
+        ]
 
         try:
-            mt5 = _get_mt5_module()
-
-            if not _connect_user(mt5, user):
-                results[user_name] = "CONNECTION_FAILED"
-                continue
-
-            # Select symbol
-            if not mt5.symbol_select(symbol, True):
-                logger.error(f"  Symbol {symbol} not visible for {user_name}")
-                results[user_name] = "SYMBOL_NOT_FOUND"
-                continue
-
-            # Get live tick
-            tick = mt5.symbol_info_tick(symbol)
-            if not tick:
-                logger.error(f"  No tick for {symbol} for {user_name}")
-                results[user_name] = "NO_TICK"
-                continue
-
-            price = tick.ask if signal_type == "BUY" else tick.bid
-            order_type = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
-
-            # Calculate lots
-            volume = _calculate_lots(mt5, user, symbol, sl, price)
-
-            # Filling mode
-            symbol_info = mt5.symbol_info(symbol)
-            filling_type = mt5.ORDER_FILLING_FOK
-            if symbol_info:
-                if (symbol_info.filling_mode & 1) != 0:
-                    filling_type = mt5.ORDER_FILLING_FOK
-                elif (symbol_info.filling_mode & 2) != 0:
-                    filling_type = mt5.ORDER_FILLING_IOC
-                else:
-                    filling_type = mt5.ORDER_FILLING_RETURN
-
-            request = {
-                "action":       mt5.TRADE_ACTION_DEAL,
-                "symbol":       symbol,
-                "volume":       volume,
-                "type":         order_type,
-                "price":        price,
-                "sl":           sl,
-                "tp":           tp,
-                "deviation":    20,
-                "magic":        20260622,
-                "comment":      f"ForexAlert {regime}",
-                "type_time":    mt5.ORDER_TIME_GTC,
-                "type_filling": filling_type,
-            }
-
-            result = mt5.order_send(request)
-
-            if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-                logger.info(f"  ✅ {user_name}: Order Placed! Ticket {result.order} | Volume: {volume} lots")
-                results[user_name] = result.order
-                mark_last_trade(user["id"])
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(PROJECT_ROOT))
+            out = proc.stdout.strip()
+            if proc.returncode == 0:
+                logger.info(f"  Worker Output for {user_name}:\n{out}")
+                # Parse result json if in output
+                results[user_name] = "SUCCESS"
+                mark_last_trade(user_id)
             else:
-                comment = result.comment if result else "No response"
-                code = result.retcode if result else -1
-                logger.error(f"  ❌ {user_name}: {comment} (Code {code})")
-                results[user_name] = f"FAILED:{comment}"
+                logger.error(f"  Worker error for {user_name} (Exit code {proc.returncode}):\n{proc.stderr.strip()}\n{out}")
+                results[user_name] = f"ERROR: {proc.stderr.strip()}"
+        except subprocess.TimeoutExpired:
+            logger.error(f"  ❌ Worker timed out for {user_name}")
+            results[user_name] = "TIMEOUT"
+        except Exception as _we:
+            logger.error(f"  ❌ Worker exception for {user_name}: {_we}")
+            results[user_name] = f"EXCEPTION: {_we}"
 
-        except Exception as e:
-            logger.error(f"  ❌ {user_name}: Exception — {e}")
-            results[user_name] = f"EXCEPTION:{e}"
+    logger.info(f"✅ Multi-Executor broadcast finished. Results: {results}")
 
-    # Always restore Master FTMO connection after broadcasting
-    try:
-        import yaml
-        from pathlib import Path
-        cfg_path = Path(__file__).resolve().parent.parent / "config.yaml"
-        with open(cfg_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-        m = cfg.get('mt5', {})
-        if m.get('login'):
-            mt5 = _get_mt5_module()
-            try:
-                mt5.shutdown()
-            except Exception:
-                pass
-            mt5.initialize(login=int(m['login']), password=str(m.get('password', '')), server=str(m.get('server', '')))
-            logger.info("  🔁 Restored master FTMO terminal session.")
-    except Exception as _re:
-        logger.error(f"Failed to restore master connection: {_re}")
-
-    logger.info(f"✅ Multi-Executor complete. Results: {results}")
-
-    # ── Telegram Alerts (Option C) ────────────────────────────────────────────
-    # Send each subscriber a personal signal alert via Telegram.
-    # Works regardless of whether MT5 execution succeeded.
+    # Send personal Telegram alerts to subscribers
     try:
         from core.telegram_alerts import notify_subscribers
-        sent = notify_subscribers(signal_row, execution_results=results)
-        if sent:
-            logger.info(f"📲 Telegram alerts sent to {sent} subscriber(s)")
+        notify_subscribers(signal_row, execution_results=results)
     except Exception as _te:
-        logger.warning(f"Telegram alert error (non-critical): {_te}")
+        logger.warning(f"Telegram alert error: {_te}")
 
     return results
 
 
 def close_signal_for_all_users(symbol: str) -> dict:
-    """
-    Close all open positions for a symbol across all enabled subscriber accounts.
-    Returns a dict mapping username to the status of the close operation.
-    """
+    """Close positions for a symbol across all enabled users via isolated subprocesses."""
     from core.user_accounts import get_enabled_users
+
     users = get_enabled_users()
     if not users:
         return {}
 
-    logger.info(f"🌐 Multi-Executor Reversal: Closing positions for {symbol} across {len(users)} account(s)")
+    logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Closing {symbol} for {len(users)} user(s)")
     results = {}
 
     for user in users:
         user_name = user["name"]
+        cmd = [
+            sys.executable,
+            "-X", "utf8",
+            "-m", "scripts.multi_executor",
+            "--worker-close",
+            "--user-json", json.dumps(dict(user)),
+            "--symbol", symbol
+        ]
         try:
-            mt5 = _get_mt5_module()
-            if not _connect_user(mt5, user):
-                results[user_name] = "CONNECTION_FAILED"
-                try:
-                    mt5.shutdown()
-                except Exception:
-                    pass
-                continue
-
-            positions = mt5.positions_get(symbol=symbol)
-            if not positions:
-                results[user_name] = "NO_OPEN_POSITIONS"
-                mt5.shutdown()
-                continue
-
-            closed_tickets = []
-            for pos in positions:
-                ticket = pos.ticket
-                pos_type = pos.type
-                vol = pos.volume
-                
-                calc_type = mt5.ORDER_TYPE_SELL if pos_type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-                tick = mt5.symbol_info_tick(symbol)
-                if not tick:
-                    continue
-                    
-                price = tick.bid if calc_type == mt5.ORDER_TYPE_SELL else tick.ask
-                
-                # Check filling mode
-                filling_type = mt5.ORDER_FILLING_IOC
-                symbol_info = mt5.symbol_info(symbol)
-                if symbol_info:
-                    if (symbol_info.filling_mode & 2) != 0:
-                        filling_type = mt5.ORDER_FILLING_IOC
-                    elif (symbol_info.filling_mode & 1) != 0:
-                        filling_type = mt5.ORDER_FILLING_FOK
-
-                request = {
-                    "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": symbol,
-                    "volume": vol,
-                    "type": calc_type,
-                    "position": ticket,
-                    "price": price,
-                    "deviation": 20,
-                    "magic": 20260622,
-                    "comment": "Apex Reversal Close",
-                    "type_time": mt5.ORDER_TIME_GTC,
-                    "type_filling": filling_type,
-                }
-                
-                res = mt5.order_send(request)
-                if res and res.retcode == mt5.TRADE_RETCODE_DONE:
-                    closed_tickets.append(str(ticket))
-                    
-            mt5.shutdown()
-            if closed_tickets:
-                results[user_name] = f"CLOSED:{','.join(closed_tickets)}"
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(PROJECT_ROOT))
+            if proc.returncode == 0:
+                results[user_name] = "CLOSED"
             else:
-                results[user_name] = "CLOSE_FAILED"
+                results[user_name] = f"ERROR: {proc.stderr.strip()}"
+        except Exception as _ce:
+            results[user_name] = f"EXCEPTION: {_ce}"
 
-        except Exception as e:
-            logger.error(f"  ❌ {user_name} exception during close: {e}")
-            results[user_name] = f"EXCEPTION:{e}"
-            try:
-                mt5.shutdown()
-            except Exception:
-                pass
-
-    logger.info(f"✅ Multi-Executor Reversal close complete. Results: {results}")
     return results
 
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--worker-exec", action="store_true", help="Run order execution worker")
+    parser.add_argument("--worker-close", action="store_true", help="Run close worker")
+    parser.add_argument("--user-json", type=str, help="User credentials JSON string")
+    parser.add_argument("--signal-json", type=str, help="Signal details JSON string")
+    parser.add_argument("--symbol", type=str, help="Symbol to close")
+    args = parser.parse_args()
+
+    if args.worker_exec and args.user_json and args.signal_json:
+        user_data = json.loads(args.user_json)
+        sig_data = json.loads(args.signal_json)
+        res = _worker_execute_order(user_data, sig_data)
+        print(json.dumps(res))
+        sys.exit(0 if res.get("status") in ("SUCCESS", "SKIPPED") else 1)
+
+    elif args.worker_close and args.user_json and args.symbol:
+        user_data = json.loads(args.user_json)
+        res = _worker_close_order(user_data, args.symbol)
+        print(json.dumps(res))
+        sys.exit(0 if res.get("status") in ("CLOSED", "NO_OPEN_POSITIONS") else 1)
