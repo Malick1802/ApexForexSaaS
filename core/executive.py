@@ -341,6 +341,13 @@ class ExecutiveEngine:
 
             symbol = signal['symbol']
             action = signal['signal']
+
+            # ── ABSOLUTE DUPLICATE LOCK: NEVER OPEN 2 POSITIONS ON THE SAME PAIR ──
+            existing_positions = self.mt5.positions_get(symbol=symbol)
+            if existing_positions:
+                logger.warning(f"🛑 CRITICAL DEDUP LOCK: Position for {symbol} already exists in MT5 ({len(existing_positions)} open). REJECTING new trade.")
+                return False
+
             price = signal['price_at_signal']
             sl = signal['sl_price']
             tp = signal['tp_price']
