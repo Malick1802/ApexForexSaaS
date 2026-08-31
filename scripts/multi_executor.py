@@ -60,7 +60,14 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     except Exception:
         pass
 
-    init_kwargs = {"timeout": 5000}
+    # Pass login credentials directly into initialize() to avoid mt5.login() which
+    # persists the account to the terminal profile on disk (causing cross-terminal bleed).
+    init_kwargs = {
+        "login": int(login),
+        "password": str(password),
+        "server": str(server),
+        "timeout": 5000
+    }
     if term_path:
         init_kwargs["path"] = term_path
 
@@ -70,17 +77,10 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         return {"status": "FAILED", "error": f"INIT_FAILED_{err}"}
 
     acc = mt5.account_info()
-    if not acc or acc.login != login:
-        logger.info(f"Switching login to #{login} on {server}...")
-        if not mt5.login(login=login, password=password, server=server):
-            err = mt5.last_error()
-            logger.error(f"❌ Worker login failed for #{login} on {server}: {err}")
-            mt5.shutdown()
-            return {"status": "FAILED", "error": f"LOGIN_FAILED_{err}"}
-        acc = mt5.account_info()
 
     if not acc or acc.login != login:
-        logger.error(f"❌ Account mismatch in worker! Target #{login}, but connected to #{getattr(acc, 'login', 'None')}")
+        logger.error(f"❌ Account mismatch in worker! Target #{login}, but connected to #{getattr(acc, 'login', 'None')}. "
+                     f"Credentials may be wrong or terminal may not be running.")
         mt5.shutdown()
         return {"status": "FAILED", "error": "ACCOUNT_MISMATCH"}
 
