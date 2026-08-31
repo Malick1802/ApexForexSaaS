@@ -88,9 +88,18 @@ def _calculate_lots(mt5, user: dict, symbol: str, sl_price: float, entry_price: 
 
         tick_size = symbol_info.trade_tick_size or 0.00001
         tick_value = symbol_info.trade_tick_value or 1.0
-        price_dist = abs(entry_price - sl_price)
-        dist_in_ticks = price_dist / tick_size if tick_size > 0 else 0
 
+        # If sl_price is missing or zero, use standard 28-pip distance
+        default_pips = 0.28 if "JPY" in symbol else 0.0028
+        if sl_price <= 0:
+            price_dist = default_pips
+        else:
+            price_dist = abs(entry_price - sl_price)
+            # If distance exceeds 5% of price, it's invalid SL price
+            if price_dist > (entry_price * 0.05):
+                price_dist = default_pips
+
+        dist_in_ticks = price_dist / tick_size if tick_size > 0 else 0
         if dist_in_ticks <= 0 or tick_value <= 0:
             return 0.01
 
@@ -117,12 +126,10 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
     users = get_enabled_users()
     if not users:
         logger.info("No enabled users registered — skipping multi-execution.")
-        return {}
-
     symbol = signal_row["symbol"]
     signal_type = signal_row["signal"]
-    sl = float(signal_row.get("sl_price") or 0)
-    tp = float(signal_row.get("tp_price") or 0)
+    sl = float(signal_row.get("sl_price") or signal_row.get("stop_loss") or signal_row.get("sl") or 0)
+    tp = float(signal_row.get("tp_price") or signal_row.get("take_profit") or signal_row.get("tp") or 0)
     regime = signal_row.get("regime", "NORMAL")
 
     # ── COMMODITY / BLOCKED SYMBOL SAFETY GATE ──
