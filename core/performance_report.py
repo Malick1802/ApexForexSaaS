@@ -80,7 +80,12 @@ class PerformanceReporter:
     def _get_mt5_deals_df(self) -> pd.DataFrame:
         try:
             import MetaTrader5 as mt5
-            if mt5.initialize():
+            from pathlib import Path
+            ftmo_path = r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe"
+            init_kwargs = {"timeout": 5000}
+            if Path(ftmo_path).exists():
+                init_kwargs["path"] = ftmo_path
+            if mt5.initialize(**init_kwargs):
                 from_date = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
                 to_date = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
                 deals = mt5.history_deals_get(from_date, to_date)
@@ -89,6 +94,9 @@ class PerformanceReporter:
                     deal_list = [d._asdict() for d in deals]
                     df_deals = pd.DataFrame(deal_list)
                     df_exits = df_deals[df_deals['entry'] == 1].copy() # 1 = DEAL_ENTRY_OUT
+                    if not df_exits.empty and 'comment' in df_exits.columns:
+                        # Exclude administrative cleanup / duplicate closes from strategy performance
+                        df_exits = df_exits[~df_exits['comment'].astype(str).str.contains("Duplicate|Test|clean", case=False, na=False)].copy()
                     if not df_exits.empty:
                         df_exits['t_utc'] = pd.to_datetime(df_exits['time'], unit='s', utc=True)
                         return df_exits
