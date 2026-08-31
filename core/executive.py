@@ -547,38 +547,50 @@ class ExecutiveEngine:
                     new_is_shadow = bool(result.get('is_hidden', 0))
                     new_confidence = float(result.get('confidence', 0))
                     new_price = float(result.get('price_at_signal', 0))
+                    # ── BULLETPROOF LIVE POSITION SHIELD ──
+                    # If there is already an active LIVE trade on this symbol in MT5, BLOCK any new entry!
+                    if not new_is_shadow:
+                        # 1. Check live positions directly in MT5 terminal
+                        if self.mt5:
+                            try:
+                                existing_mt5_pos = self.mt5.positions_get(symbol=symbol)
+                                if existing_mt5_pos:
+                                    for p in existing_mt5_pos:
+                                        if (signal == 'BUY' and p.type == 0) or (signal == 'SELL' and p.type == 1):
+                                            logger.info(f"🛑 DEDUP MT5 SHIELD: {symbol} {signal} is already OPEN in MT5 (Ticket #{p.ticket}). Blocking duplicate order.")
+                                            return None
+                            except Exception as _mt5_err:
+                                logger.warning(f"Error checking MT5 positions: {_mt5_err}")
+
+                        # 2. Check active live signals in DB
+                        for active in active_signals:
+                            same_dir = active['signal'] == signal
+                            active_is_live = not bool(active.get('is_hidden', 0))
+                            if same_dir and active_is_live:
+                                logger.info(f"🛑 DEDUP DB SHIELD: {symbol} {signal} has an active live signal (ID {active['id']}). Blocking duplicate entry.")
+                                return None
+
                     for active in active_signals:
                         active_tier = active.get('confidence_tier', 0)
                         active_is_shadow = bool(active.get('is_hidden', 0))
                         try:
-                            same_tier = int(float(active_tier)) == int(new_tier)
                             same_dir  = active['signal'] == signal
-                            if same_dir and same_tier:
+                            if same_dir:
                                 if active_is_shadow and new_is_shadow:
-                                    # IMPORTANT: Shadow trades have FIXED TP/SL from first detection.
-                                    # We NEVER roll based on price movement — that would move the goalposts
-                                    # and prevent the trade from ever resolving to SUCCESS or FAIL.
-                                    # We ONLY roll if conviction changes meaningfully (>=1%), which
-                                    # represents a genuinely new signal, not just market drift.
                                     active_confidence = float(active.get('confidence', 0))
                                     conviction_delta = abs(new_confidence - active_confidence)
 
                                     if conviction_delta >= 0.01:
-                                        # Meaningfully different signal — roll to fresh snapshot
-                                        logger.info(f"SHADOW ROLL: {symbol} {signal} {new_tier}%: Conviction changed by {conviction_delta:.3f}. Expiring stale shadow (ID {active['id']}) and recording fresh snapshot.")
+                                        logger.info(f"SHADOW ROLL: {symbol} {signal}: Conviction changed by {conviction_delta:.3f}. Expiring stale shadow (ID {active['id']}) and recording fresh snapshot.")
                                         self.db.update_signal_outcome(active['id'], 'EXPIRED', exit_reason='Shadow Rolled — Conviction Changed')
                                     else:
-                                        # Same conviction — keep existing shadow alive with its original
-                                        # TP/SL so the watchdog can resolve it naturally.
-                                        logger.debug(f"SHADOW HOLD: {symbol} {signal} {new_tier}%: Conviction unchanged ({conviction_delta:.4f}). Preserving original TP/SL for clean resolution.")
+                                        logger.debug(f"SHADOW HOLD: {symbol} {signal}: Conviction unchanged ({conviction_delta:.4f}). Preserving original TP/SL for clean resolution.")
                                         return None
                                 elif active_is_shadow and not new_is_shadow:
-                                    # PROMOTION: Old was shadow (sub-61%), new is LIVE (>=61%). Expire shadow and promote!
-                                    logger.info(f"PROMOTION: {symbol} {signal} {new_tier}% ({new_confidence*100:.1f}%): Upgrading shadow trade (ID {active['id']}) to LIVE entry.")
+                                    logger.info(f"PROMOTION: {symbol} {signal} ({new_confidence*100:.1f}%): Upgrading shadow trade (ID {active['id']}) to LIVE entry.")
                                     self.db.update_signal_outcome(active['id'], 'EXPIRED', exit_reason='Promoted to Live')
                                 else:
-                                    # Live duplicate: block as before.
-                                    logger.info(f"DEDUP: {symbol} {signal} {new_tier}%: Live trade already active. Skipping duplicate.")
+                                    logger.info(f"DEDUP: {symbol} {signal}: Live trade already active. Skipping duplicate.")
                                     return None
                         except (ValueError, TypeError):
                             continue
