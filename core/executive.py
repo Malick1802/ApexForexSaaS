@@ -930,8 +930,30 @@ class ExecutiveEngine:
             reason = ""
             current_price = 0.0
 
+            # ── CHECK 0: Reconcile missing ticket from open MT5 positions ──────
+            # If a signal has no ticket but MT5 has an open position for that symbol/direction,
+            # save the ticket to the DB and keep the signal ACTIVE.
+            # This prevents the watchdog from resolving via live tick with wrong outcomes.
+            if (not ticket or not str(ticket).isdigit() or int(ticket) == 0) and mt5_conn:
+                try:
+                    open_positions = mt5_conn.positions_get(symbol=symbol)
+                    if open_positions:
+                        for pos in open_positions:
+                            pos_direction = 'BUY' if pos.type == 0 else 'SELL'
+                            if pos_direction == direction:
+                                recovered_ticket = pos.ticket
+                                logger.info(f"🔗 TICKET RECONCILE: {symbol} {direction} (ID {sig_id}) matched open MT5 position #{recovered_ticket}. Saving ticket.")
+                                self.db.update_signal_ticket(sig_id, recovered_ticket)
+                                ticket = recovered_ticket
+                                sig = dict(sig)
+                                sig['mt5_ticket'] = recovered_ticket
+                                break
+                except Exception as _te:
+                    logger.warning(f"Ticket reconciliation failed for {symbol}: {_te}")
+
             # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
             if ticket and str(ticket).isdigit() and int(ticket) > 0:
+
                 if mt5_conn:
                     try:
                         # Check if position is still open
