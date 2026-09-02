@@ -1445,9 +1445,21 @@ def show_performance_matrix():
 
     hero_banner("Performance Matrix", "Real-time AI surveillance, rolling window analytics, and periodic performance scorecard")
 
+    # Auto-refresh every 60 seconds so new trade closures appear automatically
+    import time as _time
+    if 'perf_matrix_last_refresh' not in st.session_state:
+        st.session_state['perf_matrix_last_refresh'] = _time.time()
+    elapsed = _time.time() - st.session_state['perf_matrix_last_refresh']
+    seconds_remaining = max(0, 60 - int(elapsed))
+    if elapsed >= 60:
+        st.session_state['perf_matrix_last_refresh'] = _time.time()
+        st.rerun()
+    st.caption(f"🔄 Auto-refreshes in {seconds_remaining}s — or click a control to refresh now.")
+
     # Render Weekly and Monthly Return Performance Matrix
     render_periodic_performance_matrix()
     st.markdown("<br><hr style='opacity:0.15;'><br>", unsafe_allow_html=True)
+
 
     @st.fragment(run_every=timedelta(minutes=5))
     def _matrix_grid():
