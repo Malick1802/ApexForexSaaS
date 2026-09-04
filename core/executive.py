@@ -953,63 +953,17 @@ class ExecutiveEngine:
 
             # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
             if ticket and str(ticket).isdigit() and int(ticket) > 0:
-
                 if mt5_conn:
                     try:
-                        # Check if position is still open
+                        # Check if position is still open in MT5
                         pos = mt5_conn.positions_get(ticket=int(ticket))
                         if pos:
-                            # Position is still open in MT5! Check if it has hit SL/TP on our side as a safety fallback.
-                            tick = mt5_conn.symbol_info_tick(symbol)
-                            if tick:
-                                current_price = tick.bid if direction == 'BUY' else tick.ask
-                                hit_tp = (direction == 'BUY' and current_price >= tp) or (direction == 'SELL' and current_price <= tp)
-                                hit_sl = (direction == 'BUY' and current_price <= sl) or (direction == 'SELL' and current_price >= sl)
-                                
-                                if hit_tp or hit_sl:
-                                    logger.warning(f"⚠️ SAFETY FALLBACK: Position {ticket} ({symbol}) hit {'TP' if hit_tp else 'SL'} but is still open in MT5. Manually closing.")
-                                    close_type = mt5_conn.ORDER_TYPE_SELL if direction == 'BUY' else mt5_conn.ORDER_TYPE_BUY
-                                    
-                                    filling = mt5_conn.ORDER_FILLING_FOK
-                                    s_info = mt5_conn.symbol_info(symbol)
-                                    if s_info:
-                                        if (s_info.filling_mode & 1):
-                                            filling = mt5_conn.ORDER_FILLING_FOK
-                                        elif (s_info.filling_mode & 2):
-                                            filling = mt5_conn.ORDER_FILLING_IOC
-                                        else:
-                                            filling = mt5_conn.ORDER_FILLING_RETURN
-                                            
-                                    close_request = {
-                                        "action": mt5_conn.TRADE_ACTION_DEAL,
-                                        "symbol": symbol,
-                                        "volume": pos[0].volume,
-                                        "type": close_type,
-                                        "position": int(ticket),
-                                        "price": current_price,
-                                        "deviation": 20,
-                                        "magic": 202404,
-                                        "comment": f"APEX SAFETY CLOSE ({'TP' if hit_tp else 'SL'})",
-                                        "type_time": mt5_conn.ORDER_TIME_GTC,
-                                        "type_filling": filling,
-                                    }
-                                    res = mt5_conn.order_send(close_request)
-                                    if res and res.retcode == mt5_conn.TRADE_RETCODE_DONE:
-                                        outcome = 'SUCCESS' if hit_tp else 'FAIL'
-                                        reason = f"{'TP' if hit_tp else 'SL'} Hit (Safety Fallback Close)"
-                                        logger.info(f"✅ Safety fallback close succeeded for ticket {ticket}")
-                                    else:
-                                        comment = res.comment if res else "No response"
-                                        logger.error(f"❌ Safety fallback close failed for ticket {ticket}: {comment}")
-                                        continue
-                                else:
-                                    logger.info(f"Position {ticket} ({symbol}) is still active in MT5. Keeping ACTIVE.")
-                                    continue
-                            else:
-                                logger.info(f"Position {ticket} ({symbol}) is still active in MT5. Keeping ACTIVE (No Tick data).")
-                                continue
+                            # Position is actively open and managed natively by MT5 server with hard SL/TP.
+                            # Keep ACTIVE and let MT5 natively execute the exit.
+                            logger.info(f"Position {ticket} ({symbol}) is actively running in MT5 (Profit: ${pos[0].profit:+.2f}). Keeping ACTIVE.")
+                            continue
                         else:
-                            # Position closed in MT5! Find out why in history.
+                            # Position closed in MT5! Find out why in history deals.
                             import MetaTrader5 as mt
                             hist = mt5_conn.history_deals_get(position=int(ticket))
                             if hist:
@@ -1034,6 +988,7 @@ class ExecutiveEngine:
                 else:
                     logger.warning(f"Live trade ticket {ticket} exists but MT5 is not connected. Keeping ACTIVE to prevent premature resolution.")
                     continue
+
 
             # ── CHECK 2: MT5 Live Ticks (Medium Priority) ──────────────
             if not outcome and mt5_conn:
