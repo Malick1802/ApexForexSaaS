@@ -20,7 +20,6 @@ import pandas as pd
 
 from data_pipeline.base import DataProviderBase
 from data_pipeline.providers.yfinance_provider import YFinanceProvider
-from data_pipeline.providers.twelvedata_provider import TwelveDataProvider
 from data_pipeline.labeling import triple_barrier_label, get_pip_value
 
 # Optional MT5 provider (requires MetaTrader5 package + running terminal)
@@ -37,7 +36,6 @@ logger = logging.getLogger(__name__)
 # Provider registry for hot-swapping
 PROVIDER_REGISTRY: Dict[str, Type[DataProviderBase]] = {
     "yfinance": YFinanceProvider,
-    "twelvedata": TwelveDataProvider,
 }
 
 # Register MT5 if available
@@ -50,7 +48,7 @@ class DataEngine:
     Main data engine for fetching and processing forex data.
     
     Features:
-    - Hot-swappable data providers (yfinance, twelvedata, etc.)
+    - Hot-swappable data providers (yfinance, mt5, etc.)
     - Configuration-driven (reads from config.yaml)
     - Built-in labeling support
     - Optional local caching
@@ -132,7 +130,6 @@ class DataEngine:
             "data_provider": {
                 "active": "yfinance",
                 "yfinance": {"rate_limit_delay": 0.5},
-                "twelvedata": {"rate_limit_delay": 1.0},
             },
             "trading": {
                 "stop_loss_pips": 25,
@@ -164,11 +161,6 @@ class DataEngine:
             if provider_name == "yfinance":
                 return provider_class(
                     rate_limit_delay=provider_config.get("rate_limit_delay", 0.5)
-                )
-            elif provider_name == "twelvedata":
-                return provider_class(
-                    api_key=provider_config.get("api_key"),
-                    rate_limit_delay=provider_config.get("rate_limit_delay", 1.0)
                 )
             else:
                 return provider_class()
@@ -212,7 +204,7 @@ class DataEngine:
         Hot-swap to a different data provider.
         
         Args:
-            provider_name: Name of provider ("yfinance", "twelvedata", etc.)
+            provider_name: Name of provider ("yfinance", "mt5", etc.)
         """
         self._provider = self._create_provider(provider_name)
         logger.info(f"Switched to provider: {provider_name}")

@@ -9,3 +9,10 @@ enableXsrfProtection = false
 gatherUsageStats = false
 serverAddress = "0.0.0.0"
 serverPort = 8505
+
+[theme]
+primaryColor = "#00E5FF"
+backgroundColor = "#0a0e1a"
+secondaryBackgroundColor = "#0f1629"
+textColor = "#e8ecf4"
+font = "sans serif"

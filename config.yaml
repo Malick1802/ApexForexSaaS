@@ -1,10 +1,11 @@
 blocked_symbols:
 - XAUUSD
 - GOLD
-- XAGUSD
-- SILVER
+- XAUUSD.cash
 - USOIL
 - USOIL.cash
+- XAGUSD
+- SILVER
 - UKOIL
 - UKOIL.cash
 - BRENT
@@ -19,6 +20,10 @@ blocked_directions:
   EURUSD:
     - "BUY"
   EURCAD:
+    - "BUY"
+  XAUUSD:
+    - "BUY"
+  AUDUSD:
     - "BUY"
 currency_pairs:
   commodities:
@@ -338,10 +343,10 @@ fleet:
     threshold: 0.6
   - route: global
     symbol: XAUUSD
-    threshold: 0.6
+    threshold: 0.55
   - route: global
     symbol: USOIL.cash
-    threshold: 0.52
+    threshold: 0.55
   - route: ensemble
     symbol: USDSGD
     threshold: 0.52
@@ -371,14 +376,14 @@ mt5:
   enabled: true
   path: 'C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe'
   host: 127.0.0.1
-  login: 1514462922
-  max_open_trades: 9
+  login: 531464301
+  max_open_trades: 0  # 0 = Uncapped (no concurrent position limit)
   max_trade_leverage: 30
-  password: 'TG@5@!kl3r@Ih'
+  password: 'wS!A4?@a$J'
   port: 18812
   risk_type: percent
   risk_value: 0.5
-  server: FTMO-Demo
+  server: FTMO-Server3
 notifications:
   telegram:
     alert_threshold: 0.61
@@ -388,11 +393,17 @@ notifications:
     enabled: true
     notify_shadow_trades: false
 safety:
-  friday_entry_cutoff_ny_hour: 16  # 1 hour before market close (16:00 New York time, seasonal DST aware)
-  friday_auto_exit_ny_time: "16:30" # 30 minutes before market close (16:30 New York time, seasonal DST aware)
-  sunday_trading_start_ny_hour: 19 # 2-hour cool-off buffer (19:00 / 7:00 PM New York time, seasonal DST aware)
   enabled: true
-  max_daily_drawdown_pct: 2.5
+  max_daily_drawdown_amount: 450.0   # $450 base daily drawdown cap on $10k account
+  max_daily_drawdown_pct: 4.5        # Dynamic Daily Drawdown Kill Switch: 4.5% of account tier ($450 on $10k, $4,500 on $100k, $45,000 on $1M)
+  friday_entry_cutoff_utc_hour: 14   # Stop generating new signals on Friday at 14:00 UTC (10:00 AM NY)
+  friday_entry_cutoff_ny_hour: 10    # 10:00 AM New York time
+  friday_auto_exit_ny_time: "16:30"  # 30 minutes before market close (16:30 New York time)
+  sunday_trading_start_ny_hour: 19   # 2-hour cool-off buffer (19:00 / 7:00 PM New York time)
+  commodity_40pct_gate:
+    enabled: true
+    min_win_rate: 0.40
+    rolling_window: 5
 technical:
   currency: USD
   log_level: INFO

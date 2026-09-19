@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path.cwd()))
 from core.inference import InferenceEngine
 
 engine = InferenceEngine()
-res = engine.predict_symbol('GOLD', save_to_db=True, allow_stale=True)
+res = engine.predict_symbol('XAUUSD', save_to_db=True, allow_stale=True)
 print(f"--- 🛰️ FINAL GOLD AUDIT ---")
 print(f"SIGNAL: {res['signal']}")
 print(f"CONFIDENCE: {res['confidence']*100:.1f}%")

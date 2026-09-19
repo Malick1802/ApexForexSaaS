@@ -10,6 +10,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.mt5_connector import get_mt5
+from scripts.multi_executor import execute_signal_for_all_users
 
 # Reconfigure stdout for utf-8
 sys.stdout.reconfigure(encoding='utf-8')
@@ -19,15 +20,15 @@ LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
 GHOST_TRADES_CSV = LOG_DIR / "ghost_trades.csv"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - APEX_CONNECT - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_DIR / "apex_connect.log", encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
 logger = logging.getLogger("ApexConnect")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    fh = logging.FileHandler(LOG_DIR / "apex_connect.log", encoding='utf-8')
+    fh.setFormatter(logging.Formatter('%(asctime)s - APEX_CONNECT - %(levelname)s - %(message)s'))
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(logging.Formatter('%(asctime)s - APEX_CONNECT - %(levelname)s - %(message)s'))
+    logger.addHandler(fh)
+    logger.addHandler(sh)
 
 # Config Path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -49,42 +50,66 @@ def get_db_connection():
 
 def calculate_lots(symbol, risk_type, risk_value, sl_price, entry_price, config):
     """
-    Calculate lot size based on 0.5% Risk of BALANCE for GetLeveraged.com (1:30).
-    Ensures margin-safe execution.
+    Calculate lot size from risk settings. Supports three modes:
+      - 'fixed'     : risk_value is a direct lot size (e.g. 0.01)
+      - 'fixed_usd' : risk_value is a fixed dollar amount per trade (e.g. 1.0)
+      - 'percent'   : risk_value is a % of account balance (e.g. 0.20)
+    Ensures margin-safe execution in all modes.
     """
     if risk_type == 'fixed':
         return float(risk_value)
-    
+
     try:
+        _mt5 = get_mt5()
+        if not _mt5:
+            logger.error("🚫 MT5 connection unavailable for lot calculation.")
+            return 0.01
+
         mt5_conf = config.get('mt5', {})
         max_leverage = mt5_conf.get('max_trade_leverage', 30)
-        
-        account_info = mt5.account_info()
+
+        account_info = _mt5.account_info()
         if not account_info:
             return 0.01
 
-        # Calculate using BALANCE to protect trailing drawdown
-        risk_amount = account_info.balance * (risk_value / 100.0)
-        
-        symbol_info = mt5.symbol_info(symbol)
+        symbol_info = _mt5.symbol_info(symbol)
         if not symbol_info:
             return 0.01
 
-        # 1. Calculate Risk-Based Lots
-        tick_size = symbol_info.trade_tick_size
-        tick_value = symbol_info.trade_tick_value
-        price_dist = abs(entry_price - sl_price)
-        dist_in_ticks = price_dist / tick_size
+        # ── Determine dollar risk amount ─────────────────────────────────────
+        if risk_type == 'fixed_usd':
+            # Exact fixed dollar amount per trade regardless of balance
+            risk_amount = float(risk_value)
+            logger.info(f"💵 Fixed USD risk mode: ${risk_amount:.2f} per trade")
+        else:
+            # percent mode: risk_value % of current balance
+            risk_amount = account_info.balance * (risk_value / 100.0)
+            logger.info(f"📊 Percent risk mode: {risk_value}% of ${account_info.balance:.2f} = ${risk_amount:.2f}")
 
-        if dist_in_ticks <= 0 or tick_value <= 0:
-            return 0.01
-            
-        loss_per_lot = dist_in_ticks * tick_value
+        # ── 1. Calculate Risk-Based Lots ─────────────────────────────────────
+        loss_per_lot = None
+        try:
+            order_type = _mt5.ORDER_TYPE_BUY if sl_price < entry_price else _mt5.ORDER_TYPE_SELL
+            profit_1lot = _mt5.order_calc_profit(order_type, symbol, 1.0, entry_price, sl_price)
+            if profit_1lot is not None and abs(profit_1lot) > 0:
+                loss_per_lot = abs(profit_1lot)
+        except Exception:
+            pass
+
+        if not loss_per_lot or loss_per_lot <= 0:
+            tick_size = symbol_info.trade_tick_size or 0.00001
+            tick_value = symbol_info.trade_tick_value or 1.0
+            price_dist = abs(entry_price - sl_price)
+            dist_in_ticks = price_dist / tick_size
+            if dist_in_ticks <= 0 or tick_value <= 0:
+                return 0.01
+            loss_per_lot = dist_in_ticks * tick_value
+
         risk_lots = risk_amount / loss_per_lot
 
-        # 2. Calculate Margin-Limited Maximum (Currency-Agnostic)
-        margin_per_lot = mt5.order_calc_margin(mt5.ORDER_TYPE_BUY, symbol, 1.0, entry_price)
-        
+        # ── 2. Calculate Margin-Limited Maximum (Currency-Agnostic) ──────────
+        margin_per_lot = _mt5.order_calc_margin(_mt5.ORDER_TYPE_BUY, symbol, 1.0, entry_price)
+
         if not margin_per_lot:
             # Fallback
             notional_per_lot = entry_price * symbol_info.trade_contract_size
@@ -93,13 +118,13 @@ def calculate_lots(symbol, risk_type, risk_value, sl_price, entry_price, config)
         # Max safe lots (using 90% of buying power)
         max_margin_lots = (account_info.balance * 0.9) / margin_per_lot
 
-        # 3. Final Lot Size (Smallest of Risk vs Margin)
+        # ── 3. Final Lot Size (Smallest of Risk vs Margin) ───────────────────
         final_lots = min(risk_lots, max_margin_lots)
-        
+
         # Normalize to Volume Step
         step = symbol_info.volume_step
         final_lots = round(final_lots / step) * step
-        
+
         return max(symbol_info.volume_min, min(symbol_info.volume_max, final_lots))
 
     except Exception as e:
@@ -107,34 +132,66 @@ def calculate_lots(symbol, risk_type, risk_value, sl_price, entry_price, config)
         return 0.01
 
 def place_trade(signal_row, config):
+    if not isinstance(signal_row, dict):
+        try:
+            signal_row = dict(signal_row)
+        except Exception:
+            pass
     symbol = signal_row['symbol']
     signal_type = signal_row['signal']
     sl = signal_row['sl_price']
     tp = signal_row['tp_price']
     entry_est = signal_row['price_at_signal'] # Estimated entry
+    regime = signal_row.get('regime', 'NORMAL') if isinstance(signal_row, dict) else 'NORMAL'
+
+    # ── COMMODITY / BLOCKED SYMBOL / DIRECTIONAL SAFETY GATE ──
+    from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+    if is_symbol_blocked(symbol):
+        logger.critical(f"🛑 COMMODITY SHIELD: Symbol {symbol} is a blacklisted commodity. Refusing MT5 order execution entirely!")
+        return None
+    if is_direction_blocked(symbol, signal_type):
+        logger.critical(f"🛑 DIRECTIONAL SHIELD: {symbol} {signal_type} is blacklisted by directional shield. Refusing MT5 order execution!")
+        return None
     
     mt5_conf = config.get('mt5', {})
     risk_type = mt5_conf.get('risk_type', 'fixed')
     risk_val = mt5_conf.get('risk_value', 0.01)
 
-    # Prepare info
-    symbol_info = mt5.symbol_info(symbol)
-    if not symbol_info:
-        logger.error(f"{symbol} not found in MT5")
-        return None
-
-    # Calculate Lots
-    volume = calculate_lots(symbol, risk_type, risk_val, sl, 0.0, config)
-    
     _mt5 = get_mt5()
     if not _mt5:
         logger.error("🚫 MT5 Connection lost while preparing trade.")
         return None
 
-    # Check/Select symbol
+    # ── MAX CONCURRENT TRADES RISK SHIELD ──
+    max_open = mt5_conf.get('max_open_trades', 9)
+    if max_open > 0:
+        open_positions = _mt5.positions_total()
+        if open_positions >= max_open:
+            logger.critical(f"🛑 RISK SHIELD: Maximum open trades reached ({open_positions}/{max_open}). Skipping order execution.")
+            return None
+
+    # Prepare info
+    symbol_info = _mt5.symbol_info(symbol)
+    if not symbol_info:
+        logger.error(f"{symbol} not found in MT5")
+        return None
+
+    # Check/Select symbol first so we can get a valid tick
     if not _mt5.symbol_select(symbol, True):
         logger.error(f"❌ Symbol {symbol} not visible in MT5.")
         return None
+
+    # Get live price for accurate lot calculation
+    tick = _mt5.symbol_info_tick(symbol)
+    if not tick:
+        logger.error(f"❌ Failed to get tick for {symbol}")
+        return None
+
+    live_entry = tick.ask if signal_type == 'BUY' else tick.bid
+
+    # Calculate Lots using LIVE entry price (not 0.0) for correct SL distance
+    volume = calculate_lots(symbol, risk_type, risk_val, sl, live_entry, config)
+    logger.info(f"💰 Risk calc: {risk_val}% | Entry: {live_entry} | SL: {sl} | Lots: {volume}")
 
     # Determine filling mode
     filling_type = _mt5.ORDER_FILLING_FOK
@@ -145,13 +202,8 @@ def place_trade(signal_row, config):
         elif (symbol_info.filling_mode & 1) != 0:
             filling_type = _mt5.ORDER_FILLING_FOK
 
-    # Build Trade Request
-    tick = _mt5.symbol_info_tick(symbol)
-    if not tick:
-        logger.error(f"❌ Failed to get tick for {symbol}")
-        return None
-
-    price = tick.ask if signal_type == 'BUY' else tick.bid
+    # Build Trade Request (tick already fetched above for lot calculation)
+    price = live_entry
     ot_type = _mt5.ORDER_TYPE_BUY if signal_type == 'BUY' else _mt5.ORDER_TYPE_SELL
 
     request = {
@@ -170,11 +222,12 @@ def place_trade(signal_row, config):
     }
     
     # ── NEWS/WEEKEND FILTER ──
-    # If the signal is being placed during a filtered window, block it.
-    if datetime.now(timezone.utc).weekday() == 4: # Friday
-        if datetime.now().hour >= 16: # 4PM (System local check)
-             logger.warning(f"🚫 BLOCKED: Weekend approach. No new trades for {symbol}.")
-             return None
+    # If the signal is being placed during a filtered window (e.g. within 1 hour of Friday close), block it.
+    from core.market_hours import is_friday_trade_entry_allowed
+    allowed, reason = is_friday_trade_entry_allowed()
+    if not allowed:
+        logger.warning(f"🚫 BLOCKED: {reason}. No new trades for {symbol}.")
+        return None
 
     # Shadow Mode Check
     execute = config.get('trading', {}).get('execute_trades', True)
@@ -228,6 +281,8 @@ def main_loop():
         logger.critical("Failed to connect to MT5 Bridge")
         return
 
+    _friday_close_done = False  # Guard: ensures Friday exit only fires once per session
+
     try:
         while True:
             # 1. Reload Config
@@ -263,13 +318,78 @@ def main_loop():
                     logger.info(f"🔎 Found Pending Signal: {symbol} (ID: {sig_id})")
                     
                     # 1. Mark as 'Processing' immediately to prevent race conditions
-                    # Setting ticket to '0' as a temporary placeholder (string for consistency)
                     cursor.execute("UPDATE signals SET mt5_ticket='0' WHERE id=?", (sig_id,))
                     conn.commit()
+                    
+                    # ── Dynamic Reversal Early Exit ──────────────────────────────────
+                    if signal_type in ('BUY', 'SELL'):
+                        try:
+                            from core.reversal_guard import get_approved_reversal_pairs
+                            approved_pairs = get_approved_reversal_pairs()
+                            
+                            if symbol in approved_pairs:
+                                # Check if there is an active running position in MT5 for this symbol
+                                _mt5_conn = get_mt5()
+                                if _mt5_conn:
+                                    open_positions = _mt5_conn.positions_get(symbol=symbol)
+                                    # If there is a position, and it's in the opposite direction
+                                    # pos.type: 0 = BUY, 1 = SELL
+                                    is_reversal = False
+                                    for pos in open_positions:
+                                        if (signal_type == 'BUY' and pos.type == 1) or (signal_type == 'SELL' and pos.type == 0):
+                                            is_reversal = True
+                                            break
+                                            
+                                    if is_reversal:
+                                        logger.info(f"🔄 Reversal detected for {symbol}! Closing existing active position first.")
+                                        
+                                        # 1. Close master account position
+                                        from scripts.close_position import close_positions
+                                        close_positions(symbol)
+                                        
+                                        # 2. Close positions for all copy-trading subscribers
+                                        from scripts.multi_executor import close_signal_for_all_users
+                                        close_results = close_signal_for_all_users(symbol)
+                                        
+                                        # 3. Notify subscribers on Telegram
+                                        try:
+                                            from core.telegram_alerts import _load_bot_token, _send
+                                            bot_token = _load_bot_token()
+                                            if bot_token:
+                                                from core.user_accounts import get_enabled_users
+                                                for u in get_enabled_users():
+                                                    chat_id = u.get("telegram_chat_id", "")
+                                                    if chat_id:
+                                                        msg = (
+                                                            f"🚪 <b>Trade Closed Early</b>\n"
+                                                            f"Position on <b>{symbol}</b> was closed early because a trend reversal signal occurred. "
+                                                            f"Expectancy logic auto-exited to secure profits or minimize drawdown."
+                                                        )
+                                                        _send(bot_token, chat_id, msg)
+                                        except Exception as _te:
+                                            logger.warning(f"Telegram reversal notification error: {_te}")
+                                            
+                        except Exception as _re:
+                            logger.error(f"Error handling reversal early exit check: {_re}")
+                    # ── End Dynamic Reversal Check ──────────────────────────────────
                     
                     # 2. Execute trade (Only for BUY/SELL)
                     if signal_type in ('BUY', 'SELL'):
                         ticket = place_trade(row, config)
+                        # 2b. Broadcast to all registered subscriber accounts
+                        try:
+                            sig_data = dict(row)
+                            if _mt5:
+                                m_acc = _mt5.account_info()
+                                if m_acc:
+                                    sig_data['master_balance'] = m_acc.balance
+                                if ticket and isinstance(ticket, int) and ticket > 0:
+                                    m_pos = _mt5.positions_get(ticket=ticket)
+                                    if m_pos:
+                                        sig_data['master_volume'] = m_pos[0].volume
+                            execute_signal_for_all_users(sig_data)
+                        except Exception as _me:
+                            logger.error(f"Multi-executor error: {_me}")
                     else:
                         # Log WAIT signals to CSV/Audit but don't send order
                         ticket = 'AUDIT'
@@ -279,36 +399,58 @@ def main_loop():
                     cursor.execute("UPDATE signals SET mt5_ticket=? WHERE id=?", (status_code, sig_id))
                     conn.commit()
                 
-                # 3. Friday Auto-Exit (Prop Firm Safety)
-                now_utc = datetime.now(timezone.utc)
-                # Friday (4) after 16:00 EST (approx 21:00 UTC)
-                if now_utc.weekday() == 4 and now_utc.hour >= 20: 
-                    logger.info("🕒 Friday 4 PM EST Detected. Closing all open risk for Weekend Mode.")
-                    positions = mt5.positions_get()
+                # 3. Friday Auto-Exit (Prop Firm Safety: 30 minutes before market close)
+                from core.market_hours import is_friday_auto_exit_time, get_ny_time
+                ny_now = get_ny_time()
+                # Reset guard at the start of each new day (so Monday–Thursday it stays False)
+                if ny_now.weekday() != 4:
+                    _friday_close_done = False
+
+                # Friday 30 minutes before market close (16:30 New York time)
+                if is_friday_auto_exit_time() and not _friday_close_done:
+                    _friday_close_done = True
+                    logger.info(f"🕒 Friday Auto-Exit Triggered ({ny_now.strftime('%Y-%m-%d %H:%M:%S %Z')}) — 30 min before close. Closing all open positions.")
+                    positions = _mt5.positions_get()
                     if positions:
                         for p in positions:
-                            logger.info(f"💾 Fast-Closing Position: {p.symbol} (Ticket: {p.ticket})")
-                            # Simple Market Close
+                            logger.info(f"💾 Closing position: {p.symbol} (Ticket: {p.ticket})")
+                            tick = _mt5.symbol_info_tick(p.symbol)
+                            if not tick:
+                                logger.error(f"Cannot get tick for {p.symbol} — skipping.")
+                                continue
+                            close_price = tick.bid if p.type == _mt5.POSITION_TYPE_BUY else tick.ask
+                            close_type = _mt5.ORDER_TYPE_SELL if p.type == _mt5.POSITION_TYPE_BUY else _mt5.ORDER_TYPE_BUY
+                            filling = _mt5.ORDER_FILLING_FOK
+                            s_info = _mt5.symbol_info(p.symbol)
+                            if s_info and (s_info.filling_mode & 2) != 0:
+                                filling = _mt5.ORDER_FILLING_IOC
                             close_request = {
-                                "action": mt5.TRADE_ACTION_DEAL,
+                                "action": _mt5.TRADE_ACTION_DEAL,
                                 "symbol": p.symbol,
                                 "volume": p.volume,
-                                "type": mt5.ORDER_TYPE_SELL if p.type == mt5.POSITION_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+                                "type": close_type,
                                 "position": p.ticket,
-                                "price": mt5.symbol_info_tick(p.symbol).bid if p.type == mt5.POSITION_TYPE_BUY else mt5.symbol_info_tick(p.symbol).ask,
+                                "price": close_price,
                                 "deviation": 20,
                                 "magic": 999000,
                                 "comment": "Apex Friday Exit",
-                                "type_time": mt5.ORDER_TIME_GTC,
-                                "type_filling": mt5.ORDER_FILLING_FOK,
+                                "type_time": _mt5.ORDER_TIME_GTC,
+                                "type_filling": filling,
                             }
-                            # Handle filling
-                            s_info = mt5.symbol_info(p.symbol)
-                            if (s_info.filling_mode & 2) != 0: close_request["type_filling"] = mt5.ORDER_FILLING_IOC
-                            
-                            res = mt5.order_send(close_request)
-                            if res.retcode != mt5.TRADE_RETCODE_DONE:
-                                logger.error(f"Failed to close Friday position {p.ticket}: {res.comment}")
+                            res = _mt5.order_send(close_request)
+                            if res and res.retcode == _mt5.TRADE_RETCODE_DONE:
+                                logger.info(f"✅ Closed {p.symbol} ticket {p.ticket} at {close_price}")
+                            else:
+                                comment = res.comment if res else "No response"
+                                logger.error(f"❌ Failed to close {p.ticket}: {comment}")
+                    else:
+                        logger.info("No open positions found — nothing to close.")
+
+                    try:
+                        from scripts.multi_executor import close_all_positions_for_all_users
+                        close_all_positions_for_all_users(reason="Friday Auto-Exit")
+                    except Exception as _ace:
+                        logger.error(f"Multi-user Friday close error: {_ace}")
                 
                 conn.close()
                 
@@ -320,7 +462,7 @@ def main_loop():
     except KeyboardInterrupt:
         logger.info("Apex Connect Stopped.")
     finally:
-        mt5.shutdown()
+        _mt5.shutdown()
 
 if __name__ == "__main__":
     main_loop()

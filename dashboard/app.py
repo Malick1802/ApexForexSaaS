@@ -39,7 +39,7 @@ except ImportError:
 
 # ── Page Config (Main Entry) ────────────────────────────────
 st.set_page_config(
-    page_title="ForexAlert · AI Trading Intelligence",
+    page_title="ApexForex · AI Trading Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -207,8 +207,41 @@ def show_command_center():
     db = get_db()
 
     hero_banner("Command Center",
-                "Real-time AI surveillance across 31 forex pairs · Institutional-level precision targeting",
+                "Real-time AI surveillance across 31 assets (Forex & Commodities) · Institutional-level precision targeting",
                 show_status=True)
+
+    # ── Onboarding Banner for Subscribers ───────────────────────
+    _u_email = st.session_state.get("user_email", "")
+    _u_role = st.session_state.get("user_role", "subscriber")
+    if _u_email and _u_role != "admin":
+        try:
+            from core.user_accounts import get_user_by_email
+            _u_acc = get_user_by_email(_u_email)
+            if not _u_acc or not _u_acc.get("mt5_login"):
+                with st.container(border=True):
+                    ob_c1, ob_c2 = st.columns([3.5, 1.2])
+                    with ob_c1:
+                        st.markdown("""
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <span style="font-size:2rem;">🚀</span>
+                            <div>
+                                <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary);">
+                                    Welcome to ApexForex! Connect your broker to start automated copy trading.
+                                </div>
+                                <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:3px;">
+                                    Your 14-day free trial is active. Enter your MT5 credentials in the Copy Trading Hub to mirror institutional signals automatically.
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with ob_c2:
+                        st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+                        if st.button("👉 Set Up Copy Trading", type="primary", use_container_width=True, key="ob_btn_setup"):
+                            st.session_state["nav_target"] = "copy_trading"
+                            st.rerun()
+                st.markdown("<div style='margin-bottom:12px;'></div>", unsafe_allow_html=True)
+        except Exception:
+            pass
 
     all_pairs = engine.get_all_pairs()
     
@@ -217,40 +250,41 @@ def show_command_center():
     # including hidden/shadow signals so we can filter/show them correctly.
     raw_active = db.get_active_signals(include_hidden=True)
     
-    # Filter: Show ONLY real live trade signals (BUY/SELL >= 61% and non-hidden)
+    from core.symbol_guard import is_commodity
+    # Filter: Show real live trade signals (BUY/SELL >= 61% for Forex, >= 55% for Commodities, or has active MT5 ticket)
     active_signals = [
         s for s in raw_active 
-        if s.get('signal') in ['BUY', 'SELL'] and not bool(s.get('is_hidden', 0)) and float(s.get('confidence') or 0) >= 0.61
+        if s.get('signal') in ['BUY', 'SELL'] and not bool(s.get('is_hidden', 0)) and (
+            float(s.get('confidence') or 0) >= (0.55 if is_commodity(s.get('symbol', '')) else 0.61)
+            or s.get('mt5_ticket') is not None
+        )
     ]
     active_count = len(active_signals)
 
-    # 2. Expired/Closed Signals (Historical - Last 48h Window)
-    # Include hidden signals so benched history is visible in charts
+    # 2. Expired/Closed Signals (Current Week Window - UTC aligned)
     recent = db.get_recent_signals(limit=5000, include_hidden=True)
     expired_signals = []
     success_rate = 0.0
     completed_count = 0
+    w_count = 0
+    l_count = 0
 
     if recent:
-        # Time Window: Current Week (Monday to Now)
-        now = datetime.now()
-        start_of_week = now - timedelta(days=now.weekday())
-        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Time Window: Current Week (Monday 00:00 UTC to Now)
+        now_utc = datetime.now(timezone.utc)
+        start_of_week = (now_utc - timedelta(days=now_utc.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         cutoff_time = start_of_week
         
-        # Filter recent signals by time and remove WAIT noise
+        # Filter recent signals by time (using UTC-aware timestamps to avoid offset-naive/aware TypeError)
         recent_window = []
         for s in recent:
             if s.get('signal') in ['WAIT', 'HEARTBEAT']:
                 continue
             try:
-                # Parse ISO timestamp
-                ts_str = s['timestamp']
-                # Handle potential fractional seconds or different formats safely
-                s_time = pd.to_datetime(ts_str)
+                s_time = pd.to_datetime(s['timestamp'], utc=True)
                 if s_time >= cutoff_time:
                     recent_window.append(s)
-            except:
+            except Exception:
                 continue
         
         df_sig = pd.DataFrame(recent_window)
@@ -258,24 +292,25 @@ def show_command_center():
             if 'outcome' not in df_sig.columns:
                 df_sig['outcome'] = 'ACTIVE'
             
-            # Expired = Qualified signals (≥ 60%) that are NOT active
+            # Expired/Closed for display: Real live non-hidden signals that closed
             expired_signals = [
                 s for s in recent_window 
                 if s.get('outcome') != 'ACTIVE' 
-                and (s.get('signal') in ['BUY', 'SELL'] or (s.get('confidence_tier') or 0) >= 60)
+                and not bool(s.get('is_hidden', 0))
+                and s.get('signal') in ['BUY', 'SELL']
             ]
             
-            # Closed for KPI = SUCCESS or FAIL (User requested strict adherence to TP/SL logic)
-            # We exclude "EXPIRED" from the main "Closed Trades" count as they represent timeouts/legacy logic
-            # and the user considers them invalid if they haven't hit TP/SL.
-            completed = df_sig[df_sig['outcome'].isin(['SUCCESS', 'FAIL'])]
+            # Closed for KPI = Real live trades that hit TP or SL (SUCCESS or FAIL)
+            completed = df_sig[
+                (df_sig['outcome'].isin(['SUCCESS', 'FAIL'])) &
+                (df_sig['is_hidden'] == 0)
+            ]
             completed_count = len(completed)
-            
-            # Legacy/Timeout signals
-            expired_timeout_count = len(df_sig[df_sig['outcome'] == 'EXPIRED'])
+            w_count = len(completed[completed['outcome'] == 'SUCCESS'])
+            l_count = len(completed[completed['outcome'] == 'FAIL'])
             
             if not completed.empty:
-                success_rate = (len(completed[completed['outcome'] == 'SUCCESS']) / len(completed)) * 100
+                success_rate = (w_count / completed_count) * 100
 
     # Fetch Real Live Win Rate (ALL non-shadow trades, not just is_proven)
     live_stats = db.get_live_win_rate()
@@ -289,41 +324,28 @@ def show_command_center():
     val_win_rate = val_stats.get('win_rate', 0.0)
     val_total = val_stats.get('total', 0)
 
+    _tok = st.session_state.get("_session_token", "") or st.query_params.get("t", "")
+    _tok_suffix = f"&t={_tok}" if _tok else ""
+    _tok_prefix = f"?t={_tok}" if _tok else ""
+
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        st.markdown(kpi_card("Monitored Pairs", len(all_pairs), "Majors · Minors · Crosses", "accent-cyan"), unsafe_allow_html=True)
-        if st.button("🌍 View Pairs", key="btn_kpi_pairs", use_container_width=True):
-            st.session_state['nav_target'] = 'market'
-            st.rerun()
+        st.markdown(kpi_card("Monitored Pairs", len(all_pairs), "Majors · Minors · Crosses · Commodities", "accent-cyan", link_url=f"/market{_tok_prefix}"), unsafe_allow_html=True)
     with c2:
-        st.markdown(kpi_card("Active Signals", active_count, "Running trades", "accent-gold"), unsafe_allow_html=True)
-        if st.button("⚡ Active Trades", key="btn_kpi_active", use_container_width=True):
-            st.session_state['analytics_filter'] = 'active'
-            st.session_state['nav_target'] = 'analytics'
-            st.rerun()
+        st.markdown(kpi_card("Active Signals", active_count, "Running trades", "accent-gold", link_url=f"/analytics?filter=active{_tok_suffix}"), unsafe_allow_html=True)
     with c3:
-        # v1 Model Live Win Rate (all routing now goes through v1)
+        # AI Model Live Win Rate
         wr_color = "accent-green" if live_win_rate >= 60 else "accent-gold" if live_win_rate >= 50 else "accent-red"
-        st.markdown(kpi_card("v1 Win Rate", f"{live_win_rate:.1f}%", f"{live_wins}W · {live_losses}L · {live_total} certified", wr_color), unsafe_allow_html=True)
-        if st.button("📊 View Outcomes", key="btn_kpi_winrate", use_container_width=True):
-            st.session_state['analytics_filter'] = 'all'
-            st.session_state['nav_target'] = 'analytics'
-            st.rerun()
+        st.markdown(kpi_card("AI Win Rate", f"{live_win_rate:.1f}%", f"{live_wins}W · {live_losses}L · {live_total} certified", wr_color, link_url=f"/analytics?filter=all{_tok_suffix}"), unsafe_allow_html=True)
     with c4:
-        st.markdown(kpi_card("Closed Trades (Week)", completed_count, "Hit TP or SL", "accent-cyan"), unsafe_allow_html=True)
-        if st.button("📜 Closed History", key="btn_kpi_closed", use_container_width=True):
-            st.session_state['analytics_filter'] = 'closed'
-            st.session_state['nav_target'] = 'analytics'
-            st.rerun()
+        closed_delta = f"{w_count}W · {l_count}L (TP/SL Hit)" if completed_count > 0 else "Hit TP or SL"
+        st.markdown(kpi_card("Closed Trades (Week)", completed_count, closed_delta, "accent-cyan", link_url=f"/analytics?filter=closed{_tok_suffix}"), unsafe_allow_html=True)
     with c5:
         training_status = get_training_status()
         if training_status:
-            st.markdown(kpi_card("System Health", "Training v2", training_status, "accent-gold"), unsafe_allow_html=True)
+            st.markdown(kpi_card("System Health", "Training v2", training_status, "accent-gold", link_url=f"/audit{_tok_prefix}"), unsafe_allow_html=True)
         else:
-            st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan"), unsafe_allow_html=True)
-        if st.button("🛡️ Matrix Audit", key="btn_kpi_health", use_container_width=True):
-            st.session_state['nav_target'] = 'audit'
-            st.rerun()
+            st.markdown(kpi_card("System Health", "Online", "Watchdog · Sentinel · API", "accent-cyan", link_url=f"/audit{_tok_prefix}"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     section_header("🎯", "High Confidence Opportunities")
@@ -336,10 +358,15 @@ def show_command_center():
         # Assuming all active signals are "opportunities"
         
         if not df_active.empty:
-             # Select cols
             cols_to_show = ['symbol', 'signal', 'confidence', 'price_at_signal', 'timestamp']
-            df_display = df_active[cols_to_show].copy()
-            df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'Detected']
+            if 'mt5_ticket' in df_active.columns:
+                df_active['ticket_disp'] = df_active['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
+                cols_to_show = ['symbol', 'signal', 'confidence', 'price_at_signal', 'ticket_disp', 'timestamp']
+                df_display = df_active[cols_to_show].copy()
+                df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'MT5 Ticket', 'Detected']
+            else:
+                df_display = df_active[cols_to_show].copy()
+                df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'Detected']
             
             # Formatting
             df_display['Confidence'] = df_display['Confidence'].apply(lambda x: float(x) * 100)
@@ -374,32 +401,49 @@ def show_command_center():
                     st.error(f"Navigation failed: {e}")
             
     # Fallback to empty if no signals
-            
-    # Fallback to empty if no signals
     if not active_signals:
-        st.info("No active high-confidence signals at the moment.")
+        st.markdown("""
+        <div class="glass-card" style="padding: 26px; text-align: center; border: 1px dashed rgba(255,255,255,0.14); margin-top: 10px;">
+            <div style="font-size: 2rem; margin-bottom: 8px;">📡</div>
+            <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 4px;">Market Surveillance Active</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem; max-width: 540px; margin: 0 auto; line-height: 1.6;">
+                Apex Neural Engines are continuously monitoring 29 FX pairs and commodities. High-conviction trade opportunities will populate here automatically.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # 4. Closed Trades View
     st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("📜 Closed Trade History (Click to View)", expanded=False):
+    expander_title = f"📜 Closed Trade History ({completed_count} Closed This Week)" if completed_count > 0 else "📜 Closed Trade History (Click to View)"
+    with st.expander(expander_title, expanded=False):
         if expired_signals:
             df_hist = pd.DataFrame(expired_signals)
-            # Ensure cols exist
-            cols = ['symbol', 'signal', 'outcome', 'confidence', 'price_at_signal', 'timestamp']
+            # Format MT5 ticket if present
+            if 'mt5_ticket' in df_hist.columns:
+                df_hist['ticket_disp'] = df_hist['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
+                cols = ['symbol', 'signal', 'outcome', 'confidence', 'price_at_signal', 'ticket_disp', 'timestamp']
+            else:
+                cols = ['symbol', 'signal', 'outcome', 'confidence', 'price_at_signal', 'timestamp']
+            if 'confidence' in df_hist.columns:
+                df_hist['confidence'] = df_hist['confidence'].apply(lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0))
             show_cols = [c for c in cols if c in df_hist.columns]
             
+            col_cfg = {
+                "symbol": "Pair",
+                "signal": "Direction",
+                "outcome": "Result",
+                "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100),
+                "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
+                "timestamp": "Detected"
+            }
+            if 'ticket_disp' in df_hist.columns:
+                col_cfg["ticket_disp"] = "MT5 Ticket"
+
             st.dataframe(
                 df_hist[show_cols],
                 use_container_width=True,
                 hide_index=True,
-                column_config={
-                    "symbol": "Pair",
-                    "signal": "Direction",
-                    "outcome": "Result",
-                    "confidence": st.column_config.NumberColumn("Conf", format="%.2f"),
-                    "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
-                    "timestamp": "Detected"
-                }
+                column_config=col_cfg
             )
         else:
             st.info("No expired or closed trades found in recent history.")
@@ -484,11 +528,17 @@ def show_market_overview():
                 sig_map[sym] = s
 
         # Signal grid categories
+        from core.symbol_guard import is_symbol_blocked, is_commodity
+        active_commodities = [p for p in config_pairs.get('commodities', []) if not is_symbol_blocked(p.get('symbol', ''))]
+        minors_forex = [p for p in config_pairs.get('minors', []) if not is_commodity(p.get('symbol', ''))]
+
         categories = {
             "⚡ Majors": config_pairs.get('majors', []),
-            "🔷 Minors": config_pairs.get('minors', []),
+            "🔷 Minors": minors_forex,
             "🔶 Crosses": config_pairs.get('crosses', []),
         }
+        if active_commodities:
+            categories["🏆 Commodities & Metals"] = active_commodities
 
         for cat_name, pair_list in categories.items():
             if not pair_list: continue
@@ -498,9 +548,9 @@ def show_market_overview():
             for i, symbol in enumerate(symbols):
                 sig_data = sig_map.get(symbol)
                 with cols[i % 3]:
-                    # Wrap tile in a link to the terminal (relative path matches st.Page url_path)
-                    # MUST include nav=true to persist authentication state on reload
-                    link = f'terminal?symbol={symbol}'
+                    _tok = st.session_state.get("_session_token", "") or st.query_params.get("t", "")
+                    _tok_param = f"&t={_tok}" if _tok else ""
+                    link = f"/terminal?symbol={symbol}{_tok_param}"
                     
                     is_ranging_regime = symbol in RANGING_APPROVED
                     pair_regime = "RANGING" if is_ranging_regime else "TRENDING"
@@ -537,8 +587,8 @@ def show_market_overview():
 
                     if not sig_data:
                         tile_html = (
-                            f'<div class="signal-tile tile-wait" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 175px;">'
-                            f'<div class="tile-symbol">{symbol}</div>'
+                            f'<div class="signal-tile tile-wait" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 155px; margin-bottom: 0px; padding: 16px 14px 12px 14px;">'
+                            f'<div class="tile-symbol" style="margin-top: 6px;">{symbol} <span class="tile-arrow" style="font-size: 0.75rem; opacity: 0.35; transition: all 0.2s ease;">&#x2197;</span></div>'
                             f'<div class="tile-signal tile-signal-wait" style="margin: 4px 0;">—</div>'
                             f'<div class="tile-conf">Awaiting Data</div>'
                             f'{validation_badge_html}'
@@ -611,38 +661,20 @@ def show_market_overview():
                         ghost_html = '<div class="ghost-indicator" title="Secondary Tier Active"></div>' if has_secondary_tier.get(symbol) else ""
                         tile_html = (
                             f'<div class="signal-tile {css_tile}" '
-                            f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles} display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 175px;">'
+                            f'style="position: relative; {"opacity: 0.85;" if is_hidden else ""} {extra_styles} display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 155px; margin-bottom: 0px; padding: 16px 14px 12px 14px;">'
                             f'{regime_badge}'
                             f'{ghost_html}'
-                            f'<div class="tile-symbol" style="margin-top: 15px;">{symbol}</div>'
-                            f'<div class="tile-signal {css_signal}" style="margin: 4px 0;">{display_sig}</div>'
+                            f'<div class="tile-symbol" style="margin-top: 10px;">{symbol} <span class="tile-arrow" style="font-size: 0.75rem; opacity: 0.35; transition: all 0.2s ease;">&#x2197;</span></div>'
+                            f'<div class="tile-signal {css_signal}" style="margin: 3px 0;">{display_sig}</div>'
                             f'<div class="tile-conf">{conf_display}</div>'
                             f'{conf_bar}'
                             f'{validation_badge_html}'
                             f'</div>'
                         )
 
-                    # Use a Streamlit button instead of an HTML <a> link.
-                    # HTML anchor navigation destroys the Streamlit WebSocket session
-                    # and clears session_state (logging the user out).
-                    # st.button keeps everything in the same session.
-                    btn_key = f"pair_tile_{symbol}"
-                    if st.button(
-                        label=" ",  # invisible label — tile_html is the visual
-                        key=btn_key,
-                        use_container_width=True,
-                        help=f"Open {symbol} in Trading Terminal",
-                    ):
-                        st.session_state['pair_selector'] = symbol
-                        st.session_state['nav_to_terminal'] = True
-                        st.rerun()
-                    # Render the tile HTML on top of the button using negative margin
-                    st.markdown(
-                        f'<div style="margin-top:-2.8rem;pointer-events:none;">'
-                        f'{tile_html}'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
+                    # Render the directly clickable glassmorphic card
+                    card_link_html = f'<a href="{link}" target="_self" class="signal-tile-link" title="Open {symbol} in Trading Terminal">{tile_html}</a>'
+                    st.markdown(card_link_html, unsafe_allow_html=True)
 
     # Initial Pulse Trigger
     _market_overview_pulse()
@@ -898,6 +930,77 @@ def show_trading_terminal():
                     st.warning("Insufficient data for header calculation.")
 
                 render_chart(df, symbol)
+
+                # ── Trading Levels (Aligned Under Graph & Matched to Right Box Bottom) ──
+                if result and result.get('tp_price') and (result.get('signal') in ('BUY', 'SELL') or pred in ('BUY', 'SELL')):
+                    is_comm = any(x in symbol.upper() for x in ['XAU', 'GOLD', 'XAG', 'SILVER', 'OIL', 'WTI', 'BRENT'])
+                    p_size = 0.01 if (is_comm or 'JPY' in symbol.upper()) else 0.0001
+                    tp_pips = result.get('tp_pips') or 0
+                    sl_pips = result.get('sl_pips') or 0
+                    if not tp_pips and result.get('tp_price') and result.get('price_at_signal'):
+                        tp_pips = int(round(abs(float(result['tp_price']) - float(result['price_at_signal'])) / p_size))
+                    if not sl_pips and result.get('sl_price') and result.get('price_at_signal'):
+                        sl_pips = int(round(abs(float(result['price_at_signal']) - float(result['sl_price'])) / p_size))
+                    rr = (tp_pips / max(sl_pips, 1)) if sl_pips > 0 else 1.5
+
+                    st.markdown(f"""
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-glass);">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 1.05rem;">📍</span>
+                                <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.02em;">Trading Levels</span>
+                            </div>
+                            <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">
+                                Automated Bracket Execution
+                            </div>
+                        </div>
+                        <div class="trading-levels-grid">
+                            <div class="trading-level-card tl-entry">
+                                <div class="tl-header">Entry Price</div>
+                                <div class="tl-value">{float(result['price_at_signal']):.5f}</div>
+                                <div class="tl-footer">Execution Baseline</div>
+                            </div>
+                            <div class="trading-level-card tl-tp">
+                                <div class="tl-header">Take Profit (TP)</div>
+                                <div class="tl-value">{float(result['tp_price']):.5f}</div>
+                                <div class="tl-footer">+{tp_pips} pips target</div>
+                            </div>
+                            <div class="trading-level-card tl-sl">
+                                <div class="tl-header">Stop Loss (SL)</div>
+                                <div class="tl-value">{float(result['sl_price']):.5f}</div>
+                                <div class="tl-footer">-{sl_pips} pips risk</div>
+                            </div>
+                            <div class="trading-level-card tl-rr">
+                                <div class="tl-header">Risk / Reward</div>
+                                <div class="tl-value">1:{rr:.1f}</div>
+                                <div class="tl-footer">Dynamic Bracket</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-glass);">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 1.05rem;">📍</span>
+                                <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.02em;">Trading Levels</span>
+                            </div>
+                        </div>
+                        <div class="glass-card" style="height: 84px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; border-radius: 8px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 1.2rem;">📡</span>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">Awaiting Validated Setup</div>
+                                    <div style="font-size: 0.72rem; color: var(--text-secondary);">Execution brackets (Entry, TP, SL) activate when AI detects a high-conviction setup.</div>
+                                </div>
+                            </div>
+                            <div style="font-family: var(--font-mono); font-size: 0.70rem; color: var(--text-muted); background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-glass);">
+                                STATUS: MONITORING
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.warning("No chart data available. Check API connection.")
 
@@ -1039,7 +1142,8 @@ def show_trading_terminal():
                     css = f"signal-{pred.lower()}"
                     
                     st.markdown(f"""
-<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color};">
+<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid {status_color}; min-height: 575px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+<div>
 <!-- 1. DECISION LAYER -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
     <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase;">
@@ -1086,7 +1190,8 @@ STATUS: {status_text}
 <div style="color: var(--signal-sell);">S {(p_sell or 0.0):.0%}</div>
 </div>
 </div>
-<!-- 4. SAFETY EXPLAINER -->
+</div>
+<!-- 4. SAFETY EXPLAINER (PINNED TO BOTTOM) -->
 <div style="margin-top: 15px; padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);">
 <div style="font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;">Safety Intelligence Audit</div>
 <p style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
@@ -1101,34 +1206,7 @@ STATUS: {status_text}
                     logger.error(f"Card rendering failed: {e}")
                     st.error("AI Verdict Card: Initialization in Progress...")
 
-                if pred in ["BUY", "SELL"] and result.get('tp_price'):
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    section_header("📍", "Trading Levels")
-                    tp_pips = result.get('tp_pips') or 0
-                    sl_pips = result.get('sl_pips') or 0
-                    rr = tp_pips / max(sl_pips, 1)
 
-                    st.markdown(f"""
-                    <div class="glass-card" style="padding: 16px;">
-                        <div class="level-row level-tp">
-                            <span class="level-label">TP</span>
-                            <span class="level-price">{result['tp_price']:.5f}</span>
-                            <span class="level-pips">+{tp_pips}p</span>
-                        </div>
-                        <div class="level-row level-entry">
-                            <span class="level-label">Entry</span>
-                            <span class="level-price">{result['price_at_signal']:.5f}</span>
-                        </div>
-                        <div class="level-row level-sl">
-                            <span class="level-label">SL</span>
-                            <span class="level-price">{result['sl_price']:.5f}</span>
-                            <span class="level-pips">-{sl_pips}p</span>
-                        </div>
-                        <div style="text-align: center; margin-top: 12px;">
-                            <span class="rr-badge">R:R 1:{rr:.1f}</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
             else:
                 # No result yet — show an informative monitoring card
                 # (either model not trained for this pair, or inference is still loading)
@@ -1139,17 +1217,19 @@ STATUS: {status_text}
                 except: pass
 
                 st.markdown(f"""
-<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid var(--text-muted);">
-  <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">
-    {symbol} · Monitoring
-  </div>
-  <div class="signal-badge signal-wait" style="margin-bottom: 20px;">WAIT</div>
-  <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-glass);">
-    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">Last Price</div>
-    <div style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{last_price_display or "—"}</div>
-  </div>
-  <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;">
-    STATUS: SCANNING...
+<div class="glass-card" style="padding: 24px; text-align: center; border-top: 3px solid var(--text-muted); min-height: 575px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+  <div>
+    <div style="font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">
+      {symbol} · Monitoring
+    </div>
+    <div class="signal-badge signal-wait" style="margin-bottom: 20px;">WAIT</div>
+    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-glass);">
+      <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">Last Price</div>
+      <div style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">{last_price_display or "—"}</div>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;">
+      STATUS: SCANNING...
+    </div>
   </div>
   <div style="padding: 12px; background: rgba(0, 229, 255, 0.03); border-radius: 8px; border: 1px dashed rgba(0, 229, 255, 0.1);">
     <div style="font-size: 0.65rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 5px; text-transform: uppercase;">AI Status</div>
@@ -1179,14 +1259,15 @@ def render_periodic_performance_matrix():
         st.error(f"Failed to load PerformanceReporter: {e}")
         return
 
-    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([2.2, 1.4, 1.4])
+    import re
+    col_ctrl1, col_ctrl2, col_ctrl3, col_ctrl4 = st.columns([2.2, 1.4, 1.4, 1.0])
     with col_ctrl1:
         mode_opt = st.selectbox(
             "Evaluation Policy",
             [
-                "🎯 61.0%+ Live Production (All Months & Weeks)",
-                "📲 Live Telegram Signals (August 2026+)",
-                "🏦 Master MT5 Executed Trades (August 2026+)",
+                "🎯 Live Production Policy (61%+ Forex / 55%+ Commodities)",
+                "🏦 Master MT5 Executed Trades (Live Broker Fills)",
+                "📲 Live Telegram Alerts",
                 "📊 All 50.0%+ Baseline Signals"
             ],
             key="perf_matrix_policy_mode"
@@ -1201,54 +1282,126 @@ def render_periodic_performance_matrix():
             ],
             key="perf_matrix_risk_mode"
         )
-    with col_ctrl3:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("📲 Send to Telegram", key="perf_matrix_tg_btn", use_container_width=True):
-            try:
-                from core.notifications import NotificationManager
-                notif = NotificationManager()
-                risk_val = 50.0 if "$50" in risk_opt else (100.0 if "$100" in risk_opt else 500.0)
-                m_key = "production" if "Production" in mode_opt else ("telegram_live" if "Telegram" in mode_opt else ("mt5_live" if "MT5" in mode_opt else "baseline"))
-                s_date = None if "Production" in mode_opt else "2026-08-01"
-                if notif.send_periodic_performance_report(period="both", risk_per_trade=risk_val, mode=m_key, start_date=s_date):
-                    st.toast("✅ Scorecard dispatched to Telegram!", icon="🚀")
-                    st.success("Scorecard sent to Telegram!")
-                else:
-                    st.warning("Telegram disabled or failed to dispatch. Check config.yaml.")
-            except Exception as ex:
-                st.error(f"Telegram error: {ex}")
+    # Dynamic Month Definitions
+    now_dt = datetime.now()
+    cur_month_name = now_dt.strftime("%B %Y")
+    cur_month_start = now_dt.strftime("%Y-%m-01")
+    first_of_cur = now_dt.replace(day=1)
+    last_day_prev = first_of_cur - timedelta(days=1)
+    prev_month_name = last_day_prev.strftime("%B %Y")
+    prev_month_start = last_day_prev.strftime("%Y-%m-01")
+    prev_month_end = last_day_prev.strftime("%Y-%m-%d 23:59:59")
 
-    if "Telegram" in mode_opt:
-        mode_key = "telegram_live"
-        start_date_val = "2026-08-01"
-    elif "MT5" in mode_opt:
+    with col_ctrl3:
+        timeframe_opt = st.selectbox(
+            "Timeframe Scope",
+            [
+                "📅 All Active (Aug 2026 – Present)",
+                f"🗓️ Current Month ({cur_month_name})",
+                f"📜 Previous Month ({prev_month_name})",
+                "🌐 Full History (All Data)"
+            ],
+            key="perf_matrix_timeframe"
+        )
+    with col_ctrl4:
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+        send_tg = st.button("📲 Telegram", key="perf_matrix_tg_btn", use_container_width=True, help="Send performance scorecard to Telegram")
+
+    # Accurate Risk & Account Size Parsing (handles $50, $100, $500 without substring collisions)
+    m_risk = re.search(r'\$(\d+)', risk_opt)
+    risk_val = float(m_risk.group(1)) if m_risk else 50.0
+    account_size = 100000.0 if "100k" in risk_opt else 10000.0
+
+    # Policy Key Mapping
+    if "MT5" in mode_opt:
         mode_key = "mt5_live"
-        start_date_val = "2026-08-01"
+    elif "Telegram" in mode_opt:
+        mode_key = "telegram_live"
     elif "Production" in mode_opt:
         mode_key = "production"
-        start_date_val = None
     else:
         mode_key = "baseline"
-        start_date_val = "2026-08-01"
 
-    risk_val = 50.0 if "$50" in risk_opt else (100.0 if "$100" in risk_opt else 500.0)
+    # Timeframe Range Mapping
+    if "Current Month" in timeframe_opt:
+        start_date_val = cur_month_start
+        end_date_val = None
+    elif "Previous Month" in timeframe_opt:
+        start_date_val = prev_month_start
+        end_date_val = prev_month_end
+    elif "All Active" in timeframe_opt:
+        start_date_val = "2026-08-01"
+        end_date_val = None
+    else: # Full History
+        start_date_val = None
+        end_date_val = None
+
+    if send_tg:
+        try:
+            from core.notifications import NotificationManager
+            notif = NotificationManager()
+            if notif.send_periodic_performance_report(
+                period="both",
+                risk_per_trade=risk_val,
+                mode=mode_key,
+                start_date=start_date_val,
+                end_date=end_date_val,
+                account_size=account_size
+            ):
+                st.toast("✅ Scorecard dispatched to Telegram!", icon="🚀")
+                st.success("Scorecard sent to Telegram!")
+            else:
+                st.warning("Telegram disabled or failed to dispatch. Check config.yaml.")
+        except Exception as ex:
+            st.error(f"Telegram error: {ex}")
 
     t_month, t_week = st.tabs(["🗓️ Monthly Performance", "📅 Weekly Performance"])
 
     with t_month:
-        df_m = reporter.get_performance_matrix(period="monthly", mode=mode_key, risk_per_trade=risk_val, start_date=start_date_val, use_close_time=True)
+        df_m = reporter.get_performance_matrix(
+            period="monthly",
+            mode=mode_key,
+            risk_per_trade=risk_val,
+            start_date=start_date_val,
+            end_date=end_date_val,
+            account_size=account_size,
+            use_close_time=True
+        )
         if not df_m.empty:
-            m1, m2, m3, m4 = st.columns(4)
-            tot_trades = int(df_m['Trades'].sum())
-            tot_wins = int(df_m['Wins'].sum())
-            tot_pnl = float(df_m['Net PnL ($)'].sum())
-            tot_r = float(df_m['Net R'].sum())
-            wr = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+            # Highlight Current / Active Month
+            curr = df_m.iloc[0]
+            curr_period = str(curr['Period'])
+            curr_t = int(curr['Trades'])
+            curr_w = int(curr['Wins'])
+            curr_l = int(curr['Losses'])
+            curr_wr = float(curr['Win Rate (%)'])
+            curr_r = float(curr['Net R'])
+            curr_pnl = float(curr['Net PnL ($)'])
+            curr_ret = float(curr['Return (%)'])
 
-            m1.metric("Total Closed Trades", f"{tot_trades}", f"{tot_wins} Wins")
-            m2.metric("Win Rate", f"{wr:.1f}%", f"{wr-40.0:+.1f}% vs BE")
-            m3.metric("Realized Edge", f"{tot_r:+.2f}R", "1:1.5 RRR")
-            m4.metric("Net Realized PnL", f"${tot_pnl:+,.2f}", f"{tot_pnl/(risk_val/0.005)*100:+.1f}%")
+            st.markdown(f"##### 🗓️ Active Month Performance: **{curr_period}**")
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Month Closed Setups", f"{curr_t}", f"{curr_w}W – {curr_l}L")
+            m2.metric("Month Win Rate", f"{curr_wr:.1f}%", f"{curr_wr-40.0:+.1f}% vs BE")
+            m3.metric("Month Realized Edge", f"{curr_r:+.2f}R", "1:1.5 RRR Target")
+            m4.metric("Month Net Realized PnL", f"${curr_pnl:+,.2f}", f"{curr_ret:+.2f}% on ${account_size:,.0f}")
+
+            # If viewing multi-month scope, show period aggregate toggle
+            if len(df_m) > 1:
+                with st.expander("📊 View Cumulative Scope Totals", expanded=False):
+                    tot_trades = int(df_m['Trades'].sum())
+                    tot_wins = int(df_m['Wins'].sum())
+                    tot_losses = int(df_m['Losses'].sum())
+                    tot_pnl = float(df_m['Net PnL ($)'].sum())
+                    tot_r = float(df_m['Net R'].sum())
+                    tot_wr = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+                    tot_ret = (tot_pnl / account_size) * 100.0
+
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Total Scope Trades", f"{tot_trades}", f"{tot_wins}W – {tot_losses}L")
+                    c2.metric("Overall Win Rate", f"{tot_wr:.1f}%", f"{tot_wr-40.0:+.1f}% vs BE")
+                    c3.metric("Cumulative Edge", f"{tot_r:+.2f}R", "All Months")
+                    c4.metric("Total Realized Profit", f"${tot_pnl:+,.2f}", f"{tot_ret:+.2f}% on ${account_size:,.0f}")
 
             st.dataframe(
                 df_m,
@@ -1267,11 +1420,37 @@ def render_periodic_performance_matrix():
                 }
             )
         else:
-            st.info("No data available for selected monthly policy.")
+            st.info("No data available for selected monthly policy and timeframe.")
 
     with t_week:
-        df_w = reporter.get_performance_matrix(period="weekly", mode=mode_key, risk_per_trade=risk_val, start_date=start_date_val, use_close_time=True)
+        df_w = reporter.get_performance_matrix(
+            period="weekly",
+            mode=mode_key,
+            risk_per_trade=risk_val,
+            start_date=start_date_val,
+            end_date=end_date_val,
+            account_size=account_size,
+            use_close_time=True
+        )
         if not df_w.empty:
+            # Highlight Current / Active Week
+            curr_w = df_w.iloc[0]
+            curr_w_period = str(curr_w['Period'])
+            w_trades = int(curr_w['Trades'])
+            w_wins = int(curr_w['Wins'])
+            w_losses = int(curr_w['Losses'])
+            w_wr = float(curr_w['Win Rate (%)'])
+            w_r = float(curr_w['Net R'])
+            w_pnl = float(curr_w['Net PnL ($)'])
+            w_ret = float(curr_w['Return (%)'])
+
+            st.markdown(f"##### 📅 Active Week Performance: **{curr_w_period}**")
+            wm1, wm2, wm3, wm4 = st.columns(4)
+            wm1.metric("Week Closed Setups", f"{w_trades}", f"{w_wins}W – {w_losses}L")
+            wm2.metric("Week Win Rate", f"{w_wr:.1f}%", f"{w_wr-40.0:+.1f}% vs BE")
+            wm3.metric("Week Realized Edge", f"{w_r:+.2f}R", "1:1.5 RRR Target")
+            wm4.metric("Week Net Realized PnL", f"${w_pnl:+,.2f}", f"{w_ret:+.2f}% on ${account_size:,.0f}")
+
             st.dataframe(
                 df_w,
                 use_container_width=True,
@@ -1289,7 +1468,7 @@ def render_periodic_performance_matrix():
                 }
             )
         else:
-            st.info("No data available for selected weekly policy.")
+            st.info("No data available for selected weekly policy and timeframe.")
 
 
 # =============================================================================
@@ -1357,7 +1536,7 @@ def show_analytics():
     with c4:
         best = ""
         if not completed.empty:
-            ps = completed.groupby('symbol').apply(lambda x: (x['outcome']=='SUCCESS').sum()/len(x)*100)
+            ps = completed.groupby('symbol')['outcome'].apply(lambda s: (s == 'SUCCESS').sum() / len(s) * 100)
             if not ps.empty:
                 best = f"{ps.idxmax()} ({ps.max():.0f}%)"
         st.markdown(kpi_card("Best Pair", best or "N/A", "Highest win rate", "accent-cyan"), unsafe_allow_html=True)
@@ -1402,6 +1581,11 @@ def show_analytics():
         # Allow filtering to still catch shadow trades if ACTIVE was selected
         filtered = filtered[filtered['outcome'].isin(out_filter) | (filtered['outcome'] == 'SHADOW')]
 
+    if 'confidence' in filtered.columns:
+        filtered['confidence'] = filtered['confidence'].apply(
+            lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0)
+        )
+
     display_cols = [
         'timestamp', 'symbol', 'signal', 'confidence', 'price_at_signal', 
         'tp_price', 'sl_price', 'exit_price', 'exit_time', 'duration_seconds', 
@@ -1419,7 +1603,7 @@ def show_analytics():
                      "exit_price": st.column_config.NumberColumn("Exit Price", format="%.5f"),
                      "exit_time": "Exit Time",
                      "duration_seconds": st.column_config.NumberColumn("Duration (s)", format="%d"),
-                     "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=1),
+                     "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100),
                      "outcome": "Outcome",
                      "regime": "Regime",
                      "rsi": st.column_config.NumberColumn("RSI", format="%.1f"),
@@ -1647,11 +1831,11 @@ def show_performance_matrix():
         registry = db.get_model_registry_stats()
         if registry:
             df_reg = pd.DataFrame(registry)
-            df_reg['All-Time WR'] = df_reg.apply(lambda row: (row['all_time_wins'] / row['all_time_trades']) if row['all_time_trades'] > 0 else 0, axis=1)
+            df_reg['All-Time WR'] = df_reg.apply(lambda row: (row['all_time_wins'] / row['all_time_trades'] * 100) if row['all_time_trades'] > 0 else 0, axis=1)
             st.dataframe(
                 df_reg, use_container_width=True, hide_index=True,
                 column_config={
-                    "All-Time WR": st.column_config.ProgressColumn("All-Time WR", format="%.0f%%", min_value=0, max_value=1),
+                    "All-Time WR": st.column_config.ProgressColumn("All-Time WR", format="%.1f%%", min_value=0, max_value=100),
                     "all_time_confidence": st.column_config.NumberColumn("Avg Conf", format="%.1%"),
                     "last_seen": "Last Active"
                 }
@@ -1922,32 +2106,72 @@ def show_fleet_status():
 
 
 # =============================================================================
+# =============================================================================
 # AUTH — Persistent Session Restore
 # =============================================================================
 # Streamlit session_state is wiped whenever the WebSocket reconnects
-# (fragment timers firing, memory pressure, server restart, etc.).
-# We persist auth using a server-side token stored in the URL query param ?t=
-# so the session is silently restored on every reconnect.
+# (browser refresh, page reload, server restart, fragment timers, etc.).
+# We persist auth using:
+#   1. HTTP / WebSocket cookies (apex_session) via st.context.cookies
+#   2. URL query param (?t=)
+#   3. Browser localStorage client auto-restore
+# This ensures that refreshing the browser anywhere in the app (including subpages
+# like /copy-trading, /market, /terminal) seamlessly keeps the user logged in.
 
-from core.sessions import validate_session, create_session, delete_session, purge_expired
+import importlib
+import core.sessions as _sessions_mod
+try:
+    importlib.reload(_sessions_mod)
+except Exception:
+    pass
+
+validate_session = _sessions_mod.validate_session
+create_session   = _sessions_mod.create_session
+delete_session   = _sessions_mod.delete_session
+purge_expired    = _sessions_mod.purge_expired
+touch_session    = getattr(_sessions_mod, "touch_session", lambda tok: None)
+
 
 # ── 1. Initialize defaults ────────────────────────────────────────────────────
 for _key in ('authenticated', 'user_email', 'user_name', 'user_role', 'user_id', '_session_token'):
     if _key not in st.session_state:
         st.session_state[_key] = False if _key == 'authenticated' else ''
 
-# ── 2. Restore session from URL token (survives WebSocket drops) ──────────────
+# ── 2. Restore session from Cookie, URL token, or localStorage ───────────────
 if not st.session_state.get('authenticated'):
-    _url_token = st.query_params.get('t', '')
-    if _url_token and len(_url_token) == 64:
-        _user = validate_session(_url_token)
+    _token_candidate = ""
+
+    # Priority 1: Check browser cookie via st.context.cookies (sent with HTTP / WS request)
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "cookies"):
+            _c = st.context.cookies.get("apex_session", "")
+            if _c and len(_c) == 64:
+                _token_candidate = _c
+    except Exception:
+        pass
+
+    # Priority 2: Check URL query parameter ?t=
+    if not _token_candidate:
+        _q = st.query_params.get("t", "")
+        if _q and len(_q) == 64:
+            _token_candidate = _q
+
+    if _token_candidate:
+        _user = validate_session(_token_candidate)
         if _user:
             st.session_state['authenticated']   = True
             st.session_state['user_email']      = _user['email']
             st.session_state['user_name']       = _user['name']
             st.session_state['user_role']       = _user['role']
             st.session_state['user_id']         = _user['id']
-            st.session_state['_session_token']  = _url_token
+            st.session_state['_session_token']  = _token_candidate
+            try:
+                touch_session(_token_candidate)
+            except Exception:
+                pass
+        else:
+            # Token failed validation (expired or revoked): clear it
+            st.session_state["_stale_token_cleanup"] = True
 
 # ── 3. Top-level pending-auth handler (fires right after login form submit) ───
 # landing.py forms set _pending_auth then call st.rerun().
@@ -1976,6 +2200,33 @@ except Exception:
 from landing import show_landing
 
 if not st.session_state['authenticated']:
+    # Handle explicit logout or stale token cleanup
+    if st.session_state.pop("_just_logged_out", False) or st.session_state.pop("_stale_token_cleanup", False):
+        st.html("""
+        <script>
+        (function() {
+            document.cookie = "apex_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            try { localStorage.removeItem("apex_session"); } catch(e) {}
+        })();
+        </script>
+        """, unsafe_allow_javascript=True)
+    else:
+        # Check localStorage to silently auto-restore if cookie was omitted
+        st.html("""
+        <script>
+        (function() {
+            try {
+                var tok = localStorage.getItem("apex_session");
+                if (tok && tok.length === 64 && !window.location.search.includes("t=")) {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set("t", tok);
+                    window.location.replace(url.toString());
+                }
+            } catch(e) {}
+        })();
+        </script>
+        """, unsafe_allow_javascript=True)
+
     # Clear any stale token from URL if it failed validation
     if st.query_params.get('t'):
         st.query_params.clear()
@@ -1984,9 +2235,27 @@ if not st.session_state['authenticated']:
 
 else:
     # DASHBOARD MODE
+    # Ensure persistent session token is synced to browser cookie and localStorage
+    _cur_tok = st.session_state.get("_session_token", "")
+    if _cur_tok and len(_cur_tok) == 64:
+        st.html(f"""
+        <script>
+        (function() {{
+            var tok = "{_cur_tok}";
+            try {{
+                document.cookie = "apex_session=" + tok + "; path=/; max-age=2592000; SameSite=Lax";
+                localStorage.setItem("apex_session", tok);
+            }} catch(e) {{}}
+        }})();
+        </script>
+        """, unsafe_allow_javascript=True)
+        if st.query_params.get("t") != _cur_tok:
+            st.query_params["t"] = _cur_tok
+
     # Define Pages
     import os
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
     pg_home = st.Page(show_command_center, title="Command Center", icon="⚡", default=True, url_path="home")
     # Note: url_path="market" works if authenticated.
@@ -1994,13 +2263,7 @@ else:
     pg_terminal = st.Page(show_trading_terminal, title="Trading Terminal", icon="📈", url_path="terminal")
     pg_analytics = st.Page(show_analytics, title="Analytics Suite", icon="📊", url_path="analytics")
     pg_models = st.Page(show_performance_matrix, title="Performance Matrix", icon="🛡️", url_path="audit")
-    pg_control = st.Page(show_control_panel, title="Control Panel", icon="⚙️", url_path="settings")
-    
-    # Fleet Monitor (inline — no external file dependency)
     pg_fleet = st.Page(show_fleet_status, title="Fleet Status", icon="📊", url_path="fleet")
-
-    # External Pages (mapped from existing files)
-    import os
 
     path_profile      = os.path.join(BASE_DIR, "pages", "1_User_Profile.py")
     path_vault        = os.path.join(BASE_DIR, "pages", "2_Financials_Vault.py")
@@ -2008,22 +2271,29 @@ else:
     path_copy_trading = os.path.join(BASE_DIR, "pages", "4_Copy_Trading.py")
     path_admin        = os.path.join(BASE_DIR, "pages", "5_Admin_Panel.py")
 
-    pg_profile      = st.Page(path_profile,      title="User Profile",    icon="👤", url_path="profile")
-    pg_vault        = st.Page(path_vault,         title="Financials Vault",icon="💳", url_path="vault")
-    pg_settings_ext = st.Page(path_settings,     title="System Settings", icon="⚙", url_path="advanced")
-    pg_copy_trading = st.Page(path_copy_trading,  title="Copy Trading Hub",icon="🔁", url_path="copy-trading")
-    pg_admin        = st.Page(path_admin,         title="Admin Panel",     icon="🛠️", url_path="admin")
+    pg_profile      = st.Page(path_profile,      title="Profile & Subscription", icon="👤", url_path="profile")
+    pg_vault        = st.Page(path_vault,         title="Master API Vault",       icon="🔐", url_path="vault")
+    pg_settings_ext = st.Page(path_settings,     title="System Settings",        icon="⚙️", url_path="settings")
+    pg_copy_trading = st.Page(path_copy_trading,  title="Copy Trading Hub",       icon="🔁", url_path="copy-trading")
+    pg_admin        = st.Page(path_admin,         title="Fleet & Subscribers",    icon="🛠️", url_path="admin")
 
-    # Build Navigation — admin gets an extra group
+    # Build Navigation — admin gets strict access to system controls & fleet
     is_admin = st.session_state.get("user_role") == "admin"
-    nav_dict = {
-        "Intelligence": [pg_home, pg_market, pg_terminal, pg_fleet],
-        "Analytics":    [pg_analytics, pg_models],
-        "Management":   [pg_profile, pg_vault, pg_settings_ext],
-        "Services":     [pg_copy_trading],
-    }
     if is_admin:
-        nav_dict["Admin"] = [pg_admin]
+        nav_dict = {
+            "Intelligence":   [pg_home, pg_market, pg_terminal],
+            "Analytics":      [pg_analytics, pg_models],
+            "Services":       [pg_copy_trading],
+            "Account":        [pg_profile],
+            "Administration": [pg_admin, pg_fleet, pg_vault, pg_settings_ext],
+        }
+    else:
+        nav_dict = {
+            "Intelligence":   [pg_home, pg_market, pg_terminal],
+            "Analytics":      [pg_analytics, pg_models],
+            "Services":       [pg_copy_trading],
+            "Account":        [pg_profile],
+        }
     pg = st.navigation(nav_dict)
 
     # Sidebar Logo/Footer (Stays constant)
@@ -2033,6 +2303,13 @@ else:
 
     # ── Global Page Switcher ────────────────────────────────────────────────
     target_page = st.session_state.pop("nav_target", None)
+    if not target_page:
+        target_page = st.query_params.get("nav")
+        if target_page:
+            try:
+                del st.query_params["nav"]
+            except Exception:
+                pass
     if target_page == "terminal" or st.session_state.pop("nav_to_terminal", False):
         st.switch_page(pg_terminal)
     elif target_page == "analytics":
@@ -2045,6 +2322,14 @@ else:
         st.switch_page(pg_fleet)
     elif target_page == "home":
         st.switch_page(pg_home)
+    elif target_page == "copy_trading":
+        st.switch_page(pg_copy_trading)
+    elif target_page == "profile":
+        st.switch_page(pg_profile)
+    elif target_page == "admin" and is_admin:
+        st.switch_page(pg_admin)
+    elif target_page in ("settings", "control") and is_admin:
+        st.switch_page(pg_settings_ext)
 
     # Run!
     pg.run()
@@ -2075,16 +2360,10 @@ else:
                 for _k in ('authenticated', 'user_email', 'user_name', 'user_role', 'user_id', '_session_token'):
                     st.session_state[_k] = False if _k == 'authenticated' else ''
                 st.query_params.clear()
+                st.session_state["_just_logged_out"] = True
                 st.rerun()
         st.markdown("")
         sidebar_footer()
-
-        # Use the unified system monitor diagnostic
-        render_system_monitor()
-
-        # Simple manual refresh button to bypass health-check lag
-        if st.button("🔄 Force Data Refresh"):
-            st.rerun()
 
     # Auto-refresh is now handled inline via st_autorefresh in show_trading_terminal().
     # Command Center and Market Overview use manual refresh via the sidebar button.

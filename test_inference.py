@@ -1,4 +1,13 @@
 """Quick test of inference engine."""
+import sys
+import io
+
+# Force UTF-8 for console output on Windows to prevent Emoji crashes
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 from core.inference import InferenceEngine
 import logging
 

@@ -12,7 +12,6 @@ pandas-ta-classic
 
 # Market Data Sources
 yfinance>=0.2.36
-twelvedata>=1.2.13
 
 # Environment & Configuration
 python-dotenv>=1.0.0

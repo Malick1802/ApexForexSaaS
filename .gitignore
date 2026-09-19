@@ -98,3 +98,10 @@ datetime
 =
 node_modules/
 .npm/
+scratch/
+*.txt
+*.csv
+dashboard/*.csv
+*.diff
+*.db-shm
+*.db-wal

@@ -45,6 +45,7 @@ def get_engine():
 @st.cache_resource
 def get_inference():
     """Get InferenceEngine instance (cached)."""
+    # Cache buster to force Streamlit to drop old instance in memory
     try:
         from core.inference import InferenceEngine
         engine = InferenceEngine()
@@ -64,38 +65,39 @@ def inject_css():
 
     /* ── CSS Variables ─────────────────────────────── */
     :root {
-        --bg-primary: #0a0e1a;
-        --bg-secondary: #0f1629;
-        --bg-card: rgba(15, 22, 41, 0.6);
-        --bg-card-hover: rgba(20, 30, 55, 0.8);
-        --bg-glass: rgba(15, 22, 41, 0.45);
-        --border-glass: rgba(255, 255, 255, 0.06);
-        --border-glow: rgba(0, 229, 255, 0.15);
-        --text-primary: #e8ecf4;
-        --text-secondary: #8b95a8;
-        --text-muted: #4a5568;
+        --bg-primary: #050811;
+        --bg-secondary: #0a0f1e;
+        --bg-card: rgba(13, 19, 36, 0.72);
+        --bg-card-hover: rgba(18, 26, 48, 0.88);
+        --bg-glass: rgba(13, 19, 36, 0.52);
+        --border-glass: rgba(255, 255, 255, 0.08);
+        --border-glow: rgba(0, 229, 255, 0.22);
+        --text-primary: #f0f4fc;
+        --text-secondary: #8e9bb0;
+        --text-muted: #526079;
         --accent-cyan: #00E5FF;
         --accent-cyan-dim: rgba(0, 229, 255, 0.12);
+        --accent-cyan-hover: #33ebff;
         --accent-gold: #FFD700;
         --accent-gold-dim: rgba(255, 215, 0, 0.12);
         --signal-buy: #00FF88;
-        --signal-buy-bg: rgba(0, 255, 136, 0.08);
-        --signal-buy-border: rgba(0, 255, 136, 0.25);
+        --signal-buy-bg: rgba(0, 255, 136, 0.09);
+        --signal-buy-border: rgba(0, 255, 136, 0.3);
         --signal-sell: #FF4466;
-        --signal-sell-bg: rgba(255, 68, 102, 0.08);
-        --signal-sell-border: rgba(255, 68, 102, 0.25);
+        --signal-sell-bg: rgba(255, 68, 102, 0.09);
+        --signal-sell-border: rgba(255, 68, 102, 0.3);
         --signal-wait: #FFA726;
-        --signal-wait-bg: rgba(255, 167, 38, 0.08);
-        --signal-wait-border: rgba(255, 167, 38, 0.25);
+        --signal-wait-bg: rgba(255, 167, 38, 0.09);
+        --signal-wait-border: rgba(255, 167, 38, 0.3);
         --success: #00E676;
         --fail: #FF5252;
         --radius-sm: 8px;
         --radius-md: 12px;
         --radius-lg: 16px;
-        --radius-xl: 20px;
-        --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
-        --shadow-glow-cyan: 0 0 20px rgba(0, 229, 255, 0.15);
-        --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.15);
+        --radius-xl: 22px;
+        --shadow-card: 0 4px 24px -1px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+        --shadow-glow-cyan: 0 0 24px rgba(0, 229, 255, 0.22);
+        --shadow-glow-gold: 0 0 24px rgba(255, 215, 0, 0.22);
         --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     }
@@ -119,9 +121,10 @@ def inject_css():
 
     /* ── Global ────────────────────────────────────── */
     .stApp {
-        background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1224 50%, var(--bg-secondary) 100%);
+        background: radial-gradient(circle at 50% 0%, #0d152b 0%, #060913 70%, #04060c 100%) !important;
         font-family: var(--font-ui);
         color: var(--text-primary);
+        letter-spacing: -0.01em;
     }
     #MainMenu, footer { visibility: hidden; }
     
@@ -129,65 +132,134 @@ def inject_css():
     [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         visibility: visible !important;
-        background-color: rgba(255, 255, 255, 0.03) !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
         border-radius: 50% !important;
-        padding: 5px !important;
+        padding: 6px !important;
         margin: 10px !important;
         border: 1px solid var(--border-glass) !important;
         transition: all 0.3s ease !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
     }
     [data-testid="stSidebarCollapsedControl"]:hover {
-        background-color: rgba(0, 229, 255, 0.1) !important;
+        background-color: rgba(0, 229, 255, 0.12) !important;
         border-color: var(--accent-cyan) !important;
         box-shadow: var(--shadow-glow-cyan) !important;
     }
     
-    .stDeployButton { display: none; }
+    /* Hide the Streamlit native Deploy button */
+    .stDeployButton,
+    [data-testid="stAppDeployButton"] {
+        display: none !important;
+    }
 
     /* ── Typography ────────────────────────────────── */
-    h1, h2, h3, h4, h5, h6 { font-family: var(--font-ui) !important; letter-spacing: -0.02em; }
-    h1 { font-weight: 800 !important; color: var(--text-primary) !important; font-size: 2rem !important; }
-    h2 { font-weight: 700 !important; color: var(--text-primary) !important; font-size: 1.5rem !important; }
-    h3 { font-weight: 600 !important; color: var(--text-secondary) !important; font-size: 1.15rem !important; }
-    p, span, label, .stMarkdown { font-family: var(--font-ui) !important; }
+    h1, h2, h3, h4, h5, h6 { font-family: var(--font-ui) !important; letter-spacing: -0.03em; }
+    h1 { font-weight: 800 !important; color: var(--text-primary) !important; font-size: 2.1rem !important; }
+    h2 { font-weight: 700 !important; color: var(--text-primary) !important; font-size: 1.55rem !important; }
+    h3 { font-weight: 600 !important; color: var(--text-primary) !important; font-size: 1.2rem !important; }
+    p, label, .stMarkdown { font-family: var(--font-ui) !important; }
+
+    /* ── Main Content Spacing & Header Optimization ── */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+    }
+    .block-container,
+    [data-testid="stMainBlockContainer"],
+    .main .block-container {
+        padding-top: 1.25rem !important;
+        padding-bottom: 2rem !important;
+    }
 
     /* ── Sidebar ───────────────────────────────────── */
+    section[data-testid="stSidebar"],
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0c1120 0%, #0a0e1a 100%) !important;
+        background: linear-gradient(180deg, #090e1c 0%, #050811 100%) !important;
         border-right: 1px solid var(--border-glass) !important;
+        position: relative !important;
+        padding-top: 72px !important; /* Compact spacing beneath top logo */
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+    }
+    [data-testid="stSidebarHeader"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    [data-testid="stSidebarCollapseButton"] {
+        position: absolute !important;
+        top: 10px !important;
+        right: 12px !important;
+        z-index: 100000 !important;
     }
     [data-testid="stSidebar"] .stMarkdown { color: var(--text-secondary); }
 
+    /* ── Sidebar Navigation Link Buttons ──────────────── */
+    [data-testid="stSidebarNavLink"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid transparent !important;
+        border-radius: var(--radius-md) !important;
+        color: var(--text-secondary) !important;
+        padding: 9px 16px !important;
+        margin-bottom: 5px !important;
+        font-weight: 500 !important;
+        font-size: 0.88rem !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    [data-testid="stSidebarNavLink"]:hover,
+    [data-testid="stSidebarNavLink"]:focus {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(0, 229, 255, 0.3) !important;
+        color: var(--accent-cyan) !important;
+        transform: translateX(3px) !important;
+        box-shadow: 0 4px 14px rgba(0, 229, 255, 0.12) !important;
+    }
+    [data-testid="stSidebarNavLink"][data-selected="true"],
+    [data-testid="stSidebarNavLink"][aria-current="page"] {
+        background: linear-gradient(90deg, rgba(0, 229, 255, 0.14) 0%, rgba(0, 229, 255, 0.02) 100%) !important;
+        border: 1px solid rgba(0, 229, 255, 0.4) !important;
+        color: var(--accent-cyan) !important;
+        font-weight: 700 !important;
+        box-shadow: var(--shadow-glow-cyan) !important;
+    }
+
     /* ── Glassmorphic Cards ─────────────────────────── */
     .glass-card {
-        background: var(--bg-glass);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-glass);
         border-radius: var(--radius-lg);
         padding: 24px;
         box-shadow: var(--shadow-card);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
     }
     .glass-card:hover {
         background: var(--bg-card-hover);
         border-color: var(--border-glow);
         box-shadow: var(--shadow-card), var(--shadow-glow-cyan);
-        transform: translateY(-2px);
     }
 
     /* ── KPI Metric Cards ──────────────────────────── */
     .kpi-card {
-        background: var(--bg-glass);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-glass);
         border-radius: var(--radius-lg);
-        padding: 20px 24px;
+        padding: 18px 20px;
         box-shadow: var(--shadow-card);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        min-height: 135px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        margin-bottom: 8px;
     }
     .kpi-card::before {
         content: '';
@@ -201,28 +273,59 @@ def inject_css():
     .kpi-card:hover::before { opacity: 1; }
     .kpi-card:hover {
         border-color: var(--border-glow);
-        transform: translateY(-3px);
         box-shadow: var(--shadow-card), var(--shadow-glow-cyan);
+    }
+    a.kpi-card-link {
+        text-decoration: none !important;
+        color: inherit !important;
+        display: block;
+        cursor: pointer;
+    }
+    a.kpi-card-link .kpi-card {
+        cursor: pointer;
+    }
+    a.kpi-card-link:hover .kpi-card {
+        transform: translateY(-3px);
+        border-color: rgba(0, 229, 255, 0.55) !important;
+        box-shadow: 0 10px 28px rgba(0, 229, 255, 0.22), 0 0 12px rgba(0, 229, 255, 0.12) !important;
+    }
+    a.kpi-card-link:hover .kpi-card.accent-gold {
+        border-color: rgba(255, 171, 0, 0.55) !important;
+        box-shadow: 0 10px 28px rgba(255, 171, 0, 0.22), 0 0 12px rgba(255, 171, 0, 0.12) !important;
+    }
+    a.kpi-card-link:hover .kpi-card.accent-green {
+        border-color: rgba(0, 230, 118, 0.55) !important;
+        box-shadow: 0 10px 28px rgba(0, 230, 118, 0.22), 0 0 12px rgba(0, 230, 118, 0.12) !important;
+    }
+    a.kpi-card-link:hover .kpi-card.accent-red {
+        border-color: rgba(255, 23, 68, 0.55) !important;
+        box-shadow: 0 10px 28px rgba(255, 23, 68, 0.22), 0 0 12px rgba(255, 23, 68, 0.12) !important;
+    }
+    a.kpi-card-link:hover .kpi-card-arrow {
+        opacity: 1 !important;
+        transform: translate(2px, -2px);
     }
     .kpi-label {
         font-size: 0.72rem;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
         color: var(--text-muted);
         margin-bottom: 8px;
     }
     .kpi-value {
         font-family: var(--font-mono);
-        font-size: 1.75rem;
-        font-weight: 700;
+        font-size: 1.85rem;
+        font-weight: 800;
         color: var(--text-primary);
         line-height: 1.1;
+        letter-spacing: -0.02em;
     }
     .kpi-delta {
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         color: var(--text-secondary);
         margin-top: 6px;
+        font-weight: 500;
     }
     .kpi-card.accent-cyan .kpi-value { color: var(--accent-cyan); }
     .kpi-card.accent-gold .kpi-value { color: var(--accent-gold); }
@@ -268,7 +371,93 @@ def inject_css():
         50% { box-shadow: 0 0 40px rgba(255, 68, 102, 0.25); }
     }
 
-    /* ── Trading Levels ────────────────────────────── */
+    /* ── Trading Levels Uniform Grid & Cards ────────────────── */
+    .trading-levels-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .trading-level-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 90px;
+        min-height: 90px;
+        max-height: 90px;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .trading-level-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    .trading-level-card.tl-entry {
+        background: rgba(0, 229, 255, 0.04);
+        border: 1px solid rgba(0, 229, 255, 0.22);
+        border-left: 4px solid var(--accent-cyan);
+    }
+    .trading-level-card.tl-tp {
+        background: rgba(0, 255, 136, 0.04);
+        border: 1px solid rgba(0, 255, 136, 0.22);
+        border-left: 4px solid var(--signal-buy);
+    }
+    .trading-level-card.tl-sl {
+        background: rgba(255, 68, 102, 0.04);
+        border: 1px solid rgba(255, 68, 102, 0.22);
+        border-left: 4px solid var(--signal-sell);
+    }
+    .trading-level-card.tl-rr {
+        background: rgba(255, 171, 0, 0.04);
+        border: 1px solid rgba(255, 171, 0, 0.22);
+        border-left: 4px solid var(--accent-gold);
+    }
+    .tl-header {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        line-height: 1.2;
+        margin: 0;
+    }
+    .tl-value {
+        font-family: var(--font-mono);
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 2px 0;
+    }
+    .tl-entry .tl-value { color: var(--accent-cyan); }
+    .tl-tp .tl-value { color: var(--signal-buy); }
+    .tl-sl .tl-value { color: var(--signal-sell); }
+    .tl-rr .tl-value { color: var(--accent-gold); }
+    .tl-footer {
+        font-family: var(--font-ui);
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.2;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .tl-entry .tl-footer { color: var(--text-secondary); }
+    .tl-tp .tl-footer { color: var(--signal-buy); }
+    .tl-sl .tl-footer { color: var(--signal-sell); }
+    .tl-rr .tl-footer { color: var(--accent-gold); }
+
     .level-row {
         display: flex;
         align-items: center;
@@ -333,57 +522,204 @@ def inject_css():
 
     /* ── Streamlit Overrides ───────────────────────── */
     [data-testid="stMetric"] {
-        background: var(--bg-glass);
-        backdrop-filter: blur(12px);
-        padding: 16px 20px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-glass);
+        background: var(--bg-card) !important;
+        backdrop-filter: blur(20px) !important;
+        padding: 18px 22px !important;
+        border-radius: var(--radius-lg) !important;
+        border: 1px solid var(--border-glass) !important;
+        box-shadow: var(--shadow-card) !important;
     }
-    [data-testid="stMetricValue"] { font-family: var(--font-mono) !important; font-weight: 700 !important; }
-    [data-testid="stMetricLabel"] { font-weight: 600 !important; text-transform: uppercase !important; font-size: 0.7rem !important; letter-spacing: 0.06em !important; }
+    [data-testid="stMetricValue"] { 
+        font-family: var(--font-mono) !important; 
+        font-weight: 800 !important; 
+        font-size: 1.8rem !important; 
+        color: var(--text-primary) !important;
+        letter-spacing: -0.02em !important;
+    }
+    [data-testid="stMetricLabel"] { 
+        font-weight: 700 !important; 
+        text-transform: uppercase !important; 
+        font-size: 0.72rem !important; 
+        letter-spacing: 0.08em !important; 
+        color: var(--text-muted) !important;
+    }
 
     [data-testid="stDataFrame"] {
-        background: var(--bg-glass) !important;
+        background: var(--bg-card) !important;
         border: 1px solid var(--border-glass) !important;
-        border-radius: var(--radius-md) !important;
+        border-radius: var(--radius-lg) !important;
+        overflow: hidden !important;
+        box-shadow: var(--shadow-card) !important;
     }
 
+    /* Modern Pill Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        background: var(--bg-glass);
-        border-radius: var(--radius-md);
-        padding: 4px;
-        gap: 4px;
+        background: rgba(8, 12, 24, 0.75) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: 30px !important;
+        padding: 5px !important;
+        gap: 6px !important;
+        width: fit-content !important;
+        margin-bottom: 22px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: var(--radius-sm);
-        font-weight: 600;
-        font-size: 0.85rem;
+        border-radius: 25px !important;
+        font-family: var(--font-ui) !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        padding: 8px 20px !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        color: var(--text-primary) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.16) 0%, rgba(0, 229, 255, 0.04) 100%) !important;
+        border-color: rgba(0, 229, 255, 0.4) !important;
+        color: var(--accent-cyan) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 0 16px rgba(0, 229, 255, 0.18) !important;
+    }
+    .stTabs [data-baseweb="tab-border"] { display: none !important; }
+    .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+
+    /* Expanders */
+    div[data-testid="stExpander"] {
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: var(--radius-lg) !important;
+        overflow: hidden !important;
+        backdrop-filter: blur(16px) !important;
+        box-shadow: var(--shadow-card) !important;
+        margin-bottom: 16px !important;
+        transition: border-color 0.25s ease !important;
+    }
+    div[data-testid="stExpander"]:hover {
+        border-color: rgba(0, 229, 255, 0.25) !important;
+    }
+    div[data-testid="stExpander"] summary {
+        font-family: var(--font-ui) !important;
+        font-weight: 600 !important;
+        color: var(--text-primary) !important;
+        padding: 14px 20px !important;
+        font-size: 0.95rem !important;
+    }
+    div[data-testid="stExpander"] summary:hover {
+        color: var(--accent-cyan) !important;
+    }
+
+    /* Alerts */
+    div[data-testid="stAlert"] {
+        background: rgba(13, 19, 36, 0.85) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: var(--radius-md) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+        padding: 14px 20px !important;
+        color: var(--text-primary) !important;
+    }
+    div[data-testid="stAlert"] [data-testid="stNotificationContentInfo"] {
+        border-left: 4px solid var(--accent-cyan) !important;
+    }
+    div[data-testid="stAlert"] [data-testid="stNotificationContentSuccess"] {
+        border-left: 4px solid var(--signal-buy) !important;
+    }
+    div[data-testid="stAlert"] [data-testid="stNotificationContentWarning"] {
+        border-left: 4px solid var(--signal-wait) !important;
+    }
+    div[data-testid="stAlert"] [data-testid="stNotificationContentError"] {
+        border-left: 4px solid var(--signal-sell) !important;
+    }
+
+    /* Sliders */
+    div[data-testid="stSlider"] div[role="slider"] {
+        background-color: var(--accent-cyan) !important;
+        box-shadow: 0 0 10px var(--accent-cyan) !important;
+    }
+    div[data-testid="stSlider"] div[data-testid="stSliderTrack"] > div:first-child {
+        background: linear-gradient(90deg, var(--accent-cyan) 0%, #00B8D4 100%) !important;
+    }
+
+    /* Progress Bar */
+    div[data-testid="stProgress"] > div {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        height: 9px !important;
+    }
+    div[data-testid="stProgress"] > div > div {
+        background: linear-gradient(90deg, var(--accent-cyan) 0%, #00FF88 100%) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 0 12px rgba(0, 229, 255, 0.4) !important;
+    }
+
+    /* Form Controls */
+    div[data-testid="stCheckbox"] input:checked + div,
+    div[data-testid="stToggle"] input:checked + div {
+        background-color: var(--accent-cyan) !important;
     }
 
     hr { border-color: var(--border-glass) !important; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg-primary); }
-    ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.2); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.4); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.25); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.5); }
 
-    /* ── Signal Tiles (Market Overview) ─────────────── */
     .signal-tile {
         background: var(--bg-glass);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid var(--border-glass);
         border-radius: var(--radius-lg);
-        padding: 20px;
+        padding: 18px 14px 14px 14px;
         text-align: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
         display: block;
-        cursor: pointer;
-        min-height: 140px;
+        min-height: 160px;
         text-decoration: none;
+        margin-bottom: 6px;
     }
-    .signal-tile:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
+    .signal-tile:hover {
+        border-color: var(--border-glow);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.1);
+    }
+    a.signal-tile-link {
+        text-decoration: none !important;
+        color: inherit !important;
+        display: block;
+        cursor: pointer;
+        margin-bottom: 12px;
+    }
+    a.signal-tile-link .signal-tile {
+        cursor: pointer;
+        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+    }
+    a.signal-tile-link:hover .signal-tile {
+        transform: translateY(-4px);
+        border-color: rgba(0, 229, 255, 0.55) !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.2) !important;
+        opacity: 1 !important;
+    }
+    a.signal-tile-link:hover .signal-tile.tile-buy {
+        border-color: rgba(0, 255, 136, 0.55) !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 136, 0.2) !important;
+    }
+    a.signal-tile-link:hover .signal-tile.tile-sell {
+        border-color: rgba(255, 68, 102, 0.55) !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 68, 102, 0.2) !important;
+    }
+    a.signal-tile-link:hover .tile-arrow {
+        opacity: 1 !important;
+        transform: translate(2px, -2px);
+    }
     .signal-tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; transition: opacity 0.3s; }
 
     .tile-buy { border-color: rgba(0, 255, 136, 0.15); }
@@ -463,14 +799,14 @@ def inject_css():
     .section-header-text { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 
     /* ── Logo ──────────────────────────────────────── */
-    .logo-container { text-align: center; padding: 16px 0 8px; }
+    .logo-container { text-align: center; padding: 0; margin: 0; }
     .logo-text {
         font-family: var(--font-ui);
-        font-size: 1.6rem; font-weight: 900; letter-spacing: -0.02em;
+        font-size: 1.45rem; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15;
         background: linear-gradient(135deg, var(--accent-cyan) 0%, #00B8D4 40%, var(--accent-gold) 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .logo-sub { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
+    .logo-sub { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
     .version-badge { text-align: center; padding: 8px; font-size: 0.65rem; color: var(--text-muted); border-top: 1px solid var(--border-glass); margin-top: 16px; }
     .version-badge strong { color: var(--accent-cyan); }
 
@@ -519,6 +855,168 @@ def inject_css():
         50% { opacity: 0.4; transform: scale(1.2); }
     }
     .pulse-animation { animation: heartbeat 2s ease-in-out infinite; }
+
+    /* ── Streamlit Container Glass Overrides ── */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: var(--bg-card) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: var(--radius-lg) !important;
+        padding: 24px !important;
+        box-shadow: var(--shadow-card) !important;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        border-color: var(--border-glow) !important;
+    }
+
+    /* ── Move Logo to Top of Sidebar ──────────────── */
+    [data-testid="stSidebar"] div:has(.logo-container) {
+        position: static !important;
+    }
+    .logo-container {
+        position: absolute !important;
+        top: 14px !important;
+        left: 0 !important;
+        right: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        z-index: 99999 !important;
+        text-align: center !important;
+    }
+
+    /* ── Button Styling Overrides ─────────────────── */
+    div.stButton > button, 
+    div.stDownloadButton > button, 
+    [data-testid^="stBaseButton"] {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: var(--radius-md) !important;
+        color: var(--text-primary) !important;
+        font-family: var(--font-ui) !important;
+        font-weight: 600 !important;
+        padding: 9px 20px !important;
+        font-size: 0.88rem !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+    }
+    div.stButton > button:hover, 
+    div.stDownloadButton > button:hover, 
+    [data-testid^="stBaseButton"]:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: var(--accent-cyan) !important;
+        color: var(--accent-cyan) !important;
+        box-shadow: 0 4px 16px rgba(0, 229, 255, 0.2) !important;
+        transform: translateY(-1px) !important;
+    }
+    div.stButton > button:active, 
+    [data-testid^="stBaseButton"]:active {
+        transform: scale(0.98) !important;
+    }
+    
+    /* Primary buttons */
+    div.stButton > button[data-testid="stBaseButton-primary"], 
+    div.stButton > button[kind="primary"],
+    button[kind="primary"],
+    button[data-testid="stBaseButton-primary"] {
+        background: linear-gradient(135deg, #00E5FF 0%, #00B8D4 100%) !important;
+        color: #030814 !important;
+        border: none !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 18px rgba(0, 229, 255, 0.35) !important;
+    }
+    div.stButton > button[data-testid="stBaseButton-primary"]:hover,
+    div.stButton > button[kind="primary"]:hover,
+    button[kind="primary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover {
+        background: linear-gradient(135deg, #33EBFF 0%, #00C4E4 100%) !important;
+        color: #030814 !important;
+        box-shadow: 0 6px 24px rgba(0, 229, 255, 0.55) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Secondary buttons */
+    div.stButton > button[data-testid="stBaseButton-secondary"],
+    div.stButton > button[kind="secondary"],
+    button[kind="secondary"],
+    button[data-testid="stBaseButton-secondary"] {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid var(--border-glass) !important;
+        color: var(--text-primary) !important;
+    }
+    div.stButton > button[data-testid="stBaseButton-secondary"]:hover,
+    div.stButton > button[kind="secondary"]:hover,
+    button[kind="secondary"]:hover,
+    button[data-testid="stBaseButton-secondary"]:hover {
+        background: rgba(0, 229, 255, 0.06) !important;
+        border-color: var(--accent-cyan) !important;
+        color: var(--accent-cyan) !important;
+    }
+
+    /* Form Inputs, Textareas, Steppers */
+    div[data-baseweb="input"] {
+        background-color: rgba(9, 14, 27, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: var(--radius-sm) !important;
+        color: var(--text-primary) !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-baseweb="input"]:focus-within {
+        border-color: var(--accent-cyan) !important;
+        box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25) !important;
+    }
+    div[data-baseweb="textarea"] {
+        background-color: rgba(9, 14, 27, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: var(--radius-sm) !important;
+        color: var(--text-primary) !important;
+    }
+    div[data-baseweb="textarea"]:focus-within {
+        border-color: var(--accent-cyan) !important;
+        box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25) !important;
+    }
+
+    /* Selectboxes & Dropdowns */
+    div[data-baseweb="select"] > div {
+        background-color: rgba(9, 14, 27, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: var(--radius-sm) !important;
+        color: var(--text-primary) !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="select"] > div:focus-within {
+        border-color: var(--accent-cyan) !important;
+        box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2) !important;
+    }
+    /* Popover menu options */
+    div[data-baseweb="popover"],
+    div[data-baseweb="menu"],
+    ul[role="listbox"] {
+        background-color: #0b1122 !important;
+        border: 1px solid rgba(0, 229, 255, 0.25) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85) !important;
+    }
+    li[role="option"] {
+        color: #e8ecf4 !important;
+        font-family: var(--font-ui) !important;
+        font-size: 0.88rem !important;
+        transition: background 0.15s ease !important;
+    }
+    li[role="option"]:hover,
+    li[role="option"][aria-selected="true"] {
+        background-color: rgba(0, 229, 255, 0.15) !important;
+        color: #00E5FF !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="tag"] {
+        background: rgba(0, 229, 255, 0.12) !important;
+        border: 1px solid rgba(0, 229, 255, 0.3) !important;
+        border-radius: 6px !important;
+        color: #00E5FF !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -531,16 +1029,21 @@ def kpi_card(label, value, delta="", accent="", link_url=""):
     """Generate glassmorphic KPI card HTML."""
     css = f"kpi-card {accent}" if accent else "kpi-card"
     
+    arrow_html = (
+        '<span class="kpi-card-arrow" style="font-size: 0.85rem; opacity: 0.4; transition: all 0.2s ease; margin-left: auto;">&#x2197;</span>'
+        if link_url else ""
+    )
+    
     card_html = (
         f'<div class="{css}">'
-        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-label" style="display: flex; align-items: center;"><span>{label}</span>{arrow_html}</div>'
         f'<div class="kpi-value">{value}</div>'
         f'<div class="kpi-delta">{delta}</div>'
         f'</div>'
     )
     
     if link_url:
-        return f'<a href="{link_url}" target="_self" style="text-decoration: none; color: inherit; display: block;">{card_html}</a>'
+        return f'<a href="{link_url}" target="_self" class="kpi-card-link" style="text-decoration: none; color: inherit; display: block;">{card_html}</a>'
     
     return card_html
 
@@ -558,15 +1061,24 @@ def hero_banner(title, subtitle, show_status=False):
     )
 
 
-def sidebar_logo():
-    """Render premium sidebar logo."""
-    st.markdown("""
-    <div class="logo-container">
+def get_logo_html(alignment="center", is_clickable=True):
+    """Generate HTML string for the premium logo."""
+    padding = "0"
+    html = f"""
+    <div class="logo-container" style="text-align: {alignment}; padding: {padding}; cursor: pointer;">
         <div class="logo-text">ApexForex</div>
         <div class="logo-sub">AI Trading Intelligence</div>
     </div>
-    """, unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    """
+    if is_clickable:
+        # We link to "/" to go to landing/main app
+        html = f'<a href="/" target="_self" style="text-decoration: none; color: inherit;">{html}</a>'
+    return html
+
+
+def sidebar_logo():
+    """Render premium sidebar logo."""
+    st.markdown(get_logo_html("center", is_clickable=True), unsafe_allow_html=True)
 
 
 def sidebar_footer():
@@ -601,12 +1113,13 @@ def sidebar_footer():
         {status_text}
     </div>
     <div class="version-badge">
-        <strong>Apex</strong> v2.0.2 · Real-Time Sync Active
+        <strong>ApexForex</strong> v2.0.2 · Real-Time Sync Active
     </div>
     """, unsafe_allow_html=True)
 
 def render_system_monitor():
     """Render the diagnostic expander in the sidebar. Call once from main app layout."""
+    from datetime import datetime, timezone
     with st.sidebar.expander("🛠️ System Monitor (Debug)"):
         st.caption("Environment Truth")
         st.code(f"CWD: {os.getcwd()}")

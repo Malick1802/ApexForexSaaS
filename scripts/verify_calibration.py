@@ -39,8 +39,8 @@ def setup_mock_db():
     conn.close()
 
 def test_calibration():
-    from core.core.calibration import get_calibration_manager
-    from core.core.inference import InferenceEngine
+    from core.calibration import get_calibration_manager
+    from core.inference import InferenceEngine
     
     print("\n--- Calibration Verification ---")
     

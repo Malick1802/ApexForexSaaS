@@ -202,20 +202,29 @@ class ExecutiveEngine:
             if not symbol_info:
                 return 0.01
                 
-            # Use MT5's trade_tick_value (value of 1 pip for 1 lot in balance currency)
-            # Note: tick_value is for 1 lot per tick.
-            tick_size = symbol_info.trade_tick_size
-            tick_value = symbol_info.trade_tick_value
-            
             # SL distance in price units
             sl_dist_price = sl_pips * pip_value
             
             if sl_dist_price <= 0:
                 return 0.01
                 
+            # Use native MT5 order_calc_profit for 100% broker-accurate loss calculation
+            loss_per_lot = None
+            try:
+                calc_sl = symbol_info.ask - sl_dist_price
+                profit_1lot = self.mt5.order_calc_profit(self.mt5.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask, calc_sl)
+                if profit_1lot is not None and abs(profit_1lot) > 0:
+                    loss_per_lot = abs(profit_1lot)
+            except Exception:
+                pass
+
+            if not loss_per_lot or loss_per_lot <= 0:
+                tick_size = symbol_info.trade_tick_size or 0.00001
+                tick_value = symbol_info.trade_tick_value or 1.0
+                loss_per_lot = (sl_dist_price / tick_size) * tick_value
+
             # Lots = Risk_USD / (Loss_per_lot)
-            loss_per_lot = (sl_dist_price / tick_size) * tick_value
-            risk_lots = risk_usd / loss_per_lot
+            risk_lots = risk_usd / loss_per_lot if loss_per_lot > 0 else 0.01
             
             # ── 1:30 PROP-FIRM LEVERAGE CONSTRAINT (GETLEVERAGED) ──
             # Physical limit of buying power. 
@@ -320,13 +329,17 @@ class ExecutiveEngine:
                 return False
 
             # --- COMMODITY / BLOCKED SYMBOL / DIRECTIONAL SAFETY GATE ---
-            from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+            from core.symbol_guard import is_symbol_blocked, is_direction_blocked, is_commodity_benched
             if is_symbol_blocked(signal['symbol']):
                 logger.critical(f"🛑 COMMODITY SHIELD: {signal['symbol']} is a blacklisted commodity. Blocking Live MT5 Trade execution!")
                 signal['is_hidden'] = 1
                 return False
             if is_direction_blocked(signal['symbol'], signal.get('signal')):
                 logger.critical(f"🛑 DIRECTIONAL SHIELD: {signal['symbol']} {signal.get('signal')} is blacklisted by directional shield. Blocking Live MT5 Trade execution!")
+                signal['is_hidden'] = 1
+                return False
+            if is_commodity_benched(signal['symbol'], signal.get('signal')):
+                logger.critical(f"🛑 COMMODITY 40% GATE: {signal['symbol']} {signal.get('signal')} is benched (<40% WR in last 5 trades). Blocking Live MT5 Trade execution!")
                 signal['is_hidden'] = 1
                 return False
 
@@ -439,6 +452,12 @@ class ExecutiveEngine:
         Returns signal dict or None.
         """
         try:
+            from core.market_hours import is_weekend_halt
+            halted, reason = is_weekend_halt()
+            if halted:
+                logger.debug(f"Weekend Halt active ({reason}). Skipping {symbol} analysis.")
+                return None
+
             if precalculated_result is not None:
                 result = precalculated_result
             else:
@@ -464,11 +483,14 @@ class ExecutiveEngine:
             new_tier = int(result.get('confidence_tier', 0))
             
             if signal in ('BUY', 'SELL'):
-                from core.symbol_guard import is_direction_blocked
+                from core.symbol_guard import is_direction_blocked, is_commodity_benched
                 if is_direction_blocked(symbol, signal):
                     logger.warning(f"🚫 DIRECTIONAL BLOCK: {symbol} {signal} is blacklisted by directional shield. Skipping live executive entry.")
                     result['is_hidden'] = 1
                     return None
+                if is_commodity_benched(symbol, signal):
+                    logger.warning(f"🚫 COMMODITY 40% GATE: {symbol} {signal} is benched (<40% rolling WR). Setting to SHADOW mode.")
+                    result['is_hidden'] = 1
 
                 is_proven = bool(result.get('is_proven', False))
                 
@@ -642,8 +664,8 @@ class ExecutiveEngine:
                 self.db.update_signal_hidden(sig_id, int(result.get('is_hidden', 0)))
 
             if signal in ('BUY', 'SELL'):
-                from core.symbol_guard import is_symbol_blocked, is_direction_blocked
-                if is_symbol_blocked(symbol) or is_direction_blocked(symbol, signal):
+                from core.symbol_guard import is_symbol_blocked, is_direction_blocked, is_commodity_benched
+                if is_symbol_blocked(symbol) or is_direction_blocked(symbol, signal) or is_commodity_benched(symbol, signal):
                     result['is_hidden'] = 1
                     self.db.update_signal_hidden(sig_id, 1)
 
@@ -668,7 +690,17 @@ class ExecutiveEngine:
 
                     # 2b. Broadcast to copy trading accounts via isolated subprocess workers
                     try:
+                        import importlib, scripts.multi_executor
+                        importlib.reload(scripts.multi_executor)
                         from scripts.multi_executor import execute_signal_for_all_users
+                        if hasattr(self, 'mt5') and self.mt5:
+                            m_acc = self.mt5.account_info()
+                            if m_acc:
+                                result['master_balance'] = m_acc.balance
+                            if ticket and str(ticket).isdigit():
+                                m_pos = self.mt5.positions_get(ticket=int(ticket))
+                                if m_pos:
+                                    result['master_volume'] = m_pos[0].volume
                         execute_signal_for_all_users(result)
                     except Exception as _me:
                         logger.error(f"Multi-user copy execution error: {_me}")
@@ -716,7 +748,7 @@ class ExecutiveEngine:
 
         from core.guardrail import get_guardrail
         guard = get_guardrail()
-        status = guard.get_safety_status()
+        status = guard.get_safety_status(exec_engine=self)
         if not status['safe']:
             logger.warning(f"🛑 SAFETY HALT: {status['reason']} (Drawdown: {status['drawdown']:.1f}%) - Skipping Setup Scan.")
             return
@@ -814,6 +846,13 @@ class ExecutiveEngine:
                     else:
                         logger.info("Friday Exit: No open MT5 positions found.")
 
+                # Liquidate all open positions across all copy-trading secondary accounts
+                try:
+                    from scripts.multi_executor import close_all_positions_for_all_users
+                    close_all_positions_for_all_users(reason="Friday Auto-Exit")
+                except Exception as _fe:
+                    logger.error(f"Failed to close secondary accounts on Friday exit: {_fe}")
+
                 # Resolve all active signals (both live and shadow) in DB
                 for sig in active_signals:
                     symbol = sig['symbol']
@@ -895,6 +934,32 @@ class ExecutiveEngine:
         if self.check_and_execute_friday_exit(mt5_conn, broker_offset):
             # If Friday exit triggered, it resolved all active signals. Refresh list.
             active_signals = self.db.get_active_signals(include_hidden=True)
+
+        # ── TWO-WAY POSITION RECONCILIATION WITH SECONDARY ACCOUNTS ──────────
+        # Reconcile secondary accounts to guarantee no orphaned positions remain open.
+        # Runs every cycle so secondary accounts perfectly mirror master status.
+        # CRITICAL SAFETY GUARD:
+        # ONLY reconcile if MT5 is fully connected, authorized, and positions_get() is not None!
+        # If MT5 is disconnected or positions_get() returns None, do NOT sync (which would falsely close secondary trades).
+        if mt5_conn:
+            try:
+                term_info = mt5_conn.terminal_info()
+                acc_info = mt5_conn.account_info()
+                is_connected = term_info and getattr(term_info, "connected", False)
+                is_authorized = acc_info and getattr(acc_info, "login", None)
+
+                if is_connected and is_authorized:
+                    master_pos = mt5_conn.positions_get()
+                    if master_pos is not None:
+                        master_symbols = [p.symbol for p in master_pos]
+                        from scripts.multi_executor import sync_positions_with_master
+                        sync_positions_with_master(master_symbols)
+                    else:
+                        logger.warning("Watchdog: positions_get() returned None. Skipping secondary position sync.")
+                else:
+                    logger.warning("Watchdog: MT5 terminal disconnected/unauthorized. Skipping secondary position sync.")
+            except Exception as _syne:
+                logger.error(f"Secondary position sync error: {_syne}")
 
         if not active_signals:
             return
@@ -1058,6 +1123,13 @@ class ExecutiveEngine:
                 logger.info(f"🏁 RESOLVED: {symbol} ID {sig_id} -> {outcome} ({reason})")
                 self.db.update_signal_outcome(sig_id, outcome, exit_price=current_price, exit_reason=reason)
                 resolutions_found = True
+
+                # Mirror exit to all copy-trading secondary accounts
+                try:
+                    from scripts.multi_executor import close_signal_for_all_users
+                    close_signal_for_all_users(symbol)
+                except Exception as _ce:
+                    logger.error(f"Failed to mirror close for {symbol} on secondary accounts: {_ce}")
 
         # If trades were resolved, trigger a micro-update of the performance matrix
         # This keeps the dashboard perfectly in sync with real-time shadow performance.

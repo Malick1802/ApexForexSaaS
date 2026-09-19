@@ -67,34 +67,28 @@ class PerformanceGate:
         if not conf_int:
             return False
             
-        # Scan all active tiers up to the current normalized tier.
-        # NOTE: No hardcoded floor — pairs with T50 approval (e.g. threshold=0.52)
-        # must be reachable here, otherwise they can never exit shadow mode.
-        for t in TIERS:
-            if t > conf_int:
-                break
-            if self.get_specific_tier_status(symbol, direction, t) == "APPROVED":
-                return True
+        # Strict isolation: Only check the exact tier the signal falls into.
+        # This prevents overconfidence traps where a profitable 60% tier incorrectly authorizes a losing 90% tier.
+        if self.get_specific_tier_status(symbol, direction, conf_int) == "APPROVED":
+            return True
+            
         return False
 
     def get_specific_tier_status(self, symbol: str, direction: str, tier: int) -> str:
         """Internal helper to get status of a specific tier without recursive normalization."""
         if symbol not in self.performance_matrix:
             return "⬜ No data"
-            
+
+        # 1. Check specific direction first
         direction_data = self.performance_matrix[symbol].get(direction)
-        if not direction_data or str(tier) not in direction_data:
-            if direction != "ALL":
-                direction_data = self.performance_matrix[symbol].get("ALL")
-        
-        if not direction_data:
-            return "⬜ No data"
-            
-        tier_data = direction_data.get(str(tier))
-        if not tier_data:
-            return "⬜ No data"
-            
-        return tier_data.get("status", "⬜ No data")
+        status = "⬜ No data"
+        if direction_data and str(tier) in direction_data:
+            status = direction_data[str(tier)].get("status", "⬜ No data")
+
+        if status == "APPROVED":
+            return "APPROVED"
+
+        return status
 
     def _normalize_tier(self, confidence) -> int:
         """Handle both float (0.85) and formatted strings ('70%') / ints (85)."""
@@ -123,6 +117,8 @@ class PerformanceGate:
         Get the status (APPROVED/BENCHED) of a specific confidence tier for a pair and direction.
         Supports both float (0.70) and formatted strings ('70%').
         """
+        if symbol == "XAUUSD": symbol = "GOLD"
+        
         # Auto-Reload Check: If file on disk is newer than our memory, reload it.
         try:
             if WHITELIST_PATH.exists():
@@ -139,24 +135,21 @@ class PerformanceGate:
         if not applicable_tier:
             return "⬜ No data"
 
+        # 1. Check specific direction first
         direction_data = self.performance_matrix[symbol].get(direction)
-        
-        # Fallback: If specific direction is missing or this tier isn't in it, check 'ALL'
-        if not direction_data or str(applicable_tier) not in direction_data:
-            if direction != "ALL":
-                direction_data = self.performance_matrix[symbol].get("ALL")
-        
-        if not direction_data:
-            return "⬜ No data"
-            
-        tier_data = direction_data.get(str(applicable_tier))
-        if not tier_data:
-            return "⬜ No data"
-            
-        return tier_data.get("status", "⬜ No data")
+        status = "⬜ No data"
+        if direction_data and str(applicable_tier) in direction_data:
+            status = direction_data[str(applicable_tier)].get("status", "⬜ No data")
+
+        if status == "APPROVED":
+            return "APPROVED"
+
+        return status
 
     def get_tier_accuracy(self, symbol: str, direction: str, confidence) -> float:
         """Get the historically validated accuracy/win rate for a specific tier."""
+        if symbol == "XAUUSD": symbol = "GOLD"
+        
         # Ensure fresh data
         self.get_tier_status(symbol, direction, confidence)
         
@@ -165,9 +158,6 @@ class PerformanceGate:
             return 0.0
 
         direction_data = self.performance_matrix.get(symbol, {}).get(direction)
-        if not direction_data or str(applicable_tier) not in direction_data:
-            if direction != "ALL":
-                direction_data = self.performance_matrix.get(symbol, {}).get("ALL")
         
         if not direction_data:
             return 0.0
@@ -179,10 +169,11 @@ class PerformanceGate:
         # Support both 'accuracy' (live) and 'win_rate' (OOS script)
         return float(tier_data.get("accuracy", tier_data.get("win_rate", 0.0)))
 
-    def recompute_from_db(self, lookback_days: int = 14):
+    def recompute_from_db(self, lookback_days: int = 30):
         """
         Scan signals.db for the last X days and update all 5 tiers for all symbols BY DIRECTION.
         Recency Rule applies perfectly matching user logic.
+        Now strictly filters for v1 model performance ONLY.
         """
         if not Path(self.db_path).exists():
             return
@@ -195,53 +186,46 @@ class PerformanceGate:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # 1. Get all symbols seen recently
-            cursor.execute("SELECT DISTINCT symbol FROM signals WHERE timestamp >= ?", (cutoff_date,))
+            # 1. Get all symbols seen recently (v1 only)
+            cursor.execute("SELECT DISTINCT symbol FROM signals WHERE timestamp >= ? AND model_version = 'v1'", (cutoff_date,))
             symbols = [row[0] for row in cursor.fetchall()]
 
             for symbol in symbols:
                 if symbol not in self.performance_matrix:
-                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}, "ALL": {}}
+                    self.performance_matrix[symbol] = {"BUY": {}, "SELL": {}}
                 
-                # Ensure all directions exist
-                for d in ["BUY", "SELL", "ALL"]:
+                # Ensure BUY and SELL directions exist; purge legacy ALL if present
+                for d in ["BUY", "SELL"]:
                     if d not in self.performance_matrix[symbol]:
                         self.performance_matrix[symbol][d] = {}
+                # Remove legacy ALL direction if it exists
+                self.performance_matrix[symbol].pop("ALL", None)
                 
-                for direction in ["BUY", "SELL", "ALL"]:
+                for direction in ["BUY", "SELL"]:
                     # Purge tiers that are no longer in the active configuration (e.g. 50, 55)
                     stale_tiers = [t_str for t_str in self.performance_matrix[symbol][direction].keys() 
                                   if t_str.isdigit() and int(t_str) not in TIERS]
                     for t_str in stale_tiers:
                         del self.performance_matrix[symbol][direction][t_str]
 
-                    for t in TIERS:
-                        # 2. Calculate tier accuracy
-                        # For 'ALL', we don't filter by signal type
-                        if direction == "ALL":
-                            query = """
-                                SELECT outcome, COUNT(*) as count 
-                                FROM signals 
-                                WHERE symbol = ? 
-                                AND timestamp >= ? 
-                                AND confidence >= ?
-                                AND outcome IN ('SUCCESS', 'FAIL')
-                                GROUP BY outcome
-                            """
-                            params = (symbol, cutoff_date, t / 100.0)
-                        else:
-                            query = """
-                                SELECT outcome, COUNT(*) as count 
-                                FROM signals 
-                                WHERE symbol = ? 
-                                AND signal = ?
-                                AND timestamp >= ? 
-                                AND confidence >= ?
-                                AND outcome IN ('SUCCESS', 'FAIL')
-                                GROUP BY outcome
-                            """
-                            params = (symbol, direction, cutoff_date, t / 100.0)
-
+                    for idx, t in enumerate(TIERS):
+                        next_t_val = TIERS[idx+1] / 100.0 if idx < len(TIERS) - 1 else 1.01
+                        
+                        # 2. Calculate tier accuracy by direction (BUY or SELL only)
+                        query = """
+                            SELECT outcome, COUNT(*) as count 
+                            FROM signals 
+                            WHERE symbol = ? 
+                            AND signal = ?
+                            AND model_version = 'v1'
+                            AND timestamp >= ? 
+                            AND confidence >= ?
+                            AND confidence < ?
+                            AND outcome IN ('SUCCESS', 'FAIL')
+                            GROUP BY outcome
+                        """
+                        params = (symbol, direction, cutoff_date, t / 100.0, next_t_val)
+                        
                         cursor.execute(query, params)
                         
                         stats = {row['outcome']: row['count'] for row in cursor.fetchall()}

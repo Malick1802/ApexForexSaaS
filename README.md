@@ -15,7 +15,7 @@ Institutional-grade AI Trading Intelligence platform for Forex markets.
 - **Frontend**: Streamlit (Modern Multi-Page Architecture)
 - **Backend**: Python, SQLite
 - **AI/ML**: TensorFlow/Keras, Scikit-learn, XGBoost
-- **Data**: TwelveData API Integration
+- **Data**: MetaTrader 5 & Yahoo Finance API Integration
 - **DevOps**: Git, Python Virtual Environments
 
 ## 📦 Installation
@@ -35,7 +35,7 @@ Institutional-grade AI Trading Intelligence platform for Forex markets.
 
 3. **Configure Environment**:
    - Create a `.env` file based on `.env.example`.
-   - Add your TwelveData and Telegram API keys.
+   - Add your Telegram API credentials and MT5 configurations.
 
 4. **Launch the Dashboard**:
    ```bash

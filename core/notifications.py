@@ -84,6 +84,18 @@ class NotificationManager:
         signal = signal_data.get('signal', 'WAIT')
         is_shadow = signal_data.get('is_shadow_alert', False)
 
+        from core.symbol_guard import is_symbol_blocked
+        if is_symbol_blocked(symbol):
+            logger.info(f"Telegram alert blocked for {symbol}: Symbol is blacklisted.")
+            return False
+
+        # Weekend Gate: NEVER send trade alerts during weekend halt mode
+        from core.market_hours import is_weekend_halt
+        halted, reason = is_weekend_halt()
+        if halted:
+            logger.info(f"Telegram alert suppressed for {symbol} {signal}: Market closed for weekend ({reason}).")
+            return False
+
         # For Shadow Alerts, use the global config floor to allow visibility while benched.
         # For Certified alerts, respect the dynamic regime hurdle (0.65+ for trending etc.)
         if is_shadow:
@@ -154,7 +166,9 @@ class NotificationManager:
         period: str = "both",
         risk_per_trade: float = 50.0,
         mode: str = "production",
-        start_date: Optional[str] = None
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        account_size: Optional[float] = None
     ) -> bool:
         """
         Generate and dispatch comprehensive weekly/monthly performance scorecard to Telegram.
@@ -162,7 +176,14 @@ class NotificationManager:
         try:
             from core.performance_report import PerformanceReporter
             reporter = PerformanceReporter()
-            scorecard = reporter.generate_telegram_scorecard(period=period, risk_per_trade=risk_per_trade, start_date=start_date)
+            scorecard = reporter.generate_telegram_scorecard(
+                period=period,
+                risk_per_trade=risk_per_trade,
+                mode=mode,
+                start_date=start_date,
+                end_date=end_date,
+                account_size=account_size
+            )
             return self.send_telegram_message(scorecard)
         except Exception as e:
             logger.error(f"Failed to generate or send periodic performance report: {e}")

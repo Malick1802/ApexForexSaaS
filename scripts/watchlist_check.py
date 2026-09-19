@@ -6,7 +6,7 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.insert(0, os.getcwd())
 
-from core.core.inference import InferenceEngine
+from core.inference import InferenceEngine
 
 def get_watchlist():
     print("🧠 Initializing Inference Engine...")

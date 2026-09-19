@@ -252,6 +252,9 @@ class InferenceEngine:
             self._model_cache[symbol] = models
             return models
         
+        # Direct override map for disk directories
+        dir_symbol = "GOLD" if symbol == "XAUUSD" else symbol
+        
         # Try specialist directory ONLY for certified models
         base_dirs = [
             str(PROJECT_ROOT / "models" / "specialist"),
@@ -260,9 +263,9 @@ class InferenceEngine:
         
         for base_dir in base_dirs:
             try:
-                buy_path = Path(base_dir) / symbol / "BUY" / "model.keras"
-                sell_path = Path(base_dir) / symbol / "SELL" / "model.keras"
-                scaler_path = Path(base_dir) / symbol / "BUY" / "scaler.joblib"
+                buy_path = Path(base_dir) / dir_symbol / "BUY" / "model.keras"
+                sell_path = Path(base_dir) / dir_symbol / "SELL" / "model.keras"
+                scaler_path = Path(base_dir) / dir_symbol / "BUY" / "scaler.joblib"
                 
                 if not (buy_path.exists() and sell_path.exists() and scaler_path.exists()):
                     continue
@@ -275,7 +278,7 @@ class InferenceEngine:
                 buy_win_rate = 0.0
                 sell_win_rate = 0.0
                 
-                buy_config_path = Path(base_dir) / symbol / "BUY" / "config.json"
+                buy_config_path = Path(base_dir) / dir_symbol / "BUY" / "config.json"
                 if buy_config_path.exists():
                     try:
                         with open(buy_config_path, 'r') as f:
@@ -285,7 +288,7 @@ class InferenceEngine:
                             buy_win_rate = bc.get('win_rate', 0.0)
                     except: pass
                 
-                sell_config_path = Path(base_dir) / symbol / "SELL" / "config.json"
+                sell_config_path = Path(base_dir) / dir_symbol / "SELL" / "config.json"
                 if sell_config_path.exists():
                     try:
                         with open(sell_config_path, 'r') as f:
@@ -366,13 +369,16 @@ class InferenceEngine:
             return models
             
         try:
+            # Direct override map for disk directories
+            dir_symbol = "GOLD" if symbol == "XAUUSD" else symbol
+
             # ROBUST PATH SEARCH
             # 1. Primary: PROJECT_ROOT based
             logger.info(f"DEBUG PATH: PROJECT_ROOT={PROJECT_ROOT}")
-            paths_to_check = [PROJECT_ROOT / "models" / symbol / str(win_rate)]
+            paths_to_check = [PROJECT_ROOT / "models" / dir_symbol / str(win_rate)]
             
             # 2. Secondary: Relative to CWD
-            paths_to_check.append(Path("models") / symbol / str(win_rate))
+            paths_to_check.append(Path("models") / dir_symbol / str(win_rate))
             
             # 3. Tertiary: Absolute brute force (if running from different root)
             # This handles cases where PROJECT_ROOT might be mis-detected
@@ -382,7 +388,7 @@ class InferenceEngine:
                  # Try to find ApexForexSaaS in CWD parents
                  cwd = Path(os.getcwd())
                  if "ApexForexSaaS" in cwd.name:
-                     paths_to_check.append(cwd / "models" / symbol / str(win_rate))
+                     paths_to_check.append(cwd / "models" / dir_symbol / str(win_rate))
 
             base_project_dir = None
             for p in paths_to_check:
@@ -462,18 +468,21 @@ class InferenceEngine:
         if cache_key in self._model_cache:
             return self._model_cache[cache_key]
 
+        # Direct override map for disk directories
+        dir_symbol = "GOLD" if symbol == "XAUUSD" else symbol
+
         # Try multiple model directories
         model_dirs = ["models/enhanced", "models/specialist", "models/trained"]
         
         for base_dir in model_dirs:
-            model_path = Path(base_dir) / symbol / "model.keras"
-            scaler_path = Path(base_dir) / symbol / "scaler.joblib"
+            model_path = Path(base_dir) / dir_symbol / "model.keras"
+            scaler_path = Path(base_dir) / dir_symbol / "scaler.joblib"
             
             if model_path.exists() and scaler_path.exists():
                 try:
                     # Try to load trades volume
                     trades_count = 0
-                    config_path = Path(base_dir) / symbol / "config.json"
+                    config_path = Path(base_dir) / dir_symbol / "config.json"
                     if config_path.exists():
                         try:
                             with open(config_path, 'r') as f:
@@ -503,8 +512,11 @@ class InferenceEngine:
         if cache_key in self._model_cache:
             return self._model_cache[cache_key]
 
+        # Direct override map for disk directories
+        dir_symbol = "GOLD" if symbol == "XAUUSD" else symbol
+
         # 1. Try v3 Specialist (All-in-one)
-        v3_path = PROJECT_ROOT / "models" / "specialist" / symbol / "specialist_brain.keras"
+        v3_path = PROJECT_ROOT / "models" / "specialist" / dir_symbol / "specialist_brain.keras"
         if v3_path.exists():
             try:
                 from models.global_brain import VariableSelectionNetwork, GatedResidualNetwork
@@ -513,7 +525,7 @@ class InferenceEngine:
                     'GatedResidualNetwork': GatedResidualNetwork
                 }
                 model = keras.models.load_model(str(v3_path), custom_objects=custom_objects)
-                scaler_path = PROJECT_ROOT / "models" / "specialist" / symbol / "BUY" / "scaler.joblib"
+                scaler_path = PROJECT_ROOT / "models" / "specialist" / dir_symbol / "BUY" / "scaler.joblib"
                 scaler = joblib.load(str(scaler_path)) if scaler_path.exists() else None
                 
                 logger.info(f"Loaded v3 Specialist Brain for {symbol}")
@@ -625,7 +637,7 @@ class InferenceEngine:
             now_utc = pd.Timestamp.now(tz='UTC')
             
             if last_candle_time.tzinfo is None:
-                # Assume UTC if naive (Standard for yfinance/twelvedata in this pipeline)
+                # Assume UTC if naive (Standard for yfinance in this pipeline)
                 last_candle_aware = last_candle_time.tz_localize('UTC')
             else:
                 last_candle_aware = last_candle_time.tz_convert('UTC')
@@ -637,18 +649,11 @@ class InferenceEngine:
             # logger.info(f"Stale Check: Last={last_candle_aware} Now={now_utc} Diff={hours_diff:.2f}h")
             
             # 2. Hard Weekend Block (Forex Logic)
-            # Saturday (5) is always CLOSED
-            # Sunday (6) is CLOSED until ~21:00 UTC (Sydney Open)
-            weekday = now_utc.weekday()
-            hour = now_utc.hour
-            
-            if weekday == 5: # Saturday
-                return True
-            if weekday == 6 and hour < 21: # Sunday before 5PM EST (approx)
-                 # Even if data looks "fresh" (e.g. crypto or glitch), for Forex pairs we block.
-                 # Note: This might block Crypto if mixed. Assuming Forex context here.
-                 if hours_diff > 1.0: # Double verify it's not actually live data
-                     return True
+            from core.market_hours import is_weekend_halt
+            weekend_halt, _ = is_weekend_halt(now_utc)
+            if weekend_halt:
+                if hours_diff > 1.0:
+                    return True
 
             # 3. Staleness Threshold (Relaxed for Monday mornings due to yfinance lag)
             # If it's Monday and we have Friday's data, allow it until noon UTC
@@ -709,7 +714,7 @@ class InferenceEngine:
         self._last_global_update = now
         return aligned
 
-    def load_foundation_model(self, symbol: str) -> Optional[Dict]:
+    def load_foundation_model(self, symbol: str, force_version: Optional[str] = None) -> Optional[Dict]:
         """Load the Global Foundation TFT model (version-switchable).
         
         Version is controlled by config.yaml:
@@ -720,15 +725,16 @@ class InferenceEngine:
         """
         # ── 1. Cache Check ────────────────────────────────────
         # Foundation is GLOBAL, so we cache it under a universal key
-        active_version = "v1"
-        try:
-            import yaml
-            cfg_path = PROJECT_ROOT / "config.yaml"
-            if cfg_path.exists():
-                with open(cfg_path) as f:
-                    cfg = yaml.safe_load(f)
-                active_version = cfg.get("foundation", {}).get("active_version", "v1")
-        except: pass
+        active_version = force_version or "v1"
+        if not force_version:
+            try:
+                import yaml
+                cfg_path = PROJECT_ROOT / "config.yaml"
+                if cfg_path.exists():
+                    with open(cfg_path) as f:
+                        cfg = yaml.safe_load(f)
+                    active_version = cfg.get("foundation", {}).get("active_version", "v1")
+            except: pass
         
         cache_key = f"foundation_{active_version}"
         if cache_key in self._model_cache:
@@ -771,7 +777,8 @@ class InferenceEngine:
                 scaler = joblib.load(str(scaler_path))
             elif active_version != 'v3':
                 # Fallback for legacy models only
-                fb_scaler = PROJECT_ROOT / "models" / "specialist" / symbol / "BUY" / "scaler.joblib"
+                dir_symbol = "GOLD" if symbol == "XAUUSD" else symbol
+                fb_scaler = PROJECT_ROOT / "models" / "specialist" / dir_symbol / "BUY" / "scaler.joblib"
                 if fb_scaler.exists():
                     scaler = joblib.load(str(fb_scaler))
 
@@ -897,11 +904,8 @@ class InferenceEngine:
             tradeable, dynamic_threshold, regime_result = self._regime_detector.is_tradeable(df, symbol)
             live_regime = regime_result.regime.value if regime_result else "UNKNOWN"
 
-            # --- 2. LIVE METADATA SYNC (DASHBOARD PARITY) ---
-            # We sync the CURRENT regime and AI context to the latest DB record for this symbol.
-            # This ensures the dashboard reflects the truth even during 'WAIT' or 'LOCKED' periods.
             if self.db:
-                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol)
+                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol, include_hidden=True)
                 if latest_signals:
                     latest = latest_signals[0]
                     # Note: raw_confidence isn't calculated yet, but we'll update it later if needed.
@@ -916,8 +920,15 @@ class InferenceEngine:
                     
                     self.db.update_signal_metadata(latest['id'], update_payload)
                     
-                # Now check for strict trade locking (BUY/SELL)
-                active_trades = [s for s in latest_signals if s.get('outcome') == 'ACTIVE' and s.get('signal') in ('BUY', 'SELL')]
+                # Only real LIVE trades (is_hidden=0) should lock inference in production mode.
+                # Shadow trades (is_hidden=1) must NEVER lock inference or suppress fresh conviction.
+                # Furthermore, if save_to_db=False (UI live pulse), never short-circuit so live conviction updates dynamically.
+                active_trades = [
+                    s for s in latest_signals 
+                    if s.get('outcome') == 'ACTIVE' 
+                    and s.get('signal') in ('BUY', 'SELL') 
+                    and not bool(s.get('is_hidden', 0))
+                ] if save_to_db else []
                 
                 if active_trades:
                     lock = active_trades[0]
@@ -971,36 +982,26 @@ class InferenceEngine:
             global_data = self._update_global_context()
             features = self.global_engineer.add_global_features(symbol, base_features, global_data)
             
-            # ── 3. Load Model based on Fleet Routing Truth Map ────────────────────────
-            routing_config = self.config.get('fleet', {})
-            predators = {p['symbol']: p for p in routing_config.get('predators', [])}
-            
             models = None
-            custom_threshold = 0.60 # Standard institutional floor
-            
-            if symbol in predators:
-                route = predators[symbol]['route']
-                custom_threshold = predators[symbol].get('threshold', 0.60)
-                logger.info(f"Fleet Routing: {symbol} using {route} path @ {custom_threshold} threshold (Predator Map)")
-                
-                if route == "global":
-                    models = self.load_foundation_model(symbol)
-                elif route == "specialist":
-                    models = self.load_models(symbol, win_rate=target_int)
-                elif route == "ensemble":
-                    models = self.load_models(symbol, win_rate=target_int)
-                    if models: models['model_type'] = 'ensemble_specialist'
-            
+            from core.symbol_guard import is_commodity
+            if is_commodity(symbol):
+                custom_threshold = 0.55  # 55%+ floor for commodities
+                logger.info(f"🪙 COMMODITY ROUTE: {symbol} using 55% conviction floor.")
+            else:
+                custom_threshold = 0.61  # 61%+ floor for Forex
+
+            logger.info(f"🔄 Routing {symbol} to v1 (Threshold: {custom_threshold:.0%}).")
+
+            # All regimes use v1 exclusively
+            models = self.load_foundation_model(symbol, force_version="v1")
             if not models:
+                logger.warning(f"v1 model not found for {symbol} — falling back to latest foundation model.")
                 models = self.load_foundation_model(symbol)
-                if not models:
-                    models = self.load_models(symbol, win_rate=target_int)
 
             if not models:
                 logger.warning(f"No model (Foundation or Specialist) found for {symbol} at {target_int}% tier.")
                 return None
             
-            # Use the predator's custom threshold if defined
             buy_threshold = custom_threshold
             sell_threshold = custom_threshold
 
@@ -1195,10 +1196,10 @@ class InferenceEngine:
                 wait_prob = max(0.0, 1.0 - max(buy_prob, sell_prob))
                 
                 # ── 1. PROVEN OPPORTUNITY OVERRIDE ────────────────────────────
-                # Rule: If proven at 70% accuracy, floor is 60% confidence.
+                # Rule: Each tier must prove itself independently.
                 # We check the performance gate for BOTH directions at their current probabilities.
-                buy_proven = (buy_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
-                sell_proven = (sell_prob >= 0.60) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
+                buy_proven = (buy_prob >= buy_threshold) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
+                sell_proven = (sell_prob >= sell_threshold) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
 
                 # ── 2. Determine Dominant Signal ────────────────────────────
                 if (buy_prob >= buy_threshold or buy_proven) and buy_prob > sell_prob:
@@ -1213,7 +1214,8 @@ class InferenceEngine:
                 # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
                 # Per user requirement: Do not deal with anything < 60%.
                 # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
-                if dominant_prob < buy_threshold:
+                current_threshold = buy_threshold if signal == "BUY" else sell_threshold if signal == "SELL" else buy_threshold
+                if dominant_prob < current_threshold:
                     if signal in ('BUY', 'SELL'):
                         logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
                     signal = "WAIT"
@@ -1243,7 +1245,8 @@ class InferenceEngine:
                 # ── 3. STRICT 60% CONVICTION FLOOR ────────────────────────────
                 # Per user requirement: Do not deal with anything < 60%.
                 # We downgrade to WAIT instead of returning None to preserve dashboard telemetry.
-                if dominant_prob < buy_threshold:
+                current_threshold = buy_threshold if signal == "BUY" else sell_threshold if signal == "SELL" else buy_threshold
+                if dominant_prob < current_threshold:
                     if signal in ('BUY', 'SELL'):
                         logger.debug(f"🔇 {symbol}: Conviction {dominant_prob:.1%} below floor. Downgrading to WAIT.")
                     signal = "WAIT"
@@ -1255,10 +1258,19 @@ class InferenceEngine:
                 buy_proven = (buy_prob >= buy_threshold) and self.perf_gate.is_tier_approved(symbol, 'BUY', buy_prob)
                 sell_proven = (sell_prob >= sell_threshold) and self.perf_gate.is_tier_approved(symbol, 'SELL', sell_prob)
 
+                from core.symbol_guard import is_direction_blocked
                 if (buy_prob >= buy_threshold or buy_proven) and buy_prob > sell_prob:
-                    signal, confidence = "BUY", buy_prob
+                    if is_direction_blocked(symbol, "BUY"):
+                        signal, confidence = "WAIT", wait_prob
+                        logger.warning(f"🚫 DIRECTIONAL SHIELD: {symbol} BUY is blacklisted. Forcing WAIT.")
+                    else:
+                        signal, confidence = "BUY", buy_prob
                 elif (sell_prob >= sell_threshold or sell_proven) and sell_prob > buy_prob:
-                    signal, confidence = "SELL", sell_prob
+                    if is_direction_blocked(symbol, "SELL"):
+                        signal, confidence = "WAIT", wait_prob
+                        logger.warning(f"🚫 DIRECTIONAL SHIELD: {symbol} SELL is blacklisted. Forcing WAIT.")
+                    else:
+                        signal, confidence = "SELL", sell_prob
                 else:
                     signal, confidence = "WAIT", wait_prob
 
@@ -1293,15 +1305,23 @@ class InferenceEngine:
                     logger.warning(f"BIAS: {symbol}: Model Bias Detected ({dominant_prob:.1%} matches historical skew {hist_bias:.1%}). Blocking signal.")
 
                 if not is_biased:
-                    signal = "BUY" if buy_prob > sell_prob else "SELL"
-                    raw_confidence = buy_prob if signal == "BUY" else sell_prob
-                    logger.info(f"🚀 {symbol}: Evaluating {signal} (Raw Edge: {dominant_prob:.1%}) for Calibration.")
+                    candidate = "BUY" if buy_prob > sell_prob else "SELL"
+                    from core.symbol_guard import is_direction_blocked
+                    if is_direction_blocked(symbol, candidate):
+                        signal = "WAIT"
+                        logger.warning(f"🚫 DIRECTIONAL SHIELD: {symbol} {candidate} is blacklisted. Staying at WAIT.")
+                    else:
+                        signal = candidate
+                        raw_confidence = buy_prob if signal == "BUY" else sell_prob
+                        logger.info(f"🚀 {symbol}: Evaluating {signal} (Raw Edge: {dominant_prob:.1%}).")
                 else:
                     signal = "WAIT"
                     logger.info(f"⛔ {symbol}: Model Bias Detected ({dominant_prob:.1%}). Staying at WAIT.")
 
             # --- PHASE 4: Platt Scaling Calibration ---
-            # Map raw model conviction to real-world win rate (The "Real" Number)
+            # DISABLED TEMPORARILY AS PER USER REQUEST
+            final_confidence = raw_confidence
+            """
             try:
                 final_confidence = self.calibrator.calibrate(symbol, signal, raw_confidence)
                 # Fail-safe: If calibrator returns NaN or invalid number
@@ -1317,60 +1337,76 @@ class InferenceEngine:
                         final_confidence = hist_acc
 
                 logger.info(f"CALIBRATED: {symbol} {signal}: {raw_confidence:.1%} (Raw) -> {final_confidence:.1%} (Real)")
+                
+                # --- PROBABILITY REDISTRIBUTION ---
+                # If calibration crushed the conviction, redistribute the lost percentage to WAIT
+                # This ensures the dashboard heatmap visually matches the calibrated reality.
+                if final_confidence < raw_confidence:
+                    penalty = raw_confidence - final_confidence
+                    if signal == "BUY":
+                        buy_prob = final_confidence
+                    elif signal == "SELL":
+                        sell_prob = final_confidence
+                    wait_prob += penalty
+                    logger.info(f"⚖️ Redistributed {penalty:.1%} from {signal} to WAIT due to calibration penalty.")
             except Exception as e:
                 logger.warning(f"Calibration crash for {symbol}: {e}")
                 final_confidence = raw_confidence
+            """
 
-            # --- PHASE 4.5: Calibrated Tier Validation ---
-            # CRITICAL DESIGN: Use RAW conviction tier for the approval gate, NOT the calibrated one.
-            # Reason: The historical trades in the whitelist were recorded at the raw conviction level
-            # (e.g. 63% raw). If Platt calibrates this to 100%, the evidence still lives under Tier 60.
-            # Looking up Tier 100 would always fail — the pair was never traded at 100% raw conviction.
-            # The calibrated number is purely a display/accuracy estimate, not a new evidence tier.
+            # --- PHASE 4.5: Tier Validation ---
+            # CRITICAL DESIGN: Use RAW conviction tier for the approval gate.
             raw_tier_status = self.perf_gate.get_tier_status(symbol, signal, raw_confidence)
-            is_tier_proven = (raw_tier_status == "APPROVED")
             
-            # Display tier uses calibrated confidence (what the user sees as accuracy estimate)
+            # OVERRIDE: 14-day performance gate is disabled.
+            # 60% confidence floor handles signal quality, and MT5 executive handles risk constraints.
+            is_tier_proven = True
+            
+            # Display tier uses confidence
             actual_tier = int(final_confidence * 10) * 10
             if actual_tier > 100: actual_tier = 100
 
-            # Log when calibration causes a tier shift so it's auditable
-            raw_tier_bucket = int(raw_confidence * 10) * 10
-            if actual_tier != raw_tier_bucket:
-                logger.info(
-                    f"[PLATT SHIFT] {symbol} {signal}: Raw={raw_confidence:.1%} (Tier {raw_tier_bucket}) "
-                    f"-> Calibrated={final_confidence:.1%} (Display Tier {actual_tier}). "
-                    f"Approval gate using RAW tier {raw_tier_bucket}: {raw_tier_status}"
-                )
-
             # --- PHASE 5: Authorization & Safety Hurdles ---
-            # Use the model's threshold or whitelist approval
-            # CRITICAL: Strict 60% Calibrated Conviction Floor enforced per user requirement.
-            has_calibrated_edge = (final_confidence >= buy_threshold)
-            
-            if (signal == "BUY" and has_calibrated_edge and (final_confidence >= buy_threshold or is_tier_proven)) or \
-               (signal == "SELL" and has_calibrated_edge and (final_confidence >= sell_threshold or is_tier_proven)):
-                is_authorized = True
-                is_hidden = 1  # Hidden until tier is PROVEN (upgraded below)
-            elif signal in ('BUY', 'SELL') and has_calibrated_edge:
-                # Has ≥60% conviction but pair is BENCHED — save as SHADOW for certification tracking
-                logger.info(f"👻 SHADOW: {symbol} {signal} at {final_confidence:.1%} — BENCHED, tracking for certification.")
-                is_authorized = True   # Allow shadow save
-                is_hidden = 1          # Keep hidden from live terminal
-                # Flag it clearly as a shadow/paper trade
-                result_shadow_flag = True
+            # 61%+ Conviction Floor: LIVE execution on MT5 & Live Dashboard (Forex only).
+            # Commodities (XAUUSD, USOIL, etc.) or blocked symbols: NEVER LIVE (Forced to Shadow).
+            # 50% - 60.9% Conviction: Background Shadow tracking in DB only.
+            # < 50% Conviction: Blocked (WAIT).
+            from core.symbol_guard import is_symbol_blocked, is_direction_blocked, is_commodity_benched
+            symbol_is_commodity_or_blocked = is_symbol_blocked(symbol)
+            direction_is_blocked = is_direction_blocked(symbol, signal)
+            commodity_is_benched = is_commodity_benched(symbol, signal)
+
+            has_live_edge = (final_confidence >= buy_threshold) if signal == "BUY" else (final_confidence >= sell_threshold) if signal == "SELL" else False
+            has_shadow_edge = (final_confidence >= 0.50)
+
+            if signal in ("BUY", "SELL") and (has_live_edge or has_shadow_edge):
+                if symbol_is_commodity_or_blocked or direction_is_blocked or commodity_is_benched:
+                    is_authorized = False
+                    is_hidden = 1  # FORCED SHADOW: Blocked symbols, blacklisted directions & benched commodities never execute live
+                    if direction_is_blocked:
+                        logger.warning(f"🚫 DIRECTIONAL BLOCK: {symbol} {signal}: Conviction ({final_confidence:.1%}) is blacklisted by directional shield. Forced to SHADOW mode.")
+                    elif commodity_is_benched:
+                        logger.warning(f"🚫 COMMODITY 40% GATE: {symbol} {signal}: Conviction ({final_confidence:.1%}) but recent rolling WR < 40%. Forced to SHADOW mode.")
+                    else:
+                        logger.warning(f"🚫 BLOCKED SYMBOL: {symbol} {signal}: Conviction ({final_confidence:.1%}) but symbol is in blocked_symbols list. Forced to SHADOW mode.")
+                elif has_live_edge and tradeable:
+                    is_authorized = True
+                    is_hidden = 0  # LIVE trade (61%+ Forex, 55%+ Commodities)
+                    logger.info(f"LIVE: {symbol} {signal}: Conviction ({final_confidence:.1%}) >= {buy_threshold:.0%}. Authorizing for MT5 & Terminal.")
+                else:
+                    is_authorized = True
+                    is_hidden = 1  # SHADOW trade
+                    if has_live_edge and not tradeable:
+                        logger.info(f"SHADOW: {symbol} {signal}: Conviction ({final_confidence:.1%}) >= {buy_threshold:.0%} but regime blocked ({regime_label}).")
+                    else:
+                        logger.info(f"SHADOW ({actual_tier}% Tier): {symbol} {signal}: Conviction ({final_confidence:.1%}) below live floor ({buy_threshold:.0%}). Recording in background DB only.")
             else:
-                logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < {buy_threshold:.1%} Safety Floor. Authorization Denied.")
+                current_threshold = buy_threshold if signal == "BUY" else sell_threshold if signal == "SELL" else buy_threshold
+                logger.info(f"BLOCK: {symbol}: {final_confidence:.1%} < 50% Safety Floor. Authorization Denied.")
                 is_authorized = False
                 is_hidden = 1
                 signal = "WAIT"  # Forced rollback to safety
 
-            # 2. Live Upgrade (Market Signal)
-            # Only upgrade to Live (visible) if it passes safety regimes AND accuracy hurdles
-            if is_authorized and tradeable:
-                if is_tier_proven:
-                    is_hidden = 0
-                    logger.info(f"LIVE: {symbol}: Tier is PROVEN. Sending to Terminal.")
 
             expert_signal = signal # Save the model's intended direction for shadow history
 
@@ -1421,10 +1457,10 @@ class InferenceEngine:
                 elif target_signal == 'SELL': trades = models.get('sell_trades', 0)
             
             # --- FINAL NUCLEAR SAFETY GATE ---
-            # Per user requirement: Absolutely no signals < 60% conviction.
-            # We only allow the return if it is a 'WAIT' signal (preserving dashboard telemetry).
-            if final_confidence < 0.60 and signal not in ("WAIT", "SCANNING"):
-                logger.warning(f"☢️ NUCLEAR BLOCK: {symbol} leaked to {final_confidence:.1%}. Forcefully discarding.")
+            # Per user requirement: Absolutely no LIVE signals < 50% conviction.
+            # We only allow the return if it is a 'WAIT' signal or a SHADOW signal (for certification telemetry).
+            if final_confidence < 0.50 and signal not in ("WAIT", "SCANNING") and not is_hidden:
+                logger.warning(f"☢️ NUCLEAR BLOCK: {symbol} leaked to {final_confidence:.1%} with LIVE status. Forcefully discarding.")
                 return None
             
             result = {
@@ -1448,17 +1484,39 @@ class InferenceEngine:
                 'sl_pips': levels['sl_pips'],
                 'winning_tier': f"{actual_tier}%",
                 'model_trades': trades,
-                'model_version': models.get('model_type', 'foundation_tft'),
+                'model_version': 'v1' if models.get('version') == 'v1' else models.get('model_type', 'foundation_tft'),
                 'regime': regime_label,
                 'regime_threshold': buy_threshold,
                 'is_proven': int(is_tier_proven),
                 'is_hidden': int(is_hidden),
                 'outcome': 'ACTIVE' if (is_authorized and signal != "WAIT") else 'N/A',
-                'adx': 0.0,
-                'atr_zscore': 0.0,
                 'vix_proxy': round(float(features['vix_proxy'].iloc[-1]), 4) if 'vix_proxy' in features.columns else 0.0,
                 'yield_slope': round(float(features['yield_curve_slope'].iloc[-1]), 4) if 'yield_curve_slope' in features.columns else 0.0,
+                'rsi': round(float(features['rsi'].iloc[-1]) * 100.0 if features['rsi'].iloc[-1] <= 1.0 else float(features['rsi'].iloc[-1]), 2) if 'rsi' in features.columns else 50.0,
+                'adx': round(float(features['adx'].iloc[-1]), 2) if 'adx' in features.columns else None,
+                'atr': round(float(features['atr'].iloc[-1]), 6) if 'atr' in features.columns else None,
+                'atr_zscore': round(float(features['atr_zscore'].iloc[-1]), 2) if 'atr_zscore' in features.columns else None,
+                'macd': round(float(features['macd'].iloc[-1]), 6) if 'macd' in features.columns else None,
+                'macd_signal': round(float(features['macd_signal'].iloc[-1]), 6) if 'macd_signal' in features.columns else None,
+                'macd_hist': round(float(features['macd_hist'].iloc[-1]), 6) if 'macd_hist' in features.columns else None,
+                'stoch_k': round(float(features['stoch_k'].iloc[-1]) * 100.0 if features['stoch_k'].iloc[-1] <= 1.0 else float(features['stoch_k'].iloc[-1]), 2) if 'stoch_k' in features.columns else None,
+                'stoch_d': round(float(features['stoch_d'].iloc[-1]) * 100.0 if features['stoch_d'].iloc[-1] <= 1.0 else float(features['stoch_d'].iloc[-1]), 2) if 'stoch_d' in features.columns else None,
+                'cci': round(float(features['cci'].iloc[-1]), 2) if 'cci' in features.columns else None,
+                'bb_position': round(float(features['bb_position'].iloc[-1]), 4) if 'bb_position' in features.columns else None,
+                'ema_cross': round(float(features['ema_cross'].iloc[-1]), 6) if 'ema_cross' in features.columns else None,
             }
+
+            # Pack all technical indicators into JSON string for full audit persistence
+            try:
+                import json
+                indicator_dict = {}
+                for col in features.columns:
+                    val = features[col].iloc[-1]
+                    if not pd.isna(val) and not np.isinf(val):
+                        indicator_dict[str(col)] = round(float(val), 6)
+                result['indicator_values'] = json.dumps(indicator_dict)
+            except Exception as ind_err:
+                logger.debug(f"Indicator JSON serialization skipped: {ind_err}")
 
             # 2.5 Enrich with REALIZED Win Rates from Database
             realized_perf = self.db.get_symbol_win_rates(symbol)
@@ -1572,14 +1630,16 @@ class InferenceEngine:
                     # Return None so callers (Executive/main) don't send duplicate alerts
                     return None
             
-            # Final Sync Update: Now that we have the full result, sync it one last time to the DB
-            # This ensures that even if we don't 'save' a new record, the existing one is updated with fresh AI context.
+            # NOTE: We intentionally do NOT overwrite confidence/buy_prob/sell_prob/wait_prob
+            # on the previous signal record here. Those fields were written at signal creation
+            # time and must not be mutated by subsequent scan cycles — doing so corrupts the
+            # stored conviction value for historical/performance tracking (the EURUSD #968 anomaly).
+            # We only sync non-destructive context fields: regime intent for dashboard display.
             if self.db:
-                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol)
+                latest_signals = self.db.get_recent_signals(limit=1, symbol=symbol, include_hidden=True)
                 if latest_signals:
                     self.db.update_signal_metadata(latest_signals[0]['id'], {
-                        'raw_confidence': float(result.get('raw_confidence') or 0.0) if result else 0.0,
-                        'expert_intent': result.get('expert_intent', 'WAIT') if result else 'WAIT'
+                        'expert_intent': result.get('expert_intent', 'WAIT') if result else 'WAIT',
                     })
 
             return result

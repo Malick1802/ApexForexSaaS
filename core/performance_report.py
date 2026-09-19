@@ -111,8 +111,13 @@ class PerformanceReporter:
         risk_per_trade: float = 50.0,
         reward_multiplier: float = 1.5,
         start_date: Optional[str] = "2026-08-01",
-        use_close_time: bool = True # Base grouping on time of trade close
+        end_date: Optional[str] = None,
+        use_close_time: bool = True, # Base grouping on time of trade close
+        account_size: Optional[float] = None
     ) -> pd.DataFrame:
+        if account_size is None or account_size <= 0:
+            account_size = 100000.0 if risk_per_trade >= 500.0 else 10000.0
+
         df = self._get_signals_df()
         if df.empty:
             return pd.DataFrame()
@@ -123,62 +128,79 @@ class PerformanceReporter:
 
         if start_date:
             df = df[df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
+        if end_date:
+            df = df[df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
+
+        from core.symbol_guard import is_symbol_blocked, is_direction_blocked
 
         if mode == "mt5_live":
-            # Master MT5 Account Executed Live Trades (August 2026+)
-            filtered = df[df['mt5_ticket'].notnull() & (~df['symbol'].isin(COMMODITY_SYMBOLS))].copy()
+            # Master MT5 Account Executed Live Trades (Live Broker Fills)
+            filtered = df[df['mt5_ticket'].notnull() & (~df['symbol'].apply(is_symbol_blocked))].copy()
             filtered = self._dedup(filtered)
         elif mode == "telegram_live":
-            # Live Alerts Sent to Telegram: non-hidden signals, Forex only, shielded
+            # Live Alerts Sent to Telegram: non-hidden signals, active symbols, shielded (61%+ Forex / 55%+ Commodities)
+            from core.symbol_guard import is_commodity
             def is_valid_tg(r):
                 sym = r['symbol']
                 sig = r['signal']
-                if sym in COMMODITY_SYMBOLS:
+                conf = float(r.get('conf', 0))
+                min_conf = 0.55 if is_commodity(sym) else 0.61
+                if conf < min_conf:
                     return False
-                if sym == 'EURUSD' and sig == 'BUY':
+                if is_symbol_blocked(sym):
                     return False
-                if sym == 'EURCAD' and sig == 'BUY':
+                if is_direction_blocked(sym, sig):
                     return False
-                return bool(r.get('is_hidden', 0) == 0) and (float(r.get('conf', 0)) >= 0.61)
+                return bool(r.get('is_hidden', 0) == 0)
 
             filtered = df[df.apply(is_valid_tg, axis=1)].copy()
             filtered = self._dedup(filtered)
         elif mode == "production":
-            # 61.0%+ floor, Forex only, EURUSD BUY & EURCAD BUY shielded
+            # Live Production: 61%+ for Forex, 55%+ for Commodities, EURUSD BUY, EURCAD BUY & XAUUSD BUY shielded
+            from core.symbol_guard import is_commodity
             def is_valid_prod(r):
                 sym = r['symbol']
                 sig = r['signal']
-                if sym in COMMODITY_SYMBOLS:
+                conf = float(r.get('conf', 0))
+                min_conf = 0.55 if is_commodity(sym) else 0.61
+                if conf < min_conf:
                     return False
-                if sym == 'EURUSD' and sig == 'BUY':
+                if is_symbol_blocked(sym):
                     return False
-                if sym == 'EURCAD' and sig == 'BUY':
+                if is_direction_blocked(sym, sig):
                     return False
                 return True
 
-            filtered = df[(df['conf'] >= 0.61) & df.apply(is_valid_prod, axis=1)].copy()
+            filtered = df[df.apply(is_valid_prod, axis=1)].copy()
             filtered = self._dedup(filtered)
         else: # "baseline"
-            # 50.0%+ floor, Forex only
-            filtered = df[(df['conf'] >= 0.50) & (~df['symbol'].isin(COMMODITY_SYMBOLS))].copy()
+            # 50.0%+ floor, active traded instruments
+            filtered = df[(df['conf'] >= 0.50) & (~df['symbol'].apply(is_symbol_blocked))].copy()
             filtered = self._dedup(filtered)
 
         if filtered.empty:
             return pd.DataFrame()
 
         if mode == "mt5_live":
-            def parse_exact(row):
+            def calc_mt5_trade(row):
                 reason = str(row.get('exit_reason') or '')
                 import re
                 m = re.search(r'Profit:\s*\$([+-]?[\d,.]+)', reason)
                 if m:
-                    return float(m.group(1).replace(',', ''))
+                    raw_profit = float(m.group(1).replace(',', ''))
+                    # Master MT5 account executed live trades at base risk = $50.0 (0.5% on $10k)
+                    r_val = raw_profit / 50.0
+                    pnl_val = r_val * risk_per_trade
+                    return pd.Series([r_val, pnl_val], index=['realized_r', 'pnl_amount'])
                 if row.get('outcome') == 'SUCCESS':
-                    return risk_per_trade * reward_multiplier
+                    return pd.Series([reward_multiplier, risk_per_trade * reward_multiplier], index=['realized_r', 'pnl_amount'])
                 elif row.get('outcome') == 'FAIL':
-                    return -risk_per_trade
-                return 0.0
-            filtered['pnl_amount'] = filtered.apply(parse_exact, axis=1)
+                    return pd.Series([-1.0, -risk_per_trade], index=['realized_r', 'pnl_amount'])
+                return pd.Series([0.0, 0.0], index=['realized_r', 'pnl_amount'])
+
+            calc_df = filtered.apply(calc_mt5_trade, axis=1)
+            filtered['realized_r'] = calc_df['realized_r']
+            filtered['pnl_amount'] = calc_df['pnl_amount']
 
         t_naive = filtered['time_metric'].dt.tz_localize(None)
         if period == "monthly":
@@ -200,19 +222,19 @@ class PerformanceReporter:
 
             if mode == "mt5_live" and 'pnl_amount' in sub.columns:
                 pnl = float(sub['pnl_amount'].sum())
-                gross_win = float(sub[sub['pnl_amount'] > 0]['pnl_amount'].sum())
-                gross_loss = abs(float(sub[sub['pnl_amount'] < 0]['pnl_amount'].sum()))
-                pf = (gross_win / gross_loss) if gross_loss > 0 else 999.0
-                net_r = pnl / risk_per_trade
-                w = len(sub[sub['pnl_amount'] > 0])
-                l = len(sub[sub['pnl_amount'] < 0])
+                net_r = float(sub['realized_r'].sum())
+                gross_win_r = float(sub[sub['realized_r'] > 0]['realized_r'].sum())
+                gross_loss_r = abs(float(sub[sub['realized_r'] < 0]['realized_r'].sum()))
+                pf = (gross_win_r / gross_loss_r) if gross_loss_r > 0 else 999.0
+                w = len(sub[sub['realized_r'] > 0])
+                l = len(sub[sub['realized_r'] < 0])
                 wr = (w / tot * 100.0) if tot > 0 else 0.0
             else:
                 w = len(sub[sub['outcome'] == 'SUCCESS'])
                 l = tot - w
                 wr = (w / tot * 100.0) if tot > 0 else 0.0
                 net_r = (w * reward_multiplier) - (l * 1.0)
-                pnl = (w * reward_per_trade) - (l * risk_per_trade)
+                pnl = net_r * risk_per_trade
                 gross_win = w * reward_multiplier
                 gross_loss = l * 1.0
                 pf = (gross_win / gross_loss) if gross_loss > 0 else 999.0
@@ -226,7 +248,7 @@ class PerformanceReporter:
                 'Net R': round(net_r, 2),
                 'Profit Factor': round(pf, 2),
                 'Net PnL ($)': round(pnl, 2),
-                'Return (%)': round((pnl / (risk_per_trade / 0.005)) * 100.0, 2) # based on 0.5% risk
+                'Return (%)': round((pnl / account_size) * 100.0, 2)
             })
 
         return pd.DataFrame(rows)
@@ -235,17 +257,24 @@ class PerformanceReporter:
         self,
         period: str = "both", # "weekly", "monthly", or "both"
         risk_per_trade: float = 50.0,
-        start_date: Optional[str] = None
+        mode: str = "production",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        account_size: Optional[float] = None
     ) -> str:
+        if account_size is None or account_size <= 0:
+            account_size = 100000.0 if risk_per_trade >= 500.0 else 10000.0
+
+        policy_label = "Master MT5 Executed Trades" if mode == "mt5_live" else ("Live Telegram Signals" if mode == "telegram_live" else "61.0%+ Live Production (Shielded)")
         msg_parts = []
         msg_parts.append("📊 *ForexAlert AI · PERFORMANCE SCORECARD*")
         msg_parts.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         msg_parts.append(f"⏱️ *Basis:* Trade Close Date (UTC)")
-        msg_parts.append(f"🛡️ *Floor:* 61.0%+ Live Production (Shielded)")
-        msg_parts.append(f"💰 *Base Risk:* ${risk_per_trade:,.0f} / trade (1:1.5 RRR)\n")
+        msg_parts.append(f"🛡️ *Policy:* {policy_label}")
+        msg_parts.append(f"💰 *Base Risk:* ${risk_per_trade:,.0f} / trade (Account: ${account_size:,.0f})\n")
 
         if period in ("monthly", "both"):
-            df_m = self.get_performance_matrix(period="monthly", mode="production", risk_per_trade=risk_per_trade, start_date=start_date, use_close_time=True)
+            df_m = self.get_performance_matrix(period="monthly", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
             msg_parts.append("🗓️ *MONTHLY BREAKDOWN*")
             msg_parts.append("```")
             msg_parts.append("Period    W-L   Win%   Net R   PnL($)")
@@ -261,7 +290,7 @@ class PerformanceReporter:
 
         if period in ("weekly", "both"):
             # Sort weeks by start date descending
-            df_w = self.get_performance_matrix(period="weekly", mode="production", risk_per_trade=risk_per_trade, start_date=start_date, use_close_time=True)
+            df_w = self.get_performance_matrix(period="weekly", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
             # Take exactly the last 6 weeks
             msg_parts.append("📅 *RECENT WEEKS BREAKDOWN (Last 6 Weeks)*")
             msg_parts.append("```")
@@ -277,7 +306,7 @@ class PerformanceReporter:
             msg_parts.append("```\n")
 
         # Totals
-        df_all = self.get_performance_matrix(period="monthly", mode="production", risk_per_trade=risk_per_trade, start_date=start_date, use_close_time=True)
+        df_all = self.get_performance_matrix(period="monthly", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
         if not df_all.empty:
             tot_t = df_all['Trades'].sum()
             tot_w = df_all['Wins'].sum()
@@ -285,13 +314,13 @@ class PerformanceReporter:
             tot_wr = (tot_w / tot_t * 100.0) if tot_t > 0 else 0.0
             tot_r = df_all['Net R'].sum()
             tot_pnl = df_all['Net PnL ($)'].sum()
-            ret_pct = (tot_pnl / (risk_per_trade / 0.005)) * 100.0
-            msg_parts.append("🏆 *ALL-TIME PRODUCTION TOTALS*")
+            ret_pct = (tot_pnl / account_size) * 100.0
+            msg_parts.append("🏆 *TOTAL PERIOD METRICS*")
             msg_parts.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             msg_parts.append(f"• *Closed Setups:* {int(tot_t)} Trades")
             msg_parts.append(f"• *Overall Record:* *{int(tot_w)}W – {int(tot_l)}L* (*{tot_wr:.1f}% Win Rate*)")
             msg_parts.append(f"• *Cumulative Edge:* *{tot_r:+.2f}R*")
-            msg_parts.append(f"• *Total Net Profit:* *${tot_pnl:+,.2f}* (*{ret_pct:+.1f}% Account Gain*)")
+            msg_parts.append(f"• *Total Net Profit:* *${tot_pnl:+,.2f}* (*{ret_pct:+.1f}% on ${account_size:,.0f}*)")
 
         msg_parts.append(f"\n_Updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}_")
         return "\n".join(msg_parts)

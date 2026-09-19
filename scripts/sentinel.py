@@ -61,15 +61,33 @@ class LightSentinel:
 
     def update_signal(self, signal_id, outcome, exit_price, exit_reason):
         try:
+            exit_time = datetime.now(timezone.utc).isoformat()
             conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
+            
+            cursor.execute("SELECT timestamp FROM signals WHERE id = ?", (signal_id,))
+            row = cursor.fetchone()
+            duration_sec = 0
+            if row and row['timestamp']:
+                try:
+                    start_dt = pd.to_datetime(row['timestamp'])
+                    end_dt = pd.to_datetime(exit_time)
+                    duration_sec = max(0, int((end_dt - start_dt).total_seconds()))
+                except Exception:
+                    pass
+
             cursor.execute(
-                "UPDATE signals SET outcome = ?, exit_price = ?, exit_reason = ? WHERE id = ?",
-                (outcome, exit_price, exit_reason, signal_id)
+                """
+                UPDATE signals 
+                SET outcome = ?, exit_price = ?, exit_reason = ?, exit_time = ?, duration_seconds = ? 
+                WHERE id = ?
+                """,
+                (outcome, exit_price, exit_reason, exit_time, duration_sec, signal_id)
             )
             conn.commit()
             conn.close()
-            logger.info(f"✅ DB Updated: ID {signal_id} -> {outcome} ({exit_reason}) @ {exit_price}")
+            logger.info(f"✅ DB Updated: ID {signal_id} -> {outcome} ({exit_reason}) @ {exit_price} | Exit: {exit_time} | Duration: {duration_sec}s")
         except Exception as e:
             logger.error(f"DB Update Error: {e}")
 
@@ -95,41 +113,73 @@ class LightSentinel:
             if direction not in ('BUY', 'SELL'):
                 continue
 
-            # Get Real-Time MT5 Tick (Direct Price Update)
-            tick = self.mt5.symbol_info_tick(sym)
-            if not tick:
-                logger.warning(f"Could not get tick for {sym}")
-                continue
-
-            current_price = tick.bid if direction == "BUY" else tick.ask
-            
-            if not tp_price or not sl_price:
-                # logger.debug(f"Skipping {sym} (No TP/SL in DB)")
-                continue
-
             outcome = None
             reason = ""
-            
-            if direction == "BUY":
-                if tick.bid >= tp_price:
-                    outcome = "SUCCESS"
-                    reason = "TP Hit (Price)"
-                elif tick.bid <= sl_price:
-                    outcome = "FAIL"
-                    reason = "SL Hit (Price)"
-                    
-            elif direction == "SELL":
-                if tick.ask <= tp_price:
-                    outcome = "SUCCESS"
-                    reason = "TP Hit (Price)"
-                elif tick.ask >= sl_price:
-                    outcome = "FAIL"
-                    reason = "SL Hit (Price)"
+            current_price = 0.0
+
+            # ── 1. NATIVE MT5 TICKET CHECK (MOST ACCURATE) ──
+            mt5_ticket = sig.get('mt5_ticket')
+            if self.mt5_initialized and mt5_ticket:
+                # Check if position still exists
+                pos = self.mt5.positions_get(ticket=int(mt5_ticket))
+                if not pos:
+                    # Position is gone, meaning it closed! Check history to find how it closed.
+                    deals = self.mt5.history_deals_get(position=int(mt5_ticket))
+                    if deals:
+                        # Find the closing deal (entry == 1 means out)
+                        out_deals = [d for d in deals if d.entry == 1]
+                        if out_deals:
+                            close_deal = out_deals[-1]
+                            current_price = close_deal.price
+                            profit = close_deal.profit
+                            outcome = "SUCCESS" if profit > 0 else "FAIL"
+                            
+                            # Determine reason from MT5
+                            if close_deal.reason == 5: # TP
+                                reason = "TP Hit (MT5 Native)"
+                            elif close_deal.reason == 4: # SL
+                                reason = "SL Hit (MT5 Native)"
+                            elif close_deal.reason == 1: # Client
+                                reason = "Closed by Client (MT5)"
+                            elif close_deal.reason == 6: # Margin Call
+                                reason = "Margin Call (MT5)"
+                            else:
+                                reason = f"MT5 Closed (Reason {close_deal.reason})"
+                        else:
+                            # Edge case: No out deal found, but position is gone. Assume it closed at current tick.
+                            pass
+
+            # ── 2. PRICE TICK POLLING (FALLBACK FOR SHADOW TRADES) ──
+            if not outcome:
+                # Get Real-Time MT5 Tick (Direct Price Update)
+                tick = self.mt5.symbol_info_tick(sym)
+                if not tick:
+                    logger.warning(f"Could not get tick for {sym}")
+                    continue
+
+                current_price = tick.bid if direction == "BUY" else tick.ask
+                
+                if not tp_price or not sl_price:
+                    continue
+
+                if direction == "BUY":
+                    if tick.bid >= tp_price:
+                        outcome = "SUCCESS"
+                        reason = "TP Hit (Price Estimate)"
+                    elif tick.bid <= sl_price:
+                        outcome = "FAIL"
+                        reason = "SL Hit (Price Estimate)"
+                        
+                elif direction == "SELL":
+                    if tick.ask <= tp_price:
+                        outcome = "SUCCESS"
+                        reason = "TP Hit (Price Estimate)"
+                    elif tick.ask >= sl_price:
+                        outcome = "FAIL"
+                        reason = "SL Hit (Price Estimate)"
 
             if outcome:
                 # Update Database result (Certification history)
-                # Note: We NO LONGER send an explicit close order to MT5.
-                # MT5 is expected to handle its own TP/SL closure natively.
                 self.update_signal(sig_id, outcome, current_price, reason)
             else:
                 # Periodic log for tracking

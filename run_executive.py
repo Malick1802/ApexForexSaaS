@@ -17,7 +17,7 @@ from pathlib import Path
 # Add project root
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.core.executive import ExecutiveEngine
+from core.executive import ExecutiveEngine
 import argparse
 
 
@@ -54,7 +54,7 @@ def main():
     print("="*70)
     print(f"Confidence Threshold: {args.confidence:.0%}")
     print(f"Scan Interval: {args.interval} minutes")
-    print(f"Rate Limit: 8 requests/minute (TwelveData Free Tier)")
+    print(f"Rate Limit: MT5/yfinance rate limiting active")
     print(f"Telegram Alerts: Enabled (if configured)")
     print(f"Logging: logs/system.log")
     print("="*70)

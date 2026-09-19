@@ -78,7 +78,7 @@ def main():
     print()
     print("Next steps:")
     print("  1. Dashboard will start with empty signal history")
-    print("  2. Fresh data will be fetched from TwelveData")
+    print("  2. Fresh data will be fetched from configured data provider")
     print("  3. AI models will generate new signals")
 
 if __name__ == "__main__":

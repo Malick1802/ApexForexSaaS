@@ -9,7 +9,7 @@ from core.executive import ExecutiveEngine
 print("Testing Executive Engine...")
 print("="*60)
 
-engine = ExecutiveEngine(confidence_threshold=0.70, scan_interval_minutes=15)
+engine = ExecutiveEngine(target_win_rate='70%', scan_interval_minutes=15)
 
 # Test with just 3 pairs for speed
 test_symbols = ['EURUSD', 'GBPUSD', 'USDJPY']

@@ -36,7 +36,7 @@ def run_checks():
         if len(models) > 0:
             logger.info(f"[SUCCESS] Found {len(models)} trained model(s) on disk.")
             
-            from core.core.inference import InferenceEngine
+            from core.inference import InferenceEngine
             inf = InferenceEngine()
             # Suppress excessive info logs for predict
             logging.getLogger('core.inference').setLevel(logging.WARNING)
@@ -53,8 +53,8 @@ def run_checks():
     # Stage 3: Executive Engine & Certification
     logger.info("--- Stage 3: Executive Engine & Whitelist ---")
     try:
-        from core.core.executive import ExecutiveEngine
-        from core.core.performance_gate import PerformanceGate
+        from core.executive import ExecutiveEngine
+        from core.performance_gate import PerformanceGate
         gate = PerformanceGate()
         status_eurusd = gate.get_tier_status('EURUSD', 0.6)
         logger.info(f"[SUCCESS] Performance Gate read matrix successfully (EURUSD 60% = {status_eurusd})")
@@ -67,7 +67,7 @@ def run_checks():
     # Stage 4: Notifications (Telegram check)
     logger.info("--- Stage 4: Notification Manager ---")
     try:
-        from core.core.notifications import NotificationManager
+        from core.notifications import NotificationManager
         notifier = NotificationManager()
         if notifier.enabled and notifier.bot_token:
             logger.info(f"[SUCCESS] Telegram configured correctly. Shadow Trades enabled: {notifier.telegram_config.get('notify_shadow_trades')}")

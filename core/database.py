@@ -121,7 +121,21 @@ class SignalDatabase:
                     'expert_intent': 'TEXT',
                     'exit_price': 'REAL',
                     'exit_reason': 'TEXT',
-                    'notified': 'INTEGER DEFAULT 0'
+                    'notified': 'INTEGER DEFAULT 0',
+                    'exit_time': 'TEXT',
+                    'duration_seconds': 'INTEGER DEFAULT 0',
+                    'rsi': 'REAL',
+                    'adx': 'REAL',
+                    'atr': 'REAL',
+                    'macd': 'REAL',
+                    'macd_signal': 'REAL',
+                    'macd_hist': 'REAL',
+                    'stoch_k': 'REAL',
+                    'stoch_d': 'REAL',
+                    'cci': 'REAL',
+                    'bb_position': 'REAL',
+                    'ema_cross': 'REAL',
+                    'indicator_values': 'TEXT'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -177,14 +191,22 @@ class SignalDatabase:
                     # Check if a WAIT pulse already exists for this symbol
                     cursor.execute("SELECT id FROM signals WHERE symbol = ? AND signal = 'WAIT' LIMIT 1", (data['symbol'],))
                     existing = cursor.fetchone()
-                    
                     if existing:
-                        # UPDATE the existing pulse with fresh conviction
                         cursor.execute("""
                             UPDATE signals 
-                            SET timestamp = ?, confidence = ?, raw_confidence = ?, status = 'PULSE', outcome = 'N/A'
+                            SET timestamp = ?, confidence = ?, raw_confidence = ?, status = 'PULSE', outcome = 'N/A',
+                                buy_prob = ?, sell_prob = ?, wait_prob = ?, expert_intent = ?
                             WHERE id = ?
-                        """, (data['timestamp'], data['confidence'], data.get('raw_confidence', 0.0), existing[0]))
+                        """, (
+                            data['timestamp'], 
+                            data['confidence'], 
+                            data.get('raw_confidence', 0.0), 
+                            data.get('buy_prob', 0.0),
+                            data.get('sell_prob', 0.0),
+                            data.get('wait_prob', 0.0),
+                            data.get('expert_intent', 'WAIT'),
+                            existing[0]
+                        ))
                         conn.commit()
                         return existing[0]
                     # If none exists (first scan), fall through to the standard INSERT
@@ -203,8 +225,9 @@ class SignalDatabase:
                     raw_probabilities, outcome, regime, vix_proxy,
                     yield_slope, buy_prob, sell_prob, wait_prob,
                     suggested_lots, is_proven, is_hidden, adx, atr_zscore,
-                    raw_confidence, expert_intent
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    raw_confidence, expert_intent, rsi, atr, macd, macd_signal,
+                    macd_hist, stoch_k, stoch_d, cci, bb_position, ema_cross, indicator_values
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     data['timestamp'], 
                     data['symbol'], 
@@ -234,7 +257,18 @@ class SignalDatabase:
                     data.get('adx'),
                     data.get('atr_zscore'),
                     data.get('raw_confidence', 0.0),
-                    data.get('expert_intent')
+                    data.get('expert_intent'),
+                    data.get('rsi'),
+                    data.get('atr'),
+                    data.get('macd'),
+                    data.get('macd_signal'),
+                    data.get('macd_hist'),
+                    data.get('stoch_k'),
+                    data.get('stoch_d'),
+                    data.get('cci'),
+                    data.get('bb_position'),
+                    data.get('ema_cross'),
+                    data.get('indicator_values')
                 ))
 
                 
@@ -254,7 +288,7 @@ class SignalDatabase:
                 conn.execute("""
                     INSERT INTO signals (timestamp, symbol, signal, confidence, status, outcome)
                     VALUES (?, ?, ?, ?, ?, ?)
-                """, (datetime.now(timezone.utc).isoformat(), 'SYSTEM', 'HEARTBEAT', 1.0, 'EXECUTED', 'SUCCESS'))
+                """, (datetime.now(timezone.utc).isoformat(), 'SYSTEM', 'HEARTBEAT', 1.0, 'EXECUTED', 'HEARTBEAT'))
         except Exception as e:
             logger.error(f"Heartbeat failed: {e}")
 
@@ -379,7 +413,7 @@ class SignalDatabase:
                 valid_cols = [
                     'regime', 'raw_confidence', 'expert_intent', 'atr_zscore', 
                     'adx', 'yield_slope', 'buy_prob', 'sell_prob', 'wait_prob',
-                    'outcome', 'status'
+                    'outcome', 'status', 'confidence'
                 ]
                 
                 set_clauses = []
@@ -479,6 +513,72 @@ class SignalDatabase:
             logger.error(f"Failed to get validated win rate: {e}")
             return {'win_rate': 0.0, 'total': 0, 'wins': 0}
 
+    def get_live_win_rate(self) -> Dict[str, float]:
+        """
+        Get the live win rate for the v1 model specifically.
+        Only counts trades that:
+          - model_version = 'v1'
+          - is_proven = 1
+          - mt5_ticket IS NOT NULL (trade actually executed on MT5, not simulator)
+          - outcome IN ('SUCCESS', 'FAIL')
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                # Overall v1 live win rate — MT5-executed trades only
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_resolved,
+                        SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses
+                    FROM signals 
+                    WHERE model_version = 'v1'
+                      AND is_proven = 1
+                      AND mt5_ticket IS NOT NULL
+                      AND (is_hidden IS NULL OR is_hidden = 0)
+                      AND signal IN ('BUY', 'SELL')
+                      AND outcome IN ('SUCCESS', 'FAIL')
+                """)
+                row = cursor.fetchone()
+                total = row[0] or 0
+                wins = row[1] or 0
+                losses = row[2] or 0
+                win_rate = (wins / total * 100) if total > 0 else 0.0
+
+                # Per-regime breakdown — MT5-executed trades only
+                cursor.execute("""
+                    SELECT regime,
+                        COUNT(*) as total,
+                        SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses
+                    FROM signals 
+                    WHERE model_version = 'v1'
+                      AND is_proven = 1
+                      AND mt5_ticket IS NOT NULL
+                      AND (is_hidden IS NULL OR is_hidden = 0)
+                      AND signal IN ('BUY', 'SELL')
+                      AND outcome IN ('SUCCESS', 'FAIL')
+                    GROUP BY regime
+                """)
+                regime_rows = cursor.fetchall()
+                regime_breakdown = {}
+                for rrow in regime_rows:
+                    r_regime, r_total, r_wins, r_losses = rrow
+                    regime_breakdown[str(r_regime or 'UNKNOWN')] = {
+                        'total': r_total, 'wins': r_wins, 'losses': r_losses,
+                        'win_rate': round(r_wins / r_total * 100, 1) if r_total else 0.0
+                    }
+
+                return {
+                    'win_rate': win_rate, 'total': total,
+                    'wins': wins, 'losses': losses,
+                    'model': 'v1',
+                    'by_regime': regime_breakdown
+                }
+        except Exception as e:
+            logger.error(f"Failed to get live win rate: {e}")
+            return {'win_rate': 0.0, 'total': 0, 'wins': 0, 'losses': 0, 'model': 'v1', 'by_regime': {}}
+
     def resolve_signals(self, price_map: Dict[str, float]) -> Dict[str, str]:
         """
         Check all ACTIVE BUY/SELL signals against current prices.
@@ -562,7 +662,34 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Failed to expire stale signals: {e}")
 
+    def update_signal_ticket(self, signal_id: int, ticket: int):
+        """Update the mt5_ticket of a specific signal."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE signals SET mt5_ticket = ? WHERE id = ?", (str(ticket), signal_id))
+                conn.commit()
+                logger.info(f"Signal {signal_id} mt5_ticket updated to {ticket}")
+        except Exception as e:
+            logger.error(f"Failed to update signal ticket: {e}")
+
+    def update_signal_hidden(self, signal_id: int, is_hidden: int):
+        """
+        Correct the is_hidden flag of a signal after regime/stacking gates
+        have adjusted it in memory post-save.  This prevents apex_connect from
+        picking up a signal that was subsequently demoted to shadow.
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE signals SET is_hidden = ? WHERE id = ?", (int(is_hidden), signal_id))
+                conn.commit()
+                logger.info(f"Signal {signal_id} is_hidden corrected to {is_hidden}")
+        except Exception as e:
+            logger.error(f"Failed to update signal hidden flag: {e}")
+
     def update_signal_status(self, signal_id: int, status: str):
+
         """Update the status (SENT, EXECUTED) of a specific signal."""
         try:
             with self._get_connection() as conn:
@@ -573,17 +700,37 @@ class SignalDatabase:
         except Exception as e:
             logger.error(f"Failed to update signal status: {e}")
 
-    def update_signal_outcome(self, signal_id: int, outcome: str, exit_price: float = 0.0, exit_reason: str = ""):
-        """Update the outcome (SUCCESS/FAIL/EXPIRED) of a specific signal with audit details."""
+    def update_signal_outcome(self, signal_id: int, outcome: str, exit_price: float = 0.0, exit_reason: str = "", exit_time: Optional[str] = None):
+        """Update the outcome (SUCCESS/FAIL/EXPIRED) of a specific signal with exit_time and duration_seconds."""
         try:
+            if not exit_time:
+                exit_time = datetime.now(timezone.utc).isoformat()
+
             with self._get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # Fetch start timestamp to compute trade duration
+                cursor.execute("SELECT timestamp FROM signals WHERE id = ?", (signal_id,))
+                row = cursor.fetchone()
+                duration_sec = 0
+                if row and row[0]:
+                    try:
+                        start_dt = pd.to_datetime(row[0])
+                        end_dt = pd.to_datetime(exit_time)
+                        duration_sec = max(0, int((end_dt - start_dt).total_seconds()))
+                    except Exception as ex:
+                        logger.debug(f"Could not calculate trade duration for ID {signal_id}: {ex}")
+
                 cursor.execute(
-                    "UPDATE signals SET outcome = ?, exit_price = ?, exit_reason = ? WHERE id = ?", 
-                    (outcome, exit_price, exit_reason, signal_id)
+                    """
+                    UPDATE signals 
+                    SET outcome = ?, exit_price = ?, exit_reason = ?, exit_time = ?, duration_seconds = ? 
+                    WHERE id = ?
+                    """, 
+                    (outcome, exit_price, exit_reason, exit_time, duration_sec, signal_id)
                 )
                 conn.commit()
-                logger.info(f"Signal {signal_id} marked as {outcome} ({exit_reason})")
+                logger.info(f"Signal {signal_id} marked as {outcome} ({exit_reason}) | Exit: {exit_time} | Duration: {duration_sec}s")
         except Exception as e:
             logger.error(f"Failed to update signal outcome for ID {signal_id}: {e}")
             
@@ -627,7 +774,10 @@ class SignalDatabase:
                         AVG(confidence) as avg_confidence,
                         MAX(timestamp) as last_trade
                     FROM signals
-                    WHERE timestamp >= ? AND outcome IN ('SUCCESS', 'FAIL')
+                    WHERE timestamp >= ? 
+                      AND outcome IN ('SUCCESS', 'FAIL')
+                      AND signal IN ('BUY', 'SELL')
+                      AND symbol != 'SYSTEM'
                     GROUP BY symbol
                     ORDER BY wins DESC
                 """, (cutoff,))
@@ -653,6 +803,8 @@ class SignalDatabase:
                         MAX(timestamp) as last_seen
                     FROM signals
                     WHERE outcome IN ('SUCCESS', 'FAIL')
+                      AND signal IN ('BUY', 'SELL')
+                      AND symbol != 'SYSTEM'
                     GROUP BY symbol
                     ORDER BY symbol ASC
                 """)

@@ -1,5 +1,15 @@
-"""Financials & Vault page — standalone sub-page with shared theme."""
+"""Financials & Vault page — Admin-only master API key and brokerage credential vault."""
 import streamlit as st
+# ── Auth & Admin Guard ─────────────────────────────────────────────────────
+if not st.session_state.get("authenticated", False):
+    st.warning("⚠️ Session expired or not logged in. Please log in again.")
+    st.page_link("app.py", label="🔑 Go to Login", icon="🔑")
+    st.stop()
+
+if st.session_state.get("user_role") != "admin":
+    st.error("⛔ Access restricted to platform administrators.")
+    st.stop()
+# ── End Auth Guard ─────────────────────────────────────────────────────────
 import sys
 import pandas as pd
 from pathlib import Path
@@ -7,80 +17,98 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from theme import inject_css, hero_banner, sidebar_logo, sidebar_footer, section_header, kpi_card
-
-st.set_page_config(page_title="Financials · ApexForex", page_icon="💳", layout="wide")
+from theme import hero_banner, section_header, kpi_card, inject_css
 inject_css()
 
-with st.sidebar:
-    sidebar_logo()
-    st.markdown("""
-    <div style="text-align:center; margin-bottom: 16px;">
-        <a href="/" target="_self" style="color: var(--accent-cyan); text-decoration: none; font-weight: 600; font-size: 0.85rem;">← Back to Dashboard</a>
-    </div>
-    """, unsafe_allow_html=True)
-    sidebar_footer()
+# ── Env Loader & Writer ─────────────────────────────────────────────────────
+ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 
-hero_banner("Financials & Vault", "Secure API key storage, subscription management, and billing")
+def load_env_values():
+    values = {}
+    if ENV_PATH.exists():
+        with open(ENV_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    v = v.strip().strip('"').strip("'")
+                    values[k.strip()] = v
+    return values
 
-tab1, tab2 = st.tabs(["🔑 API Vault", "💳 Billing & Subscription"])
+def save_env_values(new_values):
+    lines = []
+    updated_keys = set()
+    if ENV_PATH.exists():
+        with open(ENV_PATH, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            k, v = stripped.split("=", 1)
+            k = k.strip()
+            if k in new_values:
+                val = new_values[k]
+                new_lines.append(f'{k}="{val}"\n')
+                updated_keys.add(k)
+                continue
+        new_lines.append(line)
+        
+    for k, v in new_values.items():
+        if k not in updated_keys:
+            new_lines.append(f'{k}="{v}"\n')
+            
+    with open(ENV_PATH, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
 
-with tab1:
-    section_header("🔐", "Secure API Key Storage")
-    st.info("Keys are stored locally in your `.env` file or secure environment variables.")
+# Load existing values
+env_data = load_env_values()
 
-    st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-    st.markdown("#### 📡 Market Data Providers")
-    st.text_input("TwelveData API Key", type="password", key="td_key")
-    st.text_input("AlphaVantage API Key", type="password", key="av_key")
-    st.markdown('</div>', unsafe_allow_html=True)
+hero_banner("Master API Vault", "Secure master API key storage and brokerage infrastructure (Admin Only)")
 
-    st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-    st.markdown("#### 🤖 AI & Inference")
-    st.text_input("OpenAI API Key", type="password", key="oai_key")
-    st.markdown('</div>', unsafe_allow_html=True)
+t1, t2 = st.tabs(["🔑 Master Credentials", "🛡️ Security Guidelines"])
 
-    st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-    st.markdown("#### 📊 Brokerage Connections")
-    st.text_input("MetaTrader 5 Login", key="mt_login")
-    st.text_input("MetaTrader 5 Password", type="password", key="mt_pass")
-    st.text_input("MetaTrader 5 Server", key="mt_server")
-    st.markdown('</div>', unsafe_allow_html=True)
+with t1:
+    section_header("🔐", "Production Infrastructure Secrets")
+    st.info("These credentials power the core background signal generation engine and master execution terminal. Never share these with subscribers.")
 
-    if st.button("💾 Save All Keys", use_container_width=True):
-        st.success("✅ API Keys securely saved!")
-
-with tab2:
-    section_header("📋", "Subscription Status")
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(kpi_card("Current Plan", "Pro Trader", "✅ Active", "accent-gold"), unsafe_allow_html=True)
-    with c2:
-        st.markdown(kpi_card("Billing Cycle", "Monthly", "Auto-renewal", "accent-cyan"), unsafe_allow_html=True)
-    with c3:
-        st.markdown(kpi_card("Next Payment", "Mar 04", "$49.00 USD", "accent-cyan"), unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("#### 📡 Market Data Providers")
+        twelve_key = st.text_input("TwelveData API Key", value=env_data.get("TWELVEDATA_API_KEY", ""), type="password", key="av_key")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Payment Method</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.1);border-radius:12px;font-family:var(--font-mono);font-size:0.85rem;color:var(--text-primary);">
-        💳 •••• •••• •••• 4242 <span style="color:var(--text-muted);font-family:var(--font-ui);font-size:0.75rem;">Visa</span>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.button("Manage Subscription in Stripe →", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("#### 🤖 AI & Inference")
+        openai_key = st.text_input("OpenAI API Key", value=env_data.get("OPENAI_API_KEY", ""), type="password", key="oai_key")
 
-    st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Invoice History</div>', unsafe_allow_html=True)
-    invoices = pd.DataFrame({
-        "Date": ["Feb 01, 2026", "Jan 01, 2026"],
-        "Amount": ["$49.00", "$49.00"],
-        "Status": ["✅ Paid", "✅ Paid"],
-        "Invoice": ["#INV-002", "#INV-001"]
-    })
-    st.dataframe(invoices, use_container_width=True, hide_index=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    with st.container(border=True):
+        st.markdown("#### 🏛️ Master Brokerage Terminal (FTMO / Main Executor)")
+        mt_login = st.text_input("MetaTrader 5 Master Login", value=env_data.get("MT5_LOGIN", ""), key="mt_login")
+        mt_pass = st.text_input("MetaTrader 5 Master Password", value=env_data.get("MT5_PASSWORD", ""), type="password", key="mt_pass")
+        mt_server = st.text_input("MetaTrader 5 Master Server", value=env_data.get("MT5_SERVER", ""), key="mt_server")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button("💾 Save All Infrastructure Keys", type="primary", use_container_width=True):
+        updated_env = {
+            "TWELVEDATA_API_KEY": twelve_key,
+            "OPENAI_API_KEY": openai_key,
+            "MT5_LOGIN": mt_login,
+            "MT5_PASSWORD": mt_pass,
+            "MT5_SERVER": mt_server
+        }
+        save_env_values(updated_env)
+        st.toast("Infrastructure keys securely saved!", icon="✅")
+        st.success("✅ Infrastructure keys securely saved to `.env` file.")
+
+with t2:
+    section_header("🛡️", "Operational Security Standards")
+    st.markdown("""
+    - **Subscriber Data Isolation**: Secondary subscriber terminals use individual credentials encrypted in `user_accounts.db` and run via isolated subprocess bridges.
+    - **Master Credential Safety**: Only the master strategy execution loop references the `.env` credentials configured here.
+    - **Role Verification**: Non-admin portal users are blocked at the server and routing layers from accessing this vault.
+    """)
