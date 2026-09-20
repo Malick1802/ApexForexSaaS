@@ -15,6 +15,7 @@ if not st.session_state.get("authenticated", False):
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 from theme import hero_banner, section_header, inject_css
 inject_css()
@@ -94,42 +95,45 @@ if (not user_email
 is_admin   = (user_role == "admin")
 
 # ── Load MT5 account record ────────────────────────────────────────────────
-def load_master_account() -> dict | None:
+def load_master_account() -> dict:
+    mt5_cfg = {}
     try:
         import yaml
         cfg_path = PROJECT_ROOT / "config.yaml"
         if cfg_path.exists():
             with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f)
+                cfg = yaml.safe_load(f) or {}
             mt5_cfg = cfg.get("mt5", {})
-            cached = st.session_state.get("cached_info_0", {})
-            cached_bal = float(cached.get("balance", 0.0)) if cached.get("balance") else 0.0
-            cached_eq  = float(cached.get("equity", 0.0)) if cached.get("equity") else 0.0
-            if cached_bal == 10000.00 or cached_bal <= 0:
-                cached_bal = 9881.63
-            if cached_eq == 10000.00 or cached_eq <= 0:
-                cached_eq = 9881.63
-            return {
-                "id": 0,
-                "name": "FTMO Master (Signal Source)",
-                "email": "master@apexforex.local",
-                "mt5_login": str(mt5_cfg.get("login", 531464301)),
-                "mt5_password": str(mt5_cfg.get("password", "")),
-                "mt5_server": str(mt5_cfg.get("server", "FTMO-Server3")),
-                "terminal_path": str(mt5_cfg.get("path", "")),
-                "risk_type": str(mt5_cfg.get("risk_type", "percent")),
-                "risk_value": float(mt5_cfg.get("risk_value", 0.5)),
-                "max_daily_trades": int(mt5_cfg.get("max_open_trades", 0)) or 50,
-                "account_type": "prop_firm",
-                "subscription_status": "paid",
-                "enabled": 1 if mt5_cfg.get("enabled", True) else 0,
-                "is_master": True,
-                "last_balance": cached_bal,
-                "last_equity": cached_eq,
-            }
-    except Exception:
-        pass
-    return None
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not load config.yaml for master: {e}")
+
+    cached = st.session_state.get("cached_info_0", {})
+    cached_bal = float(cached.get("balance", 0.0)) if cached.get("balance") else 0.0
+    cached_eq  = float(cached.get("equity", 0.0)) if cached.get("equity") else 0.0
+    if cached_bal == 10000.00 or cached_bal <= 0:
+        cached_bal = 9881.63
+    if cached_eq == 10000.00 or cached_eq <= 0:
+        cached_eq = 9881.63
+
+    return {
+        "id": 0,
+        "name": "FTMO Master (Signal Source)",
+        "email": "master@apexforex.local",
+        "mt5_login": str(mt5_cfg.get("login", 531464301)),
+        "mt5_password": str(mt5_cfg.get("password", "wS!A4?@a$J")),
+        "mt5_server": str(mt5_cfg.get("server", "FTMO-Server3")),
+        "terminal_path": str(mt5_cfg.get("path", r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe")),
+        "risk_type": str(mt5_cfg.get("risk_type", "percent")),
+        "risk_value": float(mt5_cfg.get("risk_value", 0.5)),
+        "max_daily_trades": int(mt5_cfg.get("max_open_trades", 0)) or 50,
+        "account_type": "prop_firm",
+        "subscription_status": "paid",
+        "enabled": 1 if mt5_cfg.get("enabled", True) else 0,
+        "is_master": True,
+        "last_balance": cached_bal,
+        "last_equity": cached_eq,
+    }
 
 account = get_user_by_email(user_email)
 master_acc = load_master_account() if is_admin else None
