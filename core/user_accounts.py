@@ -98,10 +98,25 @@ def init_db():
         "telegram_chat_id":    "TEXT NOT NULL DEFAULT ''",
         "terminal_path":       "TEXT NOT NULL DEFAULT ''",
         "account_type":        "TEXT NOT NULL DEFAULT 'standard'",
+        "last_balance":        "REAL NOT NULL DEFAULT 0.0",
+        "last_equity":         "REAL NOT NULL DEFAULT 0.0",
+        "last_synced_at":      "TEXT NOT NULL DEFAULT ''",
     }
     for col, definition in migrations.items():
         if col not in existing_cols:
             conn.execute(f"ALTER TABLE user_accounts ADD COLUMN {col} {definition}")
+    conn.commit()
+    conn.close()
+
+
+def update_account_balance(user_id: int, balance: float, equity: float):
+    """Persist latest verified balance & equity for an account."""
+    now = _now_iso()
+    conn = get_connection()
+    conn.execute(
+        "UPDATE user_accounts SET last_balance = ?, last_equity = ?, last_synced_at = ? WHERE id = ?",
+        (float(balance), float(equity), now, int(user_id))
+    )
     conn.commit()
     conn.close()
 
@@ -228,6 +243,7 @@ def update_user(user_id: int, **kwargs):
         "risk_type", "risk_value", "max_daily_trades", "enabled",
         "subscription_status", "paid_until", "paid_note",
         "trial_ends_at", "telegram_chat_id", "terminal_path", "account_type",
+        "last_balance", "last_equity", "last_synced_at",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:

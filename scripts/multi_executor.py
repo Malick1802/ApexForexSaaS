@@ -966,6 +966,13 @@ def _worker_test_connection(user: dict) -> dict:
         "open_positions": open_positions,
         "open_positions_count": len(open_positions),
     }
+    if user.get("id"):
+        try:
+            from core.user_accounts import update_account_balance
+            update_account_balance(user["id"], acc.balance, acc.equity)
+        except Exception:
+            pass
+
     mt5.shutdown()
     return res
 

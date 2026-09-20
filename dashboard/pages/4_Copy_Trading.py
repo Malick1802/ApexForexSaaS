@@ -78,8 +78,43 @@ user_role  = st.session_state.get("user_role", "subscriber")
 is_admin   = (user_role == "admin")
 
 # ── Load MT5 account record ────────────────────────────────────────────────
+def load_master_account() -> dict | None:
+    try:
+        import yaml
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if cfg_path.exists():
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+            mt5_cfg = cfg.get("mt5", {})
+            return {
+                "id": 0,
+                "name": "FTMO Master (Signal Source)",
+                "email": "master@apexforex.local",
+                "mt5_login": str(mt5_cfg.get("login", 531464301)),
+                "mt5_password": str(mt5_cfg.get("password", "")),
+                "mt5_server": str(mt5_cfg.get("server", "FTMO-Server3")),
+                "terminal_path": str(mt5_cfg.get("path", "")),
+                "risk_type": str(mt5_cfg.get("risk_type", "percent")),
+                "risk_value": float(mt5_cfg.get("risk_value", 0.5)),
+                "max_daily_trades": int(mt5_cfg.get("max_open_trades", 0)) or 50,
+                "account_type": "prop_firm",
+                "subscription_status": "paid",
+                "enabled": 1 if mt5_cfg.get("enabled", True) else 0,
+                "is_master": True,
+                "last_balance": 10000.00,
+                "last_equity": 10000.00,
+            }
+    except Exception:
+        pass
+    return None
+
 account = get_user_by_email(user_email)
-all_accounts = get_all_users() if is_admin else ([account] if account else [])
+master_acc = load_master_account() if is_admin else None
+raw_accounts = get_all_users() if is_admin else ([account] if account else [])
+if is_admin and master_acc:
+    all_accounts = [master_acc] + sorted(raw_accounts, key=lambda x: x.get("enabled", 0), reverse=True)
+else:
+    all_accounts = raw_accounts
 
 hero_banner(
     "Copy Trading Hub",
@@ -235,16 +270,23 @@ div[data-testid="stSegmentedControl"] button[aria-checked="true"] {
 
 # ── Top Telemetry Ribbon ───────────────────────────────────────────────────
 if is_admin:
+    enabled_accounts = [u for u in all_accounts if u.get("enabled")]
     total_registered = len(all_accounts)
-    enabled_count = len([u for u in all_accounts if u.get("enabled")])
+    enabled_count = len(enabled_accounts)
     est_total_capital = 0.0
-    for u in all_accounts:
+    for u in enabled_accounts:
         cached = st.session_state.get(f"cached_info_{u['id']}", {})
-        if cached and "balance" in cached:
+        if cached and "balance" in cached and float(cached["balance"]) > 0:
             est_total_capital += float(cached["balance"])
-        elif u.get("mt5_login") == "5055217801":
-            est_total_capital += 91398.24
-        elif u.get("mt5_login") == "112335442":
+        elif u.get("last_balance") and float(u["last_balance"]) > 0:
+            est_total_capital += float(u["last_balance"])
+        elif str(u.get("mt5_login")) == "34987865":
+            est_total_capital += 200000.00
+        elif str(u.get("mt5_login")) == "40000312990":
+            est_total_capital += 100000.00
+        elif str(u.get("mt5_login")) == "1514612891":
+            est_total_capital += 10414.88
+        elif str(u.get("mt5_login")) == "531464301":
             est_total_capital += 10000.00
         else:
             est_total_capital += 10000.00
@@ -324,10 +366,14 @@ with tab_hub:
 
     if is_admin:
         def _pill_label(u):
+            if u.get("is_master"):
+                return "👑 #0 · FTMO Master"
             nm = u.get("name", "").strip()
-            if len(nm) > 16:
-                nm = nm[:14] + "…"
-            return f"#{u['id']} · {nm}"
+            nm = nm.replace("Malick Trabi", "").replace("(", "").replace(")", "").strip()
+            if len(nm) > 18:
+                nm = nm[:16] + "…"
+            status_dot = "" if u.get("enabled") else " (paused)"
+            return f"#{u['id']} · {nm or u.get('name')}{status_dot}"
 
         pill_options = [_pill_label(u) for u in all_accounts] + ["➕ New Account"]
 
@@ -346,7 +392,8 @@ with tab_hub:
             active_account = None
         else:
             try:
-                acc_id = int(sel_pill.split("·")[0].replace("#", "").strip())
+                acc_id_str = sel_pill.split("·")[0].replace("👑", "").replace("#", "").strip()
+                acc_id = int(acc_id_str)
                 active_account = next((u for u in all_accounts if u["id"] == acc_id), None)
             except Exception:
                 active_account = None
@@ -357,10 +404,18 @@ with tab_hub:
 
     # Active Account Header Strip (only shown when an existing account is selected)
     if active_account:
-        status_txt = "Active" if active_account.get("enabled") else "Paused"
-        status_cls = "acc-tag-active" if active_account.get("enabled") else "acc-tag-inactive"
-        arch_txt = "Prop Firm" if active_account.get("account_type") == "prop_firm" else "Traditional"
-        risk_fmt = f"{active_account.get('risk_value')}%" if active_account.get("risk_type") == "percent" else f"{active_account.get('risk_value')} lots"
+        if active_account.get("is_master"):
+            status_txt = "Active (Signal Source)"
+            status_cls = "acc-tag-active"
+            arch_txt = "Institutional Master"
+            risk_fmt = f"{active_account.get('risk_value', 0.5)}% (Master)"
+            max_trades_txt = "Uncapped"
+        else:
+            status_txt = "Active" if active_account.get("enabled") else "Paused"
+            status_cls = "acc-tag-active" if active_account.get("enabled") else "acc-tag-inactive"
+            arch_txt = "Prop Firm" if active_account.get("account_type") == "prop_firm" else "Traditional"
+            risk_fmt = f"{active_account.get('risk_value')}%" if active_account.get("risk_type") == "percent" else f"{active_account.get('risk_value')} lots"
+            max_trades_txt = f"{active_account.get('max_daily_trades', 50)}/day"
 
         st.markdown(f"""
         <div class="account-strip">
@@ -376,7 +431,7 @@ with tab_hub:
             <div style="display: flex; gap: 8px; align-items: center;">
                 <span class="acc-tag {status_cls}">● {status_txt}</span>
                 <span class="acc-tag acc-tag-pill">Risk: {risk_fmt}</span>
-                <span class="acc-tag acc-tag-pill">Max: {active_account['max_daily_trades']}/day</span>
+                <span class="acc-tag acc-tag-pill">Max: {max_trades_txt}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -442,14 +497,24 @@ with tab_hub:
         hdr_left, hdr_right = st.columns([3, 1])
         with hdr_left:
             if active_account:
-                st.markdown(f"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #f0f6fc;">
-                    Account Settings: {active_account['name']}
-                </div>
-                <div style="font-size: 0.76rem; color: #8b949e; margin-top: 2px;">
-                    Update broker credentials, server routing, and position sizing safeguards.
-                </div>
-                """, unsafe_allow_html=True)
+                if active_account.get("is_master"):
+                    st.markdown(f"""
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #f0f6fc;">
+                        👑 Master Strategy Engine: #{active_account['mt5_login']} ({active_account['mt5_server']})
+                    </div>
+                    <div style="font-size: 0.76rem; color: #8b949e; margin-top: 2px;">
+                        Primary institutional signal engine. All algorithmic trades originate here before replicating to your secondary fleet.
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #f0f6fc;">
+                        Account Settings: {active_account['name']}
+                    </div>
+                    <div style="font-size: 0.76rem; color: #8b949e; margin-top: 2px;">
+                        Update broker credentials, server routing, and position sizing safeguards.
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.markdown("""
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f0f6fc;">
@@ -671,17 +736,27 @@ with tab_hub:
         if is_admin:
             if active_account:
                 curr_en = active_account.get("enabled", 1)
-                b1, b2, b3, b4 = st.columns([1.2, 1.4, 1.2, 1.0])
-                with b1:
-                    btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_adm_{k_sfx}")
-                with b2:
-                    btn_update = st.button("💾 Save Changes", type="primary", use_container_width=True, key=f"btn_upd_adm_{k_sfx}")
-                with b3:
-                    toggle_lbl = "⏸️ Pause" if curr_en else "▶️ Resume"
-                    btn_toggle = st.button(toggle_lbl, use_container_width=True, key=f"btn_tog_adm_{k_sfx}")
-                with b4:
-                    btn_delete = st.button("🗑️ Delete", use_container_width=True, key=f"btn_del_adm_{k_sfx}")
-                btn_save_new = False
+                if active_account.get("is_master"):
+                    b1, b2 = st.columns([1.2, 1.8])
+                    with b1:
+                        btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_adm_{k_sfx}")
+                    with b2:
+                        btn_update = st.button("💾 Save to config.yaml", type="primary", use_container_width=True, key=f"btn_upd_adm_{k_sfx}")
+                    btn_toggle = False
+                    btn_delete = False
+                    btn_save_new = False
+                else:
+                    b1, b2, b3, b4 = st.columns([1.2, 1.4, 1.2, 1.0])
+                    with b1:
+                        btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_adm_{k_sfx}")
+                    with b2:
+                        btn_update = st.button("💾 Save Changes", type="primary", use_container_width=True, key=f"btn_upd_adm_{k_sfx}")
+                    with b3:
+                        toggle_lbl = "⏸️ Pause" if curr_en else "▶️ Resume"
+                        btn_toggle = st.button(toggle_lbl, use_container_width=True, key=f"btn_tog_adm_{k_sfx}")
+                    with b4:
+                        btn_delete = st.button("🗑️ Delete", use_container_width=True, key=f"btn_del_adm_{k_sfx}")
+                    btn_save_new = False
             else:
                 b1, b2 = st.columns([1.2, 1.8])
                 with b1:
@@ -717,7 +792,31 @@ with tab_hub:
                 st.session_state["hub_test_res"] = res
 
     if active_account and btn_update:
-        if not inp_login or not inp_password or not inp_server:
+        if active_account.get("is_master"):
+            try:
+                import yaml
+                cfg_path = PROJECT_ROOT / "config.yaml"
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    full_cfg = yaml.safe_load(f)
+                if "mt5" not in full_cfg:
+                    full_cfg["mt5"] = {}
+                log_val = inp_login.strip()
+                full_cfg["mt5"]["login"] = int(log_val) if log_val.isdigit() else log_val
+                if inp_password.strip():
+                    full_cfg["mt5"]["password"] = inp_password.strip()
+                full_cfg["mt5"]["server"] = inp_server.strip()
+                full_cfg["mt5"]["path"] = final_term_path.strip()
+                full_cfg["mt5"]["risk_value"] = float(risk_val)
+                with open(cfg_path, "w", encoding="utf-8") as f:
+                    yaml.safe_dump(full_cfg, f, default_flow_style=False)
+                st.session_state["hub_flash_msg"] = {
+                    "type": "success",
+                    "msg": "✅ Master Account settings saved to config.yaml!"
+                }
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to update Master account: {e}")
+        elif not inp_login or not inp_password or not inp_server:
             st.error("⚠️ Please fill in all required fields.")
         else:
             try:
@@ -752,9 +851,12 @@ with tab_hub:
         st.rerun()
 
     if active_account and btn_delete:
-        delete_user(active_account["id"])
-        st.session_state["hub_flash_msg"] = {"type": "success", "msg": f"Account #{active_account['id']} deleted."}
-        st.rerun()
+        if active_account.get("is_master"):
+            st.warning("⚠️ The Master Account cannot be deleted.")
+        else:
+            delete_user(active_account["id"])
+            st.session_state["hub_flash_msg"] = {"type": "success", "msg": f"Account #{active_account['id']} deleted."}
+            st.rerun()
 
     if btn_save_new:
         if not inp_login or not inp_password or not inp_server:
