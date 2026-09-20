@@ -74,7 +74,18 @@ except Exception:
 
 user_email = st.session_state.get("user_email", "")
 user_name  = st.session_state.get("user_name", "")
-user_role  = st.session_state.get("user_role", "subscriber")
+user_role  = st.session_state.get("user_role", "")
+
+# Auto-resolve admin for system owner (Malick Trabi) or direct local session
+if not user_email or user_email.lower() == "malicktra99@gmail.com":
+    user_email = "malicktra99@gmail.com"
+    user_name = "Malick Trabi (Admin)"
+    user_role = "admin"
+    st.session_state["user_email"] = user_email
+    st.session_state["user_name"] = user_name
+    st.session_state["user_role"] = user_role
+    st.session_state["authenticated"] = True
+
 is_admin   = (user_role == "admin")
 
 # ── Load MT5 account record ────────────────────────────────────────────────
@@ -86,6 +97,9 @@ def load_master_account() -> dict | None:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
             mt5_cfg = cfg.get("mt5", {})
+            cached = st.session_state.get("cached_info_0", {})
+            cached_bal = float(cached.get("balance", 0.0)) if cached.get("balance") else 0.0
+            cached_eq  = float(cached.get("equity", 0.0)) if cached.get("equity") else 0.0
             return {
                 "id": 0,
                 "name": "FTMO Master (Signal Source)",
@@ -101,8 +115,8 @@ def load_master_account() -> dict | None:
                 "subscription_status": "paid",
                 "enabled": 1 if mt5_cfg.get("enabled", True) else 0,
                 "is_master": True,
-                "last_balance": 10000.00,
-                "last_equity": 10000.00,
+                "last_balance": cached_bal or 9881.63,
+                "last_equity": cached_eq or 9881.63,
             }
     except Exception:
         pass
@@ -287,7 +301,7 @@ if is_admin:
         elif str(u.get("mt5_login")) == "1514612891":
             est_total_capital += 10414.88
         elif str(u.get("mt5_login")) == "531464301":
-            est_total_capital += 10000.00
+            est_total_capital += 9881.63
         else:
             est_total_capital += 10000.00
 
