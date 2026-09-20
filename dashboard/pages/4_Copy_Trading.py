@@ -44,6 +44,7 @@ if find_installed_terminals is None:
         found = {}
         known_paths = [
             ("FTMO MT5 Terminal", r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe"),
+            ("FundedNext MT5 Terminal", r"C:\Program Files\FundedNext MT5 Terminal\terminal64.exe"),
             ("Standard MetaTrader 5", r"C:\Program Files\MetaTrader 5\terminal64.exe"),
             ("MetaTrader 5 (x86)", r"C:\Program Files (x86)\MetaTrader 5\terminal64.exe"),
         ]

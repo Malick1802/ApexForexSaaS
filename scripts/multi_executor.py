@@ -53,6 +53,7 @@ def _get_terminal_path_for_server(server: str, user_terminal_path: str = "") -> 
         (r"C:\Program Files\IC Markets MT5\terminal64.exe", ["ICMARKET"]),
         (r"C:\Program Files\Pepperstone MT5\terminal64.exe", ["PEPPERSTONE"]),
         (r"C:\Program Files\Eightcap MT5\terminal64.exe", ["EIGHTCAP"]),
+        (r"C:\Program Files\FundedNext MT5 Terminal\terminal64.exe", ["FUNDEDNEXT"]),
         (r"C:\Program Files\FundedNext MT5\terminal64.exe", ["FUNDEDNEXT"]),
         (r"C:\Program Files\TopTier MT5\terminal64.exe", ["TOPTIER"]),
         (r"C:\Program Files\Vantage MT5\terminal64.exe", ["VANTAGE"]),
