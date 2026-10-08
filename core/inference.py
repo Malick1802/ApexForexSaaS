@@ -989,14 +989,34 @@ class InferenceEngine:
                 logger.info(f"🪙 COMMODITY ROUTE: {symbol} using 55% conviction floor.")
             else:
                 custom_threshold = 0.61  # 61%+ floor for Forex
+            # Read active model version and routing mode dynamically from config
+            try:
+                import yaml
+                cfg_path = PROJECT_ROOT / "config.yaml"
+                if cfg_path.exists():
+                    with open(cfg_path) as f:
+                        cur_cfg = yaml.safe_load(f)
+                    active_ver = cur_cfg.get("foundation", {}).get("active_version", "v1")
+                    routing_mode = cur_cfg.get("fleet", {}).get("routing_mode", "truth")
+                else:
+                    active_ver = self.config.get("foundation", {}).get("active_version", "v1")
+                    routing_mode = self.config.get("fleet", {}).get("routing_mode", "truth")
+            except Exception:
+                active_ver = "v1"
+                routing_mode = "truth"
 
-            logger.info(f"🔄 Routing {symbol} to v1 (Threshold: {custom_threshold:.0%}).")
+            logger.info(f"🔄 Routing {symbol} to Foundation {active_ver.upper()} (Mode: {routing_mode}, Threshold: {custom_threshold:.0%}).")
 
-            # All regimes use v1 exclusively
-            models = self.load_foundation_model(symbol, force_version="v1")
-            if not models:
-                logger.warning(f"v1 model not found for {symbol} — falling back to latest foundation model.")
-                models = self.load_foundation_model(symbol)
+            if routing_mode == "ensemble":
+                models = self.load_phase3_expert(symbol)
+                if not models:
+                    models = self.load_foundation_model(symbol, force_version=active_ver)
+            else:
+                models = self.load_foundation_model(symbol, force_version=active_ver)
+
+            if not models and active_ver != "v1":
+                logger.warning(f"Foundation {active_ver} not found for {symbol} — falling back to v1.")
+                models = self.load_foundation_model(symbol, force_version="v1")
 
             if not models:
                 logger.warning(f"No model (Foundation or Specialist) found for {symbol} at {target_int}% tier.")

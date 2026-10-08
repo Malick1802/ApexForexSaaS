@@ -20,6 +20,15 @@ from typing import Tuple, Dict, Any
 
 NY_TZ = zoneinfo.ZoneInfo("America/New_York")
 
+def is_crypto(symbol: str) -> bool:
+    """Check if a symbol is a cryptocurrency (trades 24/7/365)."""
+    if not symbol:
+        return False
+    clean = str(symbol).upper().strip().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_", "")
+    if clean in ("BTCUSD", "BTCUSDT", "ETHUSD", "ETHUSDT", "SOLUSD", "SOLUSDT", "XRPUSD", "XRPUSDT", "LTCUSD", "LTCUSDT", "BTC", "ETH", "SOL", "XRP", "LTC"):
+        return True
+    return any(clean.startswith(p) for p in ("BTC", "ETH", "SOL", "XRP", "LTC", "ADA", "DOT"))
+
 def get_ny_time(dt_utc: datetime = None) -> datetime:
     """Convert UTC datetime to New York time with full DST support."""
     if dt_utc is None:
@@ -28,11 +37,15 @@ def get_ny_time(dt_utc: datetime = None) -> datetime:
         dt_utc = dt_utc.replace(tzinfo=timezone.utc)
     return dt_utc.astimezone(NY_TZ)
 
-def is_friday_trade_entry_allowed(dt_utc: datetime = None) -> Tuple[bool, str]:
+def is_friday_trade_entry_allowed(dt_utc: datetime = None, symbol: str = None) -> Tuple[bool, str]:
     """
     Check if new trade / signal generation is allowed on Friday.
     Stops generating new signals on Friday at 10:00 AM NY time (14:00 UTC EDT / 15:00 UTC EST).
+    Crypto trades 24/7 and is exempt from Friday entry cutoffs.
     """
+    if symbol and is_crypto(symbol):
+        return True, "OK (Crypto 24/7)"
+
     if dt_utc is None:
         dt_utc = datetime.now(timezone.utc)
     elif dt_utc.tzinfo is None:
@@ -46,24 +59,32 @@ def is_friday_trade_entry_allowed(dt_utc: datetime = None) -> Tuple[bool, str]:
     
     return True, "OK"
 
-def is_friday_auto_exit_time(dt_utc: datetime = None) -> bool:
+def is_friday_auto_exit_time(dt_utc: datetime = None, symbol: str = None) -> bool:
     """
     Check if Friday Auto-Exit should trigger.
     Triggers 30 minutes before market close (Friday 16:30 New York time).
+    Crypto trades 24/7 and is exempt from Friday liquidation.
     """
+    if symbol and is_crypto(symbol):
+        return False
+
     ny = get_ny_time(dt_utc)
     if ny.weekday() == 4:
         if ny.hour > 16 or (ny.hour == 16 and ny.minute >= 30):
             return True
     return False
 
-def is_weekend_halt(dt_utc: datetime = None) -> Tuple[bool, str]:
+def is_weekend_halt(dt_utc: datetime = None, symbol: str = None) -> Tuple[bool, str]:
     """
     Check if system is in weekend halt mode:
     - Friday: From 10:00 AM NY time (Friday cutoff) all the way through Friday night
     - Saturday: All day
     - Sunday: Until 19:00 NY time (7:00 PM NY time, 2h cool-off buffer after 17:00 open)
+    Crypto trades 24/7 and is exempt from weekend halts.
     """
+    if symbol and is_crypto(symbol):
+        return False, "OK (Crypto 24/7)"
+
     if dt_utc is None:
         dt_utc = datetime.now(timezone.utc)
     elif dt_utc.tzinfo is None:

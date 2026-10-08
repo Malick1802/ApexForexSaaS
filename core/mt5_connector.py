@@ -74,20 +74,37 @@ class MT5Connector:
             logger.error("[ERROR] MT5 Interface unavailable (mt5linux missing).")
             return None
 
-        # If connection exists but is not responding, reset it
+        # Verify active connection against current configuration on disk
+        target_cfg = self._load_config()
+        target_login = str(target_cfg.get('login', '')).strip()
+        target_server = str(target_cfg.get('server', '')).strip()
+
         if self._connection:
             try:
-                # Simple check to see if bridge is alive
-                if self._connection.account_info() is not None:
-                    return self._connection
+                acc = self._connection.account_info()
+                if acc is not None:
+                    curr_login = str(getattr(acc, 'login', '')).strip()
+                    curr_server = str(getattr(acc, 'server', '')).strip()
+                    # Check if connection matches the desired target master
+                    if curr_login == target_login and (not target_server or curr_server.upper() == target_server.upper()):
+                        return self._connection
+                    else:
+                        logger.info(f"🔄 Master account changed: Connected to #{curr_login} ({curr_server}) but target is #{target_login} ({target_server}). Reconnecting...")
+                        self.shutdown()
             except Exception:
-                logger.warning("[RETRY] MT5 Bridge connection stale. Re-initializing...")
+                logger.warning("[RETRY] MT5 connection stale. Re-initializing...")
                 self._connection = None
 
         return self._initialize_connection()
 
+    def reload_config(self) -> dict:
+        """Reload configuration from disk."""
+        self.config = self._load_config()
+        return self.config
+
     def _initialize_connection(self):
         """Perform the actual MT5 initialization (Native or Bridge)."""
+        self.config = self._load_config()
         if BRIDGE_MODE:
             logger.info("[LINK] Attempting link to Linux MT5 Bridge (Wine)...")
         else:

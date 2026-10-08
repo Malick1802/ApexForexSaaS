@@ -30,15 +30,33 @@ COMMODITY_PREFIXES = (
     "COPPER", "XPT", "XPD", "NGAS", "NATGAS", "BTC", "ETH"
 )
 
+# Known crypto identifiers
+CRYPTO_SYMBOLS: Set[str] = {
+    "BTCUSD", "BTCUSDT", "ETHUSD", "ETHUSDT", "SOLUSD", "SOLUSDT",
+    "XRPUSD", "XRPUSDT", "LTCUSD", "LTCUSDT", "BTC", "ETH", "SOL", "XRP", "LTC"
+}
+CRYPTO_PREFIXES = ("BTC", "ETH", "SOL", "XRP", "LTC", "ADA", "DOT")
+
+def is_crypto(symbol: str) -> bool:
+    """Return True if symbol is a cryptocurrency asset."""
+    if not symbol:
+        return False
+    clean = str(symbol).upper().strip().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_", "")
+    if clean in CRYPTO_SYMBOLS:
+        return True
+    return any(clean.startswith(p) for p in CRYPTO_PREFIXES)
+
 def is_commodity(symbol: str) -> bool:
-    """Return True if symbol is a commodity or non-forex asset."""
+    """Return True if symbol is a commodity asset."""
     if not symbol:
         return False
     clean = str(symbol).upper().strip()
+    if is_crypto(clean):
+        return False
     if clean in COMMODITY_SYMBOLS:
         return True
     for p in COMMODITY_PREFIXES:
-        if clean.startswith(p):
+        if clean.startswith(p) and not is_crypto(clean):
             return True
     return False
 
@@ -46,7 +64,6 @@ def is_commodity(symbol: str) -> bool:
 HARDCODED_BLOCKED_DIRECTIONS = {
     "EURUSD": {"BUY"},
     "EURCAD": {"BUY"},
-    "XAUUSD": {"BUY"},
     "AUDUSD": {"BUY"}
 }
 
@@ -83,17 +100,31 @@ def get_guard_config(config_path: str = None) -> Tuple[Set[str], Dict[str, Set[s
 def is_symbol_blocked(symbol: str, config_path: str = None) -> bool:
     """
     Return True if symbol is explicitly listed in config.yaml `blocked_symbols`
-    or identified as any commodity asset (permanent commodity ban).
+    or belongs to a disabled asset class.
     """
     if not symbol:
         return True
     
     clean = str(symbol).upper().strip()
-    if is_commodity(clean):
+    blocked, _ = get_guard_config(config_path)
+    if clean in blocked:
         return True
 
-    blocked, _ = get_guard_config(config_path)
-    return clean in blocked
+    # Check asset class enablement if configured
+    try:
+        cfg_file = Path(config_path) if config_path else (Path(__file__).resolve().parent.parent / "config.yaml")
+        if cfg_file.exists():
+            with open(cfg_file, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f) or {}
+                ac = cfg.get('asset_classes', {})
+                if is_crypto(clean) and not ac.get('crypto', True):
+                    return True
+                if is_commodity(clean) and not ac.get('commodities', True):
+                    return True
+    except Exception:
+        pass
+
+    return False
 
 def is_direction_blocked(symbol: str, signal_type: str, config_path: str = None) -> bool:
     """
@@ -122,21 +153,22 @@ def is_direction_blocked(symbol: str, signal_type: str, config_path: str = None)
 
 def is_commodity_benched(symbol: str, signal_type: str, config_path: str = None, db_path: str = None) -> bool:
     """
-    Return True if symbol is a commodity (all commodities are banned from live execution).
-    Forex pairs are never benched by this gate (always returns False for Forex).
+    Return True if symbol is benched or blocked from execution.
+    Returns False when the commodity is enabled and authorized.
     """
-    if is_commodity(symbol):
-        return True
-        
     if not symbol or not signal_type:
         return False
 
     clean_sym = str(symbol).strip()
     clean_sig = str(signal_type).upper().strip()
 
-    # If the direction is already blocked (e.g. XAUUSD BUY), treat as blocked
+    if is_symbol_blocked(clean_sym, config_path):
+        return True
+
     if is_direction_blocked(clean_sym, clean_sig, config_path):
         return True
+
+    return False
 
     # Check config settings for commodity benching gate
     cfg_file = Path(config_path) if config_path else (Path(__file__).resolve().parent.parent / "config.yaml")

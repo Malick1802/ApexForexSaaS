@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PORTAL_DB_PATH = PROJECT_ROOT / "portal_users.db"
 
 ADMIN_EMAIL    = "malicktra99@gmail.com"
-ADMIN_EMAILS   = {"malicktra99@gmail.com", "malicktra90@gmail.com"}
+ADMIN_EMAILS   = {"malicktra99@gmail.com"}
 ADMIN_PASSWORD = "Justin180289"
 ADMIN_NAME     = "Admin"
 
@@ -53,10 +53,14 @@ def init_portal_db():
             VALUES (?, ?, ?, 'admin', ?)
         """, (ADMIN_NAME, ADMIN_EMAIL, _hash(ADMIN_PASSWORD), _now_iso()))
         conn.commit()
-    # Ensure both owner emails are always admin
+    # Ensure strictly ONLY malicktra99@gmail.com is admin; all other accounts are subscribers
     conn.execute("""
         UPDATE portal_users SET role = 'admin'
-        WHERE email IN ('malicktra99@gmail.com', 'malicktra90@gmail.com')
+        WHERE email = 'malicktra99@gmail.com'
+    """)
+    conn.execute("""
+        UPDATE portal_users SET role = 'subscriber'
+        WHERE email != 'malicktra99@gmail.com'
     """)
     conn.commit()
     conn.close()

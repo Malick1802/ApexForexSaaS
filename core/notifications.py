@@ -146,8 +146,26 @@ class NotificationManager:
         except Exception:
             risk_label = "N/A"
 
+        sym = signal_data.get('symbol', 'UNKNOWN')
+        model_ver = signal_data.get('model_version') or ('confluence_m15' if signal_data.get('is_manual') else 'foundation_v1')
+        from core.dynamic_model_whitelist import get_ytd_model_attribution
+        ytd_attr = get_ytd_model_attribution(model_ver, sym)
+
+        if ytd_attr["is_ytd"]:
+            ytd_header = "🏆 *DYNAMIC YTD MODEL SIGNAL*\n"
+            model_line = (
+                f"🏆 *Model:* Dynamic YTD Model\n"
+                f"⚙️ *Sub-Strategy:* `{ytd_attr['sub_model_name']}`\n"
+                f"🛡️ *YTD Gate:* Approved Winning Asset (Net R ≥ 0.0)\n"
+            )
+        else:
+            ytd_header = ""
+            model_line = f"📊 *Model:* `{model_ver}`\n"
+
         msg = (
-            f"{icon} *{signal_data['signal']} {signal_data['symbol']}*\n"
+            f"{ytd_header}"
+            f"{icon} *{signal_data['signal']} {sym}*\n"
+            f"{model_line}"
             f"Precision: `{signal_data['confidence']:.1%}`\n"
             f"📊 *Risk: {risk_label} | Lots: {signal_data.get('suggested_lots', 0.01)}*\n"
             f"Entry: `{signal_data['price_at_signal']:.5f}`\n"

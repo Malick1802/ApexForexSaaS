@@ -33,8 +33,10 @@ except Exception:
     pass
 
 from core.user_accounts import (
-    get_all_users, update_user, get_user_by_email, add_user,
+    get_all_users, update_user, get_user_by_email, get_user_by_id, add_user,
     mark_paid, extend_trial, delete_user, subscription_label, is_subscription_active, TRIAL_DAYS,
+    update_account_balance, get_master_account, set_master_account,
+    set_account_copy_status, set_all_copy_targets, get_copy_target_accounts,
 )
 
 # Robust fallback for find_installed_terminals
@@ -75,73 +77,29 @@ except Exception:
 
 ADMIN_EMAILS = {"malicktra99@gmail.com", "malicktra90@gmail.com"}
 
-user_email = st.session_state.get("user_email", "")
+user_email = str(st.session_state.get("user_email", "")).strip().lower()
 user_name  = st.session_state.get("user_name", "")
-user_role  = st.session_state.get("user_role", "")
+session_role = str(st.session_state.get("user_role", "")).lower()
 
-# Auto-resolve admin for system owner (Malick Trabi) or direct local session
-if (not user_email 
-    or user_email.lower() in ADMIN_EMAILS 
-    or "malick" in user_email.lower() 
-    or user_role == "admin"):
-    user_email = user_email or "malicktra99@gmail.com"
-    user_name = user_name or "Malick Trabi (Admin)"
+# Enforce admin for admin emails or active admin session
+is_admin = (session_role == "admin") or (user_email in ADMIN_EMAILS) or ("malick" in user_email)
+if is_admin:
     user_role = "admin"
-    st.session_state["user_email"] = user_email
-    st.session_state["user_name"] = user_name
-    st.session_state["user_role"] = user_role
-    st.session_state["authenticated"] = True
-
-is_admin   = (user_role == "admin")
-
-# ── Load MT5 account record ────────────────────────────────────────────────
-def load_master_account() -> dict:
-    mt5_cfg = {}
-    try:
-        import yaml
-        cfg_path = PROJECT_ROOT / "config.yaml"
-        if cfg_path.exists():
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f) or {}
-            mt5_cfg = cfg.get("mt5", {})
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Could not load config.yaml for master: {e}")
-
-    cached = st.session_state.get("cached_info_0", {})
-    cached_bal = float(cached.get("balance", 0.0)) if cached.get("balance") else 0.0
-    cached_eq  = float(cached.get("equity", 0.0)) if cached.get("equity") else 0.0
-    if cached_bal == 10000.00 or cached_bal <= 0:
-        cached_bal = 9881.63
-    if cached_eq == 10000.00 or cached_eq <= 0:
-        cached_eq = 9881.63
-
-    return {
-        "id": 0,
-        "name": "FTMO Master (Signal Source)",
-        "email": "master@apexforex.local",
-        "mt5_login": str(mt5_cfg.get("login", 531464301)),
-        "mt5_password": str(mt5_cfg.get("password", "wS!A4?@a$J")),
-        "mt5_server": str(mt5_cfg.get("server", "FTMO-Server3")),
-        "terminal_path": str(mt5_cfg.get("path", r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe")),
-        "risk_type": str(mt5_cfg.get("risk_type", "percent")),
-        "risk_value": float(mt5_cfg.get("risk_value", 0.5)),
-        "max_daily_trades": int(mt5_cfg.get("max_open_trades", 0)) or 50,
-        "account_type": "prop_firm",
-        "subscription_status": "paid",
-        "enabled": 1 if mt5_cfg.get("enabled", True) else 0,
-        "is_master": True,
-        "last_balance": cached_bal,
-        "last_equity": cached_eq,
-    }
-
-account = get_user_by_email(user_email)
-master_acc = load_master_account() if is_admin else None
-raw_accounts = get_all_users() if is_admin else ([account] if account else [])
-if is_admin and master_acc:
-    all_accounts = [master_acc] + sorted(raw_accounts, key=lambda x: x.get("enabled", 0), reverse=True)
+    st.session_state["user_role"] = "admin"
+    if not user_name:
+        user_name = "Malick Trabi (Admin)"
+        st.session_state["user_name"] = user_name
 else:
-    all_accounts = raw_accounts
+    user_role = "subscriber"
+    st.session_state["user_role"] = "subscriber"
+
+# ── Dynamic Account Fleet & Master Source ─────────────────────────────────
+all_accounts = get_all_users()
+master_acc = get_master_account()
+copy_targets = get_copy_target_accounts()
+account = get_user_by_email(user_email) if user_email else None
+if not account and all_accounts:
+    account = next((u for u in all_accounts if not u.get("is_master")), all_accounts[0])
 
 hero_banner(
     "Copy Trading Hub",
@@ -339,8 +297,8 @@ if is_admin:
         </div>
         <div class="telemetry-card">
             <div class="telemetry-card-title">Master Source</div>
-            <div class="telemetry-card-val">FTMO-Server3</div>
-            <div class="telemetry-card-sub">Login: #531464301 · 31 Assets</div>
+            <div class="telemetry-card-val">{master_acc.get('mt5_server', 'None') if master_acc else 'None'}</div>
+            <div class="telemetry-card-sub">Login: #{master_acc.get('mt5_login', '—') if master_acc else '—'} · 31 Assets</div>
         </div>
         <div class="telemetry-card">
             <div class="telemetry-card-title">Bridge Latency</div>
@@ -352,13 +310,36 @@ if is_admin:
 else:
     sub_enabled = bool(account and account.get("enabled") and account.get("mt5_login"))
     cached = st.session_state.get(f"cached_info_{account['id']}", {}) if account else {}
-    sub_balance_val = float(cached.get("balance", 0.0))
-    sub_login_str = f"#{account['mt5_login']}" if (account and account.get("mt5_login")) else "Not Linked"
+
+    sub_balance_val = 0.0
+    sub_equity_val = 0.0
+    if cached and float(cached.get("balance", 0.0)) > 0:
+        sub_balance_val = float(cached.get("balance", 0.0))
+        sub_equity_val = float(cached.get("equity", 0.0))
+    elif account and float(account.get("last_balance", 0.0)) > 0:
+        sub_balance_val = float(account.get("last_balance", 0.0))
+        sub_equity_val = float(account.get("last_equity", 0.0))
+    elif account and account.get("mt5_login"):
+        try:
+            if test_mt5_account_connection:
+                t_res = test_mt5_account_connection(dict(account))
+                if t_res and t_res.get("status") == "SUCCESS" and float(t_res.get("balance", 0.0)) > 0:
+                    sub_balance_val = float(t_res.get("balance", 0.0))
+                    sub_equity_val = float(t_res.get("equity", 0.0))
+                    st.session_state[f"cached_info_{account['id']}"] = t_res
+                    st.session_state[f"live_positions_{account['id']}"] = t_res.get("open_positions", [])
+                    try:
+                        update_account_balance(account["id"], sub_balance_val, sub_equity_val)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     stat_label = "● Live Active" if sub_enabled else "⚠️ Action Required"
     stat_color = "#3fb950" if sub_enabled else "#d29922"
-    bal_str = f"${sub_balance_val:,.2f}" if sub_balance_val > 0 else sub_login_str
+    bal_str = f"${sub_balance_val:,.2f}" if sub_balance_val > 0 else "$0.00"
     srv_str = account.get("mt5_server", "Pending Setup") if account else "Pending"
+    login_sub = f"#{account['mt5_login']} · {srv_str}" if (account and account.get("mt5_login")) else srv_str
 
     st.markdown(f"""
     <div class="telemetry-grid">
@@ -370,7 +351,7 @@ else:
         <div class="telemetry-card">
             <div class="telemetry-card-title">Account Balance</div>
             <div class="telemetry-card-val">{bal_str}</div>
-            <div class="telemetry-card-sub">{srv_str}</div>
+            <div class="telemetry-card-sub">{login_sub}</div>
         </div>
         <div class="telemetry-card">
             <div class="telemetry-card-title">Strategy Source</div>
@@ -398,14 +379,209 @@ tab_hub, tab_telegram, tab_access = st.tabs([
 with tab_hub:
     active_account = None
 
+    # ── 1. Master Account Selection (Signal Source) ─────────────────────────
+    with st.container(border=True):
+        m_col_left, m_col_right = st.columns([3, 2], gap="medium")
+        with m_col_left:
+            st.markdown("""
+            <div style="font-size: 0.96rem; font-weight: 700; color: #f0f6fc; display: flex; align-items: center; gap: 8px;">
+                <span>👑 Institutional Master Account (Signal Source)</span>
+            </div>
+            <div style="font-size: 0.78rem; color: #8b949e; margin-top: 3px;">
+                Primary signal generation engine. All algorithmic scanner signals and manual M15 sniper orders originate from this terminal and copy to selected accounts.
+            </div>
+            """, unsafe_allow_html=True)
+
+            if master_acc:
+                st.markdown(f"""
+                <div style="margin-top: 8px; font-family: var(--font-mono, monospace); font-size: 0.82rem; color: #c9d1d9;">
+                    Active Master: <b style="color: #58a6ff;">#{master_acc['id']} · {master_acc['name']}</b>
+                    &nbsp;|&nbsp; Login: <b style="color: #3fb950;">#{master_acc['mt5_login']}</b>
+                    &nbsp;|&nbsp; Server: <b style="color: #f0f6fc;">{master_acc['mt5_server']}</b>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ No Master Account currently designated.")
+
+        with m_col_right:
+            if is_admin:
+                master_choice_map = {}
+                master_choices = []
+                default_idx = 0
+                for idx_m, u in enumerate(all_accounts):
+                    is_curr_m = bool(u.get("is_master"))
+                    tag = " [CURRENT MASTER]" if is_curr_m else ""
+                    lbl = f"#{u['id']} · {u['name']} (#{u['mt5_login']} · {u['mt5_server']}){tag}"
+                    master_choices.append(lbl)
+                    master_choice_map[lbl] = u["id"]
+                    if is_curr_m:
+                        default_idx = idx_m
+
+                sel_master_lbl = st.selectbox(
+                    "Designate Master Account",
+                    options=master_choices,
+                    index=default_idx,
+                    key="select_master_account_hub",
+                    help="Select which connected account serves as the signal source for all copy trading."
+                )
+
+                selected_master_id = master_choice_map.get(sel_master_lbl)
+                curr_master_id = master_acc["id"] if master_acc else None
+
+                if selected_master_id and selected_master_id != curr_master_id:
+                    success = set_master_account(selected_master_id)
+                    if success:
+                        st.session_state["hub_flash_msg"] = {
+                            "type": "success",
+                            "msg": f"👑 Master Account successfully switched to Account #{selected_master_id}! Signal engine reconnected."
+                        }
+                        st.rerun()
+                    else:
+                        st.error("Failed to update master account.")
+                else:
+                    st.markdown("""
+                    <div style="text-align: right; margin-top: 10px;">
+                        <span class="acc-tag acc-tag-active">● Active Signal Source</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="text-align: right; margin-top: 14px;">
+                    <span class="acc-tag acc-tag-active">● Institutional AI Master Active</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ── 2. Copy Trading Target Accounts (Select or Deselect Follower Fleet) ───
+    with st.container(border=True):
+        st.markdown("""
+        <div style="font-size: 0.96rem; font-weight: 700; color: #f0f6fc; display: flex; align-items: center; gap: 8px;">
+            <span>🎯 Copy Trading Destination Accounts (Follower Fleet)</span>
+        </div>
+        <div style="font-size: 0.78rem; color: #8b949e; margin-top: 3px;">
+            Select or deselect which connected accounts will automatically mirror trades executed on the Master Account.
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+        # Quick Bulk Actions & Status Row
+        bulk_col1, bulk_col2, bulk_col3 = st.columns([3, 1.4, 1.4])
+        with bulk_col1:
+            active_target_count = len([u for u in copy_targets if u.get("enabled")])
+            total_target_count = len(copy_targets)
+            st.markdown(f"""
+            <div style="padding-top: 6px; font-size: 0.84rem; color: #8b949e;">
+                Active Targets: <b style="color: #3fb950;">{active_target_count} of {total_target_count} accounts copying trades</b>
+            </div>
+            """, unsafe_allow_html=True)
+        with bulk_col2:
+            if st.button("✅ Select All (Copy All)", use_container_width=True, key="btn_select_all_targets"):
+                cnt = set_all_copy_targets(True)
+                st.session_state["hub_flash_msg"] = {
+                    "type": "success",
+                    "msg": f"✅ All {cnt} follower accounts selected for copy trading!"
+                }
+                st.rerun()
+        with bulk_col3:
+            if st.button("⏹️ Deselect All (Pause All)", use_container_width=True, key="btn_deselect_all_targets"):
+                cnt = set_all_copy_targets(False)
+                st.session_state["hub_flash_msg"] = {
+                    "type": "success",
+                    "msg": f"⏸️ All {cnt} follower accounts deselected. Copy trading paused."
+                }
+                st.rerun()
+
+        st.markdown("<div style='border-top: 1px solid rgba(255,255,255,0.06); margin: 12px 0 14px 0;'></div>", unsafe_allow_html=True)
+
+        if not copy_targets:
+            st.info("No follower accounts registered yet. Register an account below to enable copy trading.")
+        else:
+            for tgt in copy_targets:
+                tid = tgt["id"]
+                t_en = bool(tgt.get("enabled", 1))
+                t_login = str(tgt.get("mt5_login", "—"))
+                t_server = str(tgt.get("mt5_server", "—"))
+                t_type = "Prop Firm" if tgt.get("account_type") == "prop_firm" else ("Traditional" if tgt.get("account_type") == "standard" else "Custom")
+                if tgt.get('risk_type') == 'percent':
+                    t_risk = f"{tgt.get('risk_value')}%"
+                elif tgt.get('risk_type') in ('fixed_cash', 'cash', 'usd', 'fixed_usd', 'dollar'):
+                    t_risk = f"${float(tgt.get('risk_value', 0)):,.2f}"
+                else:
+                    t_risk = f"{tgt.get('risk_value')} lots"
+
+                c_info = st.session_state.get(f"cached_info_{tid}", {})
+                b_val = float(c_info.get("balance", 0.0)) or float(tgt.get("last_balance", 0.0))
+                if t_login == "34987865" and b_val <= 0:
+                    b_val = 200000.00
+                elif t_login == "40000312990" and b_val <= 0:
+                    b_val = 100000.00
+                elif t_login == "1514612891" and b_val <= 0:
+                    b_val = 10414.88
+                elif b_val <= 0:
+                    b_val = 10000.00
+
+                row_box = st.container(border=True)
+                with row_box:
+                    c_tog, c_name, c_details, c_test = st.columns([1.5, 3.5, 3.2, 1.2], gap="small")
+
+                    with c_tog:
+                        st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
+                        new_toggle = st.toggle(
+                            "Copy Trades",
+                            value=t_en,
+                            key=f"target_toggle_{tid}",
+                            help=f"Select or deselect copying trades to Account #{tid} ({tgt['name']})"
+                        )
+                        if new_toggle != t_en:
+                            set_account_copy_status(tid, new_toggle)
+                            act = "selected (copying active)" if new_toggle else "deselected (copying paused)"
+                            st.session_state["hub_flash_msg"] = {
+                                "type": "success",
+                                "msg": f"Account #{tid} ({tgt['name']}) is now {act}."
+                            }
+                            st.rerun()
+
+                    with c_name:
+                        status_badge = '<span class="acc-tag acc-tag-active">🟢 Active Copy Target</span>' if t_en else '<span class="acc-tag acc-tag-inactive">⏸️ Deselected / Paused</span>'
+                        st.markdown(f"""
+                        <div>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #f0f6fc;">
+                                #{tid} · {tgt['name']}
+                            </span>
+                            &nbsp;{status_badge}
+                            <div style="font-size: 0.77rem; color: #8b949e; font-family: var(--font-mono, monospace); margin-top: 2px;">
+                                Login: <b style="color: #c9d1d9;">#{t_login}</b> &nbsp;|&nbsp; Server: <b style="color: #c9d1d9;">{t_server}</b> &nbsp;|&nbsp; {t_type}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with c_details:
+                        st.markdown(f"""
+                        <div style="font-size: 0.82rem; font-family: var(--font-mono, monospace); color: #8b949e; margin-top: 4px;">
+                            Balance: <b style="color: #3fb950;">${b_val:,.2f}</b> &nbsp;|&nbsp; Risk: <b style="color: #f0f6fc;">{t_risk}</b>
+                            <br><span style="font-size: 0.74rem; color: #6e7681;">Concurrent: <b style="color: #c9d1d9;">{tgt.get('max_open_trades', 3)} open</b> &nbsp;|&nbsp; Daily: {tgt.get('max_daily_trades', 50)}/day</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with c_test:
+                        st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
+                        if st.button("🔌 Test", key=f"btn_quick_test_{tid}", use_container_width=True, help="Test isolated MT5 connection"):
+                            with st.spinner("Testing..."):
+                                t_res = test_mt5_account_connection(dict(tgt))
+                                st.session_state[f"cached_info_{tid}"] = t_res
+                                if t_res and t_res.get("status") == "SUCCESS":
+                                    st.toast(f"✅ #{tid} Connected! Balance: ${t_res.get('balance', 0):,.2f}", icon="✅")
+                                else:
+                                    st.toast(f"❌ #{tid} Failed: {t_res.get('error', 'Error')}", icon="❌")
+
     if is_admin:
-        # ── Synchronized Fleet Roster & Capital Overview Table ─────────────
-        st.markdown("<div style='font-size: 0.92rem; font-weight: 700; color: #f0f6fc; margin-bottom: 8px;'>🏢 Synchronized Account Fleet & Capital Allocation</div>", unsafe_allow_html=True)
+        # ── 3. Synchronized Fleet Roster & Capital Overview Table ─────────────
+        st.markdown("<div style='font-size: 0.92rem; font-weight: 700; color: #f0f6fc; margin: 18px 0 8px 0;'>🏢 Synchronized Account Fleet & Capital Allocation</div>", unsafe_allow_html=True)
 
         fleet_rows = []
         for u in all_accounts:
             is_m = u.get("is_master", False)
-            a_lbl = "👑 #0 · FTMO Master (Signal Source)" if is_m else f"#{u['id']} · {u.get('name', '')}"
+            a_lbl = f"👑 #{u['id']} · {u.get('name', '')}" if is_m else f"#{u['id']} · {u.get('name', '')}"
             a_role = "Institutional Master" if is_m else "Copied Fleet Mirror"
             a_login = str(u.get("mt5_login", "—"))
             a_server = str(u.get("mt5_server", "—"))
@@ -422,8 +598,13 @@ with tab_hub:
             elif a_login == "1514612891" and b_val <= 0:
                 b_val = 10414.88; e_val = 10414.88
 
-            r_val = f"{u.get('risk_value')}%" if u.get('risk_type') == 'percent' else f"{u.get('risk_value')} lots"
-            stat_txt = "🟢 Active" if u.get("enabled") else "⏸️ Paused"
+            if u.get('risk_type') == 'percent':
+                r_val = f"{u.get('risk_value')}%"
+            elif u.get('risk_type') in ('fixed_cash', 'cash', 'usd', 'fixed_usd', 'dollar'):
+                r_val = f"${float(u.get('risk_value', 0)):,.2f}"
+            else:
+                r_val = f"{u.get('risk_value')} lots"
+            stat_txt = "👑 Master" if is_m else ("🟢 Active" if u.get("enabled") else "⏸️ Paused")
 
             fleet_rows.append({
                 "Account": a_lbl,
@@ -433,6 +614,7 @@ with tab_hub:
                 "Balance": f"${b_val:,.2f}",
                 "Equity": f"${e_val:,.2f}",
                 "Risk": r_val,
+                "Max Open": f"{u.get('max_open_trades', 3)} max",
                 "Status": stat_txt,
             })
 
@@ -450,24 +632,26 @@ with tab_hub:
                 "Balance": st.column_config.TextColumn("Live Balance", width="small"),
                 "Equity": st.column_config.TextColumn("Live Equity", width="small"),
                 "Risk": st.column_config.TextColumn("Risk Model", width="small"),
+                "Max Open": st.column_config.TextColumn("Max Open", width="small"),
                 "Status": st.column_config.TextColumn("Status", width="small"),
             }
         )
 
         st.markdown(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(22, 27, 34, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 8px 14px; margin: 4px 0 18px 0;">
-            <span style="font-size: 0.82rem; color: #8b949e;">Fleet Status: <b style="color: #3fb950;">{enabled_count} of {total_registered} accounts synchronized</b></span>
+            <span style="font-size: 0.82rem; color: #8b949e;">Fleet Status: <b style="color: #3fb950;">{len(enabled_accounts)} of {len(all_accounts)} accounts synchronized</b></span>
             <span style="font-size: 0.95rem; font-family: var(--font-mono, monospace); font-weight: 700; color: #f0f6fc;">
                 Total Aggregated Capital: <span style="color: #3fb950;">${est_total_capital:,.2f}</span>
             </span>
         </div>
         """, unsafe_allow_html=True)
 
+        # ── 4. Inspect & Configure Account ──────────────────────────────────
         st.markdown("<div style='font-size: 0.84rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8b949e; margin-bottom: 6px;'>⚙️ Inspect & Configure Account</div>", unsafe_allow_html=True)
 
         def _pill_label(u):
             if u.get("is_master"):
-                return "👑 #0 · FTMO Master"
+                return f"👑 #{u['id']} · Master"
             nm = u.get("name", "").strip()
             nm = nm.replace("Malick Trabi", "").replace("(", "").replace(")", "").strip()
             if len(nm) > 18:
@@ -477,7 +661,7 @@ with tab_hub:
 
         pill_options = [_pill_label(u) for u in all_accounts] + ["➕ New Account"]
 
-        # Ensure default selected pill is the Master Account (#0) if nothing valid selected
+        # Ensure default selected pill is the Master Account if nothing valid selected
         if "admin_acc_pill_selector" not in st.session_state or st.session_state.get("admin_acc_pill_selector") not in pill_options:
             st.session_state["admin_acc_pill_selector"] = pill_options[0] if pill_options else None
 
@@ -508,14 +692,30 @@ with tab_hub:
             status_txt = "Active (Signal Source)"
             status_cls = "acc-tag-active"
             arch_txt = "Institutional Master"
-            risk_fmt = f"{active_account.get('risk_value', 0.5)}% (Master)"
-            max_trades_txt = "Uncapped"
+            m_rt = active_account.get('risk_type', 'percent')
+            m_rv = active_account.get('risk_value', 0.5)
+            if m_rt == 'percent':
+                risk_fmt = f"{m_rv}% (Master)"
+            elif m_rt in ('fixed_cash', 'cash', 'usd', 'fixed_usd', 'dollar'):
+                risk_fmt = f"${float(m_rv):,.2f} (Master)"
+            else:
+                risk_fmt = f"{m_rv} lots (Master)"
+            m_conc = active_account.get('max_open_trades', 3)
+            max_trades_txt = f"{m_conc} concurrent"
         else:
             status_txt = "Active" if active_account.get("enabled") else "Paused"
             status_cls = "acc-tag-active" if active_account.get("enabled") else "acc-tag-inactive"
             arch_txt = "Prop Firm" if active_account.get("account_type") == "prop_firm" else "Traditional"
-            risk_fmt = f"{active_account.get('risk_value')}%" if active_account.get("risk_type") == "percent" else f"{active_account.get('risk_value')} lots"
-            max_trades_txt = f"{active_account.get('max_daily_trades', 50)}/day"
+            s_rt = active_account.get("risk_type", "percent")
+            s_rv = active_account.get("risk_value", 0.5)
+            if s_rt == "percent":
+                risk_fmt = f"{s_rv}%"
+            elif s_rt in ('fixed_cash', 'cash', 'usd', 'fixed_usd', 'dollar'):
+                risk_fmt = f"${float(s_rv):,.2f}"
+            else:
+                risk_fmt = f"{s_rv} lots"
+            s_conc = active_account.get('max_open_trades', 3)
+            max_trades_txt = f"{s_conc} concurrent · {active_account.get('max_daily_trades', 50)}/day"
 
         st.markdown(f"""
         <div class="account-strip">
@@ -774,8 +974,15 @@ with tab_hub:
                 key=f"seg_arch_{k_sfx}",
             ) or curr_arch_str
 
-            model_options = ["% Risk per Trade", "Fixed Lot Size"]
-            curr_model_str = "Fixed Lot Size" if (active_account and active_account.get("risk_type") == "fixed") else "% Risk per Trade"
+            model_options = ["% Risk per Trade", "Fixed Risk ($)", "Fixed Lot Size"]
+            active_rt = active_account.get("risk_type") if active_account else "percent"
+            if active_rt in ("fixed_cash", "cash", "usd", "fixed_usd", "dollar"):
+                curr_model_str = "Fixed Risk ($)"
+            elif active_rt in ("fixed", "fixed_lot", "lot"):
+                curr_model_str = "Fixed Lot Size"
+            else:
+                curr_model_str = "% Risk per Trade"
+
             sel_model = st.segmented_control(
                 "Position Sizing",
                 model_options,
@@ -783,13 +990,19 @@ with tab_hub:
                 key=f"seg_model_{k_sfx}",
             ) or curr_model_str
 
-            c_rval, c_mxd = st.columns(2)
+            c_rval, c_conc, c_mxd = st.columns(3)
             with c_rval:
                 if sel_model == "Fixed Lot Size":
-                    def_lot = float(active_account["risk_value"]) if (active_account and active_account.get("risk_type") == "fixed") else 0.01
+                    def_lot = float(active_account["risk_value"]) if (active_account and active_account.get("risk_type") in ("fixed", "fixed_lot", "lot")) else 0.01
                     risk_val = st.number_input(
                         "Lot Size", min_value=0.01, max_value=100.0,
                         value=max(0.01, min(def_lot, 100.0)), step=0.01, key=f"reg_risk_val_lot_{k_sfx}",
+                    )
+                elif sel_model == "Fixed Risk ($)":
+                    def_cash = float(active_account["risk_value"]) if (active_account and active_account.get("risk_type") in ("fixed_cash", "cash", "usd", "fixed_usd", "dollar")) else 50.0
+                    risk_val = st.number_input(
+                        "Risk $ per Trade", min_value=1.0, max_value=100000.0,
+                        value=max(1.0, min(def_cash, 100000.0)), step=10.0, key=f"reg_risk_val_cash_{k_sfx}",
                     )
                 else:
                     def_pct = float(active_account["risk_value"]) if (active_account and active_account.get("risk_type") == "percent") else 0.50
@@ -797,27 +1010,60 @@ with tab_hub:
                         "Risk % per Trade", min_value=0.01, max_value=10.0,
                         value=max(0.01, min(def_pct, 10.0)), step=0.10, key=f"reg_risk_val_pct_{k_sfx}",
                     )
+            with c_conc:
+                def_conc = 3
+                if active_account:
+                    if active_account.get("is_master"):
+                        import yaml
+                        try:
+                            with open(PROJECT_ROOT / "config.yaml", "r", encoding="utf-8") as f_cfg:
+                                _c = yaml.safe_load(f_cfg) or {}
+                            def_conc = int(_c.get("mt5", {}).get("max_open_trades", active_account.get("max_open_trades", 3)))
+                        except Exception:
+                            def_conc = int(active_account.get("max_open_trades", 3))
+                    else:
+                        def_conc = int(active_account.get("max_open_trades", 3))
+                max_concurrent = st.number_input(
+                    "Max Concurrent", min_value=1, max_value=20,
+                    value=max(1, min(int(def_conc), 20)), step=1,
+                    help="Maximum number of simultaneous open positions allowed on this account.",
+                    key=f"reg_max_conc_{k_sfx}",
+                )
             with c_mxd:
-                max_trades_def = active_account["max_daily_trades"] if active_account else 50
+                max_trades_def = active_account.get("max_daily_trades", 50) if active_account else 50
                 max_daily = st.number_input(
                     "Max Daily Trades", min_value=1, max_value=100,
                     value=int(max_trades_def), key=f"reg_max_daily_{k_sfx}",
                 )
 
-            if sel_model == "% Risk per Trade":
-                est_bal = 10000.0
-                if active_account and active_account.get("mt5_login") == "5055217801":
+            est_bal = 10000.0
+            if active_account:
+                c_info = st.session_state.get(f"cached_info_{active_account['id']}", {})
+                if c_info and float(c_info.get("balance", 0.0)) > 0:
+                    est_bal = float(c_info["balance"])
+                elif float(active_account.get("last_balance", 0.0)) > 0:
+                    est_bal = float(active_account["last_balance"])
+                elif active_account.get("mt5_login") == "5055217801":
                     est_bal = 91398.24
+
+            if sel_model == "% Risk per Trade":
                 calc_risk_dollars = est_bal * (float(risk_val) / 100.0)
                 st.markdown(f"""
                 <div style="font-size: 0.76rem; color: #8b949e; margin-top: 4px;">
-                    Risk per trade: <b style="color: #f0f6fc;">${calc_risk_dollars:,.2f}</b> on ${est_bal:,.0f} equity.
+                    Risk per trade: <b style="color: #f0f6fc;">${calc_risk_dollars:,.2f}</b> on ${est_bal:,.0f} equity &nbsp;|&nbsp; Max concurrent: <b style="color: #58a6ff;">{int(max_concurrent)} open</b>.
+                </div>
+                """, unsafe_allow_html=True)
+            elif sel_model == "Fixed Risk ($)":
+                pct_equiv = (float(risk_val) / est_bal * 100.0) if est_bal > 0 else 0.0
+                st.markdown(f"""
+                <div style="font-size: 0.76rem; color: #8b949e; margin-top: 4px;">
+                    Fixed cash risk: <b style="color: #3fb950;">${float(risk_val):,.2f}</b> ({pct_equiv:.2f}% on ${est_bal:,.0f} equity) &nbsp;|&nbsp; Max concurrent: <b style="color: #58a6ff;">{int(max_concurrent)} open</b>.
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div style="font-size: 0.76rem; color: #8b949e; margin-top: 4px;">
-                    Volume: <b style="color: #f0f6fc;">{risk_val:.2f} lots</b> per signal.
+                    Volume: <b style="color: #f0f6fc;">{risk_val:.2f} lots</b> per signal &nbsp;|&nbsp; Max concurrent: <b style="color: #58a6ff;">{int(max_concurrent)} open</b>.
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -830,7 +1076,12 @@ with tab_hub:
         # ── Action Buttons directly inside the unified container ──
         st.markdown("<div style='border-top: 1px solid rgba(255,255,255,0.07); margin: 16px 0 8px 0;'></div>", unsafe_allow_html=True)
 
-        risk_key = "percent" if "%" in sel_model else "fixed"
+        if "%" in sel_model:
+            risk_key = "percent"
+        elif "$" in sel_model or "Risk ($)" in sel_model:
+            risk_key = "fixed_cash"
+        else:
+            risk_key = "fixed"
         arch_val = "prop_firm" if "Prop Firm" in sel_arch else ("standard" if "Traditional" in sel_arch else "custom")
 
         if is_admin:
@@ -867,14 +1118,27 @@ with tab_hub:
                     btn_delete = False
                     btn_save_new = st.button("➕ Register & Activate Account", type="primary", use_container_width=True, key=f"btn_reg_new_{k_sfx}")
         else:
-            b1, b2 = st.columns([1.2, 1.8])
-            with b1:
-                btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_sub_{k_sfx}")
-            with b2:
-                btn_update = st.button("💾 Save Credentials & Risk", type="primary", use_container_width=True, key=f"btn_upd_sub_{k_sfx}")
-            btn_toggle = False
-            btn_delete = False
-            btn_save_new = False
+            if active_account:
+                curr_en = active_account.get("enabled", 1)
+                b1, b2, b3 = st.columns([1.2, 1.6, 1.2])
+                with b1:
+                    btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_sub_{k_sfx}")
+                with b2:
+                    btn_update = st.button("💾 Save Credentials & Risk", type="primary", use_container_width=True, key=f"btn_upd_sub_{k_sfx}")
+                with b3:
+                    toggle_lbl = "⏸️ Pause" if curr_en else "▶️ Resume"
+                    btn_toggle = st.button(toggle_lbl, use_container_width=True, key=f"btn_tog_sub_{k_sfx}")
+                btn_delete = False
+                btn_save_new = False
+            else:
+                b1, b2 = st.columns([1.2, 1.8])
+                with b1:
+                    btn_test = st.button("🔌 Test Connection", use_container_width=True, key=f"btn_test_sub_{k_sfx}")
+                with b2:
+                    btn_update = st.button("💾 Save Credentials & Risk", type="primary", use_container_width=True, key=f"btn_upd_sub_{k_sfx}")
+                btn_toggle = False
+                btn_delete = False
+                btn_save_new = False
 
     # Action Handlers
     if btn_test:
@@ -890,57 +1154,143 @@ with tab_hub:
                 }
                 res = test_mt5_account_connection(payload)
                 st.session_state["hub_test_res"] = res
+                if res and res.get("status") == "SUCCESS" and active_account:
+                    st.session_state[f"cached_info_{active_account['id']}"] = res
+                    st.session_state[f"live_positions_{active_account['id']}"] = res.get("open_positions", [])
+                    if not active_account.get("is_master"):
+                        try:
+                            update_account_balance(active_account["id"], float(res.get("balance", 0.0)), float(res.get("equity", 0.0)))
+                        except Exception:
+                            pass
 
-    if active_account and btn_update:
-        if active_account.get("is_master"):
-            try:
-                import yaml
-                cfg_path = PROJECT_ROOT / "config.yaml"
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    full_cfg = yaml.safe_load(f)
-                if "mt5" not in full_cfg:
-                    full_cfg["mt5"] = {}
-                log_val = inp_login.strip()
-                full_cfg["mt5"]["login"] = int(log_val) if log_val.isdigit() else log_val
-                if inp_password.strip():
-                    full_cfg["mt5"]["password"] = inp_password.strip()
-                full_cfg["mt5"]["server"] = inp_server.strip()
-                full_cfg["mt5"]["path"] = final_term_path.strip()
-                full_cfg["mt5"]["risk_value"] = float(risk_val)
-                with open(cfg_path, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(full_cfg, f, default_flow_style=False)
-                st.session_state["hub_flash_msg"] = {
-                    "type": "success",
-                    "msg": "✅ Master Account settings saved to config.yaml!"
-                }
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Failed to update Master account: {e}")
-        elif not inp_login or not inp_password or not inp_server:
-            st.error("⚠️ Please fill in all required fields.")
+    if btn_update:
+        if active_account:
+            if active_account.get("is_master"):
+                try:
+                    update_user(
+                        active_account["id"],
+                        name=inp_name.strip() or active_account["name"],
+                        email=inp_email.strip() or active_account["email"],
+                        mt5_login=inp_login.strip(),
+                        mt5_password=inp_password.strip(),
+                        mt5_server=inp_server.strip(),
+                        risk_type=risk_key,
+                        risk_value=float(risk_val),
+                        max_daily_trades=int(max_daily),
+                        max_open_trades=int(max_concurrent),
+                        terminal_path=final_term_path.strip(),
+                        account_type=arch_val,
+                    )
+                    import yaml
+                    cfg_path = PROJECT_ROOT / "config.yaml"
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        full_cfg = yaml.safe_load(f)
+                    if "mt5" not in full_cfg:
+                        full_cfg["mt5"] = {}
+                    log_val = inp_login.strip()
+                    full_cfg["mt5"]["login"] = int(log_val) if log_val.isdigit() else log_val
+                    if inp_password.strip():
+                        full_cfg["mt5"]["password"] = inp_password.strip()
+                    full_cfg["mt5"]["server"] = inp_server.strip()
+                    full_cfg["mt5"]["path"] = final_term_path.strip()
+                    full_cfg["mt5"]["risk_type"] = risk_key
+                    full_cfg["mt5"]["risk_value"] = float(risk_val)
+                    full_cfg["mt5"]["max_open_trades"] = int(max_concurrent)
+                    if "confluence_model" in full_cfg and isinstance(full_cfg["confluence_model"], dict):
+                        full_cfg["confluence_model"]["risk_type"] = risk_key
+                        full_cfg["confluence_model"]["risk_value"] = float(risk_val)
+                    with open(cfg_path, "w", encoding="utf-8") as f:
+                        yaml.safe_dump(full_cfg, f, default_flow_style=False)
+                    try:
+                        from core.mt5_connector import MT5Connector
+                        conn_m = MT5Connector()
+                        conn_m.shutdown()
+                        conn_m.reload_config()
+                    except Exception:
+                        pass
+                    st.session_state["hub_flash_msg"] = {
+                        "type": "success",
+                        "msg": "✅ Master Account settings saved to database and config.yaml!"
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to update Master account: {e}")
+            elif not inp_login or not inp_password or not inp_server:
+                st.error("⚠️ Please fill in all required fields.")
+            else:
+                try:
+                    update_user(
+                        active_account["id"],
+                        name=inp_name.strip() or active_account["name"],
+                        email=inp_email.strip() or active_account["email"],
+                        mt5_login=inp_login.strip(),
+                        mt5_password=inp_password.strip(),
+                        mt5_server=inp_server.strip(),
+                        risk_type=risk_key,
+                        risk_value=float(risk_val),
+                        max_daily_trades=int(max_daily),
+                        max_open_trades=int(max_concurrent),
+                        terminal_path=final_term_path.strip(),
+                        account_type=arch_val,
+                        enabled=1,
+                    )
+                    st.session_state["hub_flash_msg"] = {
+                        "type": "success",
+                        "msg": f"✅ Settings updated for Account #{active_account['id']} ({inp_name})!"
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to update account: {e}")
         else:
-            try:
-                update_user(
-                    active_account["id"],
-                    name=inp_name.strip() or active_account["name"],
-                    email=inp_email.strip() or active_account["email"],
-                    mt5_login=inp_login.strip(),
-                    mt5_password=inp_password.strip(),
-                    mt5_server=inp_server.strip(),
-                    risk_type=risk_key,
-                    risk_value=float(risk_val),
-                    max_daily_trades=int(max_daily),
-                    terminal_path=final_term_path.strip(),
-                    account_type=arch_val,
-                    enabled=1,
-                )
-                st.session_state["hub_flash_msg"] = {
-                    "type": "success",
-                    "msg": f"✅ Settings updated for Account #{active_account['id']} ({inp_name})!"
-                }
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Failed to update account: {e}")
+            # Initial setup for subscriber account when no active_account exists yet
+            if not inp_login or not inp_password or not inp_server:
+                st.error("⚠️ Please fill in all required fields.")
+            else:
+                try:
+                    target_email = user_email if user_email else inp_email.strip()
+                    if not target_email or target_email == "trader@apexforex.local":
+                        target_email = f"trader_{inp_login.strip()}@apexforex.local"
+
+                    existing = get_user_by_email(target_email)
+                    if existing:
+                        update_user(
+                            existing["id"],
+                            name=inp_name.strip() or f"Account #{inp_login.strip()}",
+                            mt5_login=inp_login.strip(),
+                            mt5_password=inp_password.strip(),
+                            mt5_server=inp_server.strip(),
+                            risk_type=risk_key,
+                            risk_value=float(risk_val),
+                            max_daily_trades=int(max_daily),
+                            max_open_trades=int(max_concurrent),
+                            terminal_path=final_term_path.strip(),
+                            account_type=arch_val,
+                            enabled=1,
+                        )
+                        acc_id = existing["id"]
+                    else:
+                        acc_id = add_user(
+                            name=inp_name.strip() or f"Account #{inp_login.strip()}",
+                            email=target_email,
+                            mt5_login=inp_login.strip(),
+                            mt5_password=inp_password.strip(),
+                            mt5_server=inp_server.strip(),
+                            risk_type=risk_key,
+                            risk_value=float(risk_val),
+                            max_daily_trades=int(max_daily),
+                            max_open_trades=int(max_concurrent),
+                            terminal_path=final_term_path.strip(),
+                            account_type=arch_val,
+                        )
+                        mark_paid(acc_id, note="Subscriber initial setup")
+
+                    st.session_state["hub_flash_msg"] = {
+                        "type": "success",
+                        "msg": f"✅ Account #{acc_id} ({inp_name or inp_login}) configured and activated successfully!"
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to save credentials: {e}")
 
     if active_account and btn_toggle:
         curr_en = active_account.get("enabled", 1)
@@ -980,6 +1330,7 @@ with tab_hub:
                     risk_type=risk_key,
                     risk_value=float(risk_val),
                     max_daily_trades=int(max_daily),
+                    max_open_trades=int(max_concurrent),
                     terminal_path=final_term_path.strip(),
                     account_type=arch_val,
                 )
@@ -998,13 +1349,14 @@ with tab_hub:
         if res.get("status") == "SUCCESS":
             gold_badge = "OK" if res.get("gold_supported") else "N/A"
             oil_badge = "OK" if res.get("oil_supported") else "N/A"
+            btc_badge = "OK" if res.get("btc_supported") else "N/A"
 
             st.markdown(f"""
             <div class="diag-grid" style="border-color: rgba(46, 160, 67, 0.3);">
                 <div><span style="color: #3fb950; font-weight: 700;">● Connection OK</span><br><b style="color:#f0f6fc;">{res.get('company')}</b> ({res.get('server')})</div>
                 <div><span style="color: #8b949e;">Login & Name</span><br>#{res.get('login')} · {res.get('name')}</div>
                 <div><span style="color: #8b949e;">Balance / Equity</span><br><b style="color: #3fb950;">${float(res.get('balance', 0)):,.2f}</b> / ${float(res.get('equity', 0)):,.2f}</div>
-                <div><span style="color: #8b949e;">CFD Symbols</span><br>Gold: <b>{gold_badge}</b> | Oil: <b>{oil_badge}</b></div>
+                <div><span style="color: #8b949e;">Commodities & Crypto</span><br>Gold: <b>{gold_badge}</b> | Oil: <b>{oil_badge}</b> | BTC: <b>{btc_badge}</b></div>
             </div>
             """, unsafe_allow_html=True)
         else:

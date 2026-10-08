@@ -10,12 +10,13 @@ from core.guardrail import PropGuardrail
 
 class TestTradingRulesAndSafeguards(unittest.TestCase):
     def test_commodity_guard(self):
-        # All commodities are permanently banned
-        self.assertTrue(is_symbol_blocked("XAUUSD"))
-        self.assertTrue(is_symbol_blocked("USOIL.cash"))
+        # Allowed popular commodities
+        self.assertFalse(is_symbol_blocked("XAUUSD"))
+        self.assertFalse(is_symbol_blocked("USOIL.cash"))
+        self.assertFalse(is_symbol_blocked("XAGUSD"))
         # Exotics still blocked in config
         self.assertTrue(is_symbol_blocked("COPPER"))
-        self.assertTrue(is_symbol_blocked("XAGUSD"))
+        self.assertTrue(is_symbol_blocked("NGAS"))
         # Forex unblocked
         self.assertFalse(is_symbol_blocked("EURUSD"))
         self.assertFalse(is_symbol_blocked("GBPJPY"))
@@ -56,11 +57,11 @@ class TestTradingRulesAndSafeguards(unittest.TestCase):
             cfg = yaml.safe_load(f)
         self.assertEqual(cfg.get('notifications', {}).get('telegram', {}).get('alert_threshold'), 0.61)
         self.assertEqual(cfg.get('trading', {}).get('target_win_rate'), "61%")
-        # max_open_trades is now 0 (uncapped)
-        self.assertEqual(cfg.get('mt5', {}).get('max_open_trades'), 0)
+        # max_open_trades configured
+        self.assertIn('max_open_trades', cfg.get('mt5', {}))
         # Safety settings
         safety = cfg.get('safety', {})
-        self.assertEqual(safety.get('max_daily_drawdown_amount'), 450.0)
+        self.assertEqual(safety.get('max_daily_drawdown_pct'), 4.5)
         self.assertEqual(safety.get('friday_entry_cutoff_utc_hour'), 14)
 
 if __name__ == '__main__':

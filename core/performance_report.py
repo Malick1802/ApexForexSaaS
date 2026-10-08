@@ -1,9 +1,12 @@
 import sqlite3
+import re
 import pandas as pd
 import numpy as np
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+PROFIT_REGEX = re.compile(r'(?:Profit:\s*)?\$([+-]?[\d,.]+)')
 
 COMMODITY_SYMBOLS = {
     'XAUUSD', 'GOLD', 'XAGUSD', 'SILVER', 'USOIL', 'USOIL.cash',
@@ -12,6 +15,14 @@ COMMODITY_SYMBOLS = {
 }
 
 class PerformanceReporter:
+    _cached_df: Optional[pd.DataFrame] = None
+    _cached_time: float = 0.0
+
+    @classmethod
+    def invalidate_cache(cls):
+        cls._cached_df = None
+        cls._cached_time = 0.0
+
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
             self.db_path = str(Path(__file__).resolve().parent.parent / "signals.db")
@@ -19,13 +30,17 @@ class PerformanceReporter:
             self.db_path = db_path
 
     def _get_signals_df(self) -> pd.DataFrame:
+        import time as _t
+        now = _t.time()
+        if PerformanceReporter._cached_df is not None and (now - PerformanceReporter._cached_time < 60.0):
+            return PerformanceReporter._cached_df.copy()
+
         conn = sqlite3.connect(self.db_path)
         df = pd.read_sql_query('''
             SELECT id, timestamp, exit_time, duration_seconds, symbol, signal, confidence, confidence_tier,
-                   is_hidden, outcome, exit_reason, price_at_signal, exit_price, mt5_ticket, model_version
+                   is_hidden, outcome, exit_reason, price_at_signal, exit_price, mt5_ticket, model_version, is_manual, regime
             FROM signals
             WHERE signal IN ('BUY', 'SELL')
-              AND (model_version = 'v1' OR model_version IS NULL)
               AND outcome IN ('SUCCESS', 'FAIL')
             ORDER BY timestamp ASC
         ''', conn)
@@ -36,7 +51,10 @@ class PerformanceReporter:
 
         df['t_utc'] = pd.to_datetime(df['timestamp'], format='ISO8601', utc=True)
         df['conf'] = df['confidence'].astype(float)
-        return df
+
+        PerformanceReporter._cached_df = df
+        PerformanceReporter._cached_time = now
+        return df.copy()
 
     def _dedup(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -53,13 +71,20 @@ class PerformanceReporter:
         if 't_exit_utc' not in data_sorted.columns:
             data_sorted['t_exit_utc'] = pd.to_datetime(data_sorted['exit_time'], format='ISO8601', utc=True)
 
-        trades = []
         active_until = {}
+        seen_tickets = set()
+        keep_indices = []
 
-        for _, r in data_sorted.iterrows():
-            key = (r['symbol'], r['signal'])
-            entry_t = r['t_utc']
-            exit_t = r.get('t_exit_utc')
+        for r in data_sorted.itertuples():
+            ticket = getattr(r, 'mt5_ticket', None)
+            if pd.notnull(ticket) and ticket != "":
+                if ticket in seen_tickets:
+                    continue
+                seen_tickets.add(ticket)
+
+            key = (r.symbol, r.signal)
+            entry_t = r.t_utc
+            exit_t = getattr(r, 't_exit_utc', None)
 
             # If there's an active trade that hasn't closed yet at this entry time, it's an intra-trade duplicate
             if key in active_until:
@@ -73,23 +98,18 @@ class PerformanceReporter:
 
             active_until[key] = exit_t
             active_until[f"{key}_entry"] = entry_t
-            trades.append(r)
+            keep_indices.append(r.Index)
 
-        return pd.DataFrame(trades) if trades else pd.DataFrame()
+        return data_sorted.loc[keep_indices] if keep_indices else pd.DataFrame()
 
     def _get_mt5_deals_df(self) -> pd.DataFrame:
         try:
-            import MetaTrader5 as mt5
-            from pathlib import Path
-            ftmo_path = r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe"
-            init_kwargs = {"timeout": 5000}
-            if Path(ftmo_path).exists():
-                init_kwargs["path"] = ftmo_path
-            if mt5.initialize(**init_kwargs):
+            from core.manual_model import get_mt5
+            mt5 = get_mt5()
+            if mt5:
                 from_date = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
                 to_date = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
                 deals = mt5.history_deals_get(from_date, to_date)
-                mt5.shutdown()
                 if deals:
                     deal_list = [d._asdict() for d in deals]
                     df_deals = pd.DataFrame(deal_list)
@@ -118,89 +138,271 @@ class PerformanceReporter:
         if account_size is None or account_size <= 0:
             account_size = 100000.0 if risk_per_trade >= 500.0 else 10000.0
 
-        df = self._get_signals_df()
-        if df.empty:
-            return pd.DataFrame()
-
-        df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
-        # Use exit time if available, otherwise entry time
-        df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc']) if use_close_time else df['t_utc']
-
-        if start_date:
-            df = df[df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
-        if end_date:
-            df = df[df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
-
-        from core.symbol_guard import is_symbol_blocked, is_direction_blocked
-
         if mode == "mt5_live":
-            # Master MT5 Account Executed Live Trades (Live Broker Fills)
-            filtered = df[df['mt5_ticket'].notnull() & (~df['symbol'].apply(is_symbol_blocked))].copy()
-            filtered = self._dedup(filtered)
-        elif mode == "telegram_live":
-            # Live Alerts Sent to Telegram: non-hidden signals, active symbols, shielded (61%+ Forex / 55%+ Commodities)
-            from core.symbol_guard import is_commodity
-            def is_valid_tg(r):
-                sym = r['symbol']
-                sig = r['signal']
-                conf = float(r.get('conf', 0))
-                min_conf = 0.55 if is_commodity(sym) else 0.61
-                if conf < min_conf:
-                    return False
-                if is_symbol_blocked(sym):
-                    return False
-                if is_direction_blocked(sym, sig):
-                    return False
-                return bool(r.get('is_hidden', 0) == 0)
+            # Master MT5 Account Executed Live Trades (Actual Real Broker Deals)
+            df_deals = self._get_mt5_deals_df()
+            if not df_deals.empty:
+                if 'position_id' in df_deals.columns:
+                    pos_df = df_deals.groupby('position_id').agg({
+                        'symbol': 'first',
+                        'time': 'last',
+                        't_utc': 'last',
+                        'profit': 'sum',
+                        'volume': 'sum',
+                        'comment': lambda x: ' | '.join(x)
+                    }).reset_index()
+                else:
+                    pos_df = df_deals.copy()
 
-            filtered = df[df.apply(is_valid_tg, axis=1)].copy()
-            filtered = self._dedup(filtered)
-        elif mode == "production":
-            # Live Production: 61%+ for Forex, 55%+ for Commodities, EURUSD BUY, EURCAD BUY & XAUUSD BUY shielded
-            from core.symbol_guard import is_commodity
-            def is_valid_prod(r):
-                sym = r['symbol']
-                sig = r['signal']
-                conf = float(r.get('conf', 0))
-                min_conf = 0.55 if is_commodity(sym) else 0.61
-                if conf < min_conf:
-                    return False
-                if is_symbol_blocked(sym):
-                    return False
-                if is_direction_blocked(sym, sig):
-                    return False
-                return True
+                pos_df['time_metric'] = pos_df['t_utc']
+                if start_date:
+                    pos_df = pos_df[pos_df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
+                if end_date:
+                    pos_df = pos_df[pos_df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
 
-            filtered = df[df.apply(is_valid_prod, axis=1)].copy()
-            filtered = self._dedup(filtered)
-        else: # "baseline"
-            # 50.0%+ floor, active traded instruments
-            filtered = df[(df['conf'] >= 0.50) & (~df['symbol'].apply(is_symbol_blocked))].copy()
-            filtered = self._dedup(filtered)
+                def calc_deal_r(r):
+                    p = float(r.get('profit', 0.0))
+                    if p > 1.5:
+                        r_val = min(1.5, max(0.2, p / 50.0))
+                        status = 'WIN'
+                    elif p < -1.5:
+                        r_val = -1.0
+                        status = 'LOSS'
+                    else:
+                        r_val = 0.0
+                        status = 'BREAKEVEN'
+                    pnl_val = p if abs(risk_per_trade - 50.0) < 0.01 else (r_val * risk_per_trade)
+                    return pd.Series([r_val, pnl_val, status], index=['realized_r', 'pnl_amount', 'trade_status'])
+
+                calc = pos_df.apply(calc_deal_r, axis=1)
+                pos_df['realized_r'] = calc['realized_r']
+                pos_df['pnl_amount'] = calc['pnl_amount']
+                pos_df['trade_status'] = calc['trade_status']
+                pos_df['outcome'] = np.where(pos_df['trade_status'] == 'WIN', 'SUCCESS', 'FAIL')
+                filtered = pos_df
+            else:
+                df = self._get_signals_df()
+                if df.empty:
+                    return pd.DataFrame()
+                df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
+                df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc']) if use_close_time else df['t_utc']
+                filtered = df[df['mt5_ticket'].notnull()].copy()
+                filtered = self._dedup(filtered)
+        else:
+            df = self._get_signals_df()
+            if df.empty:
+                return pd.DataFrame()
+
+            df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
+            # Use exit time if available, otherwise entry time
+            df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc']) if use_close_time else df['t_utc']
+
+            if start_date:
+                df = df[df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
+            if end_date:
+                df = df[df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
+
+            from core.symbol_guard import is_symbol_blocked, is_direction_blocked
+
+            if mode == "manual":
+                # Manual M15 Wick Sniper Trades
+                filtered = df[(df['is_manual'] == 1) | (df['model_version'] == 'manual_m15')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_ml_p60", "confluence_ml_p60_all"):
+                # New Confluence ML Model (60% Partial TP + 2p BE)
+                filtered = df[df['model_version'].isin(['confluence_ml_p60', 'confluence_ml_m15_p60']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_ml_p60_live",):
+                filtered = df[df['model_version'].isin(['confluence_ml_p60', 'confluence_ml_m15_p60']) & df['mt5_ticket'].notnull() & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_std_p25", "confluence_std_p25_all"):
+                # New Confluence Standard Model (25% Partial TP + 2p BE)
+                filtered = df[df['model_version'].isin(['confluence_std_p25', 'confluence_m15_p25'])].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_std_p25_live",):
+                filtered = df[df['model_version'].isin(['confluence_std_p25', 'confluence_m15_p25']) & df['mt5_ticket'].notnull()].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence", "confluence_live", "confluence_both_live"):
+                # Confluence Models Live Broker Executions Only
+                filtered = df[(df['model_version'].isin(['confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25']) | (df['regime'] == 'CONFLUENCE')) & df['mt5_ticket'].notnull()].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_standard", "confluence_standard_live", "confluence_std_live"):
+                # Automated Confluence M15 Standard (Rule-Based Only, Live Executions)
+                filtered = df[(df['model_version'] == 'confluence_m15') & df['mt5_ticket'].notnull()].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_ml", "confluence_ml_live", "confluence_ai_live"):
+                # Confluence M15 + AI Quality Gate (Live Executions Only)
+                filtered = df[(df['model_version'] == 'confluence_ml_m15') & df['mt5_ticket'].notnull() & (df['confidence'] >= 0.48) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_all", "confluence_all_models"):
+                # All Confluence Trades Across All 4 Models (Live Fills + Background Shadow Paper Trades)
+                filtered = df[df['model_version'].isin(['confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25']) | (df['regime'] == 'CONFLUENCE')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_standard_all", "confluence_std_all"):
+                # Confluence Standard Pure Rule-Based (Live + Background Shadow Paper Trades)
+                filtered = df[(df['model_version'] == 'confluence_m15')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_ml_all", "confluence_ai_all"):
+                # Confluence Deep Learning AI Gate (Live + Background Shadow Paper Trades)
+                filtered = df[(df['model_version'] == 'confluence_ml_m15') & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("confluence_ml_suppressed", "confluence_suppressed"):
+                # Suppressed Setups Only (Shadow evaluation of setups rejected by the AI Quality Gate)
+                filtered = df[(df['model_version'].isin(['confluence_ml_m15', 'confluence_ml_p60'])) & (df['exit_reason'] == 'ML_SUPPRESSED')].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("foundation", "foundation_v1", "foundation_all"):
+                # Foundation V1 Macro AI (All: Live + Background Shadow Paper Trades)
+                filtered = df[df['model_version'].isin(['v1', 'foundation_tft', 'foundation'])].copy()
+                filtered = self._dedup(filtered)
+            elif mode == "foundation_live":
+                # Foundation V1 Macro AI (Live MT5 Broker Executions Only)
+                filtered = df[df['model_version'].isin(['v1', 'foundation_tft', 'foundation']) & df['mt5_ticket'].notnull()].copy()
+                filtered = self._dedup(filtered)
+            elif mode in ("dynamic_ytd", "dynamic_ytd_model", "dynamic_ytd_all", "dynamic_ytd_live"):
+                # Dynamic YTD Model (Daily Winning Assets Strategy):
+                # Restricts trades strictly to assets with Year-To-Date Net R >= 0.0 for that model
+                from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, normalize_model_key, normalize_symbol
+                if "live" in mode:
+                    cand = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+                else:
+                    cand = df[df['outcome'].isin(['SUCCESS', 'FAIL']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+
+                if not cand.empty:
+                    approved_set = get_dynamic_whitelist_manager().get_approved_set()
+                    m_keys = [normalize_model_key(m) for m in cand['model_version']]
+                    sym_keys = [normalize_symbol(s) for s in cand['symbol']]
+                    cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
+                    filtered = cand[cand['is_whitelisted']].copy()
+                else:
+                    filtered = cand
+                filtered = self._dedup(filtered)
+            elif mode in ("aggregate_all", "all_models"):
+                # All Strategy Models Aggregated (Live + Shadow Paper Trades Combined)
+                filtered = df[df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+                filtered = self._dedup(filtered)
+            elif mode == "aggregate_live":
+                # Selected Live Models Aggregated (Executed Real Broker Trades Only)
+                filtered = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+                filtered = self._dedup(filtered)
+            elif mode == "telegram_live":
+                # Live Alerts Sent to Telegram: non-hidden signals, active symbols, shielded (61%+ Forex / 55%+ Commodities)
+                from core.symbol_guard import is_commodity
+                def is_valid_tg(r):
+                    if r.get('is_manual') == 1 or r.get('model_version') in ('manual_m15', 'confluence_m15', 'confluence_ml_m15'):
+                        return True
+                    sym = r['symbol']
+                    sig = r['signal']
+                    conf = float(r.get('conf', 0))
+                    min_conf = 0.55 if is_commodity(sym) else 0.61
+                    if conf < min_conf:
+                        return False
+                    if is_symbol_blocked(sym):
+                        return False
+                    if is_direction_blocked(sym, sig):
+                        return False
+                    return bool(r.get('is_hidden', 0) == 0)
+
+                filtered = df[df.apply(is_valid_tg, axis=1)].copy()
+                filtered = self._dedup(filtered)
+            elif mode == "production":
+                # Live Production: 61%+ for Forex, 55%+ for Commodities
+                from core.symbol_guard import is_commodity
+                def is_valid_prod(r):
+                    if r.get('is_manual') == 1 or r.get('model_version') in ('manual_m15', 'confluence_m15'):
+                        return True
+                    sym = r['symbol']
+                    sig = r['signal']
+                    conf = float(r.get('conf', 0))
+                    min_conf = 0.55 if is_commodity(sym) else 0.61
+                    if conf < min_conf:
+                        return False
+                    if is_symbol_blocked(sym):
+                        return False
+                    if is_direction_blocked(sym, sig):
+                        return False
+                    return True
+
+                filtered = df[df.apply(is_valid_prod, axis=1)].copy()
+                filtered = self._dedup(filtered)
+            else: # "baseline"
+                # 50.0%+ floor, active traded instruments
+                filtered = df[((df['conf'] >= 0.50) | (df['is_manual'] == 1) | (df['model_version'] in ('manual_m15', 'confluence_m15'))) & (~df['symbol'].apply(is_symbol_blocked))].copy()
+                filtered = self._dedup(filtered)
 
         if filtered.empty:
             return pd.DataFrame()
 
-        if mode == "mt5_live":
-            def calc_mt5_trade(row):
-                reason = str(row.get('exit_reason') or '')
-                import re
-                m = re.search(r'Profit:\s*\$([+-]?[\d,.]+)', reason)
-                if m:
-                    raw_profit = float(m.group(1).replace(',', ''))
-                    # Master MT5 account executed live trades at base risk = $50.0 (0.5% on $10k)
-                    r_val = raw_profit / 50.0
-                    pnl_val = r_val * risk_per_trade
-                    return pd.Series([r_val, pnl_val], index=['realized_r', 'pnl_amount'])
-                if row.get('outcome') == 'SUCCESS':
-                    return pd.Series([reward_multiplier, risk_per_trade * reward_multiplier], index=['realized_r', 'pnl_amount'])
-                elif row.get('outcome') == 'FAIL':
-                    return pd.Series([-1.0, -risk_per_trade], index=['realized_r', 'pnl_amount'])
-                return pd.Series([0.0, 0.0], index=['realized_r', 'pnl_amount'])
+        def robust_calc_trade(row):
+            reason = str(row.get('exit_reason') or '')
+            outcome = row.get('outcome')
+            model_ver = str(row.get('model_version') or '')
+            
+            # Check raw dollar profit from exit_reason
+            m = PROFIT_REGEX.search(reason)
+            raw_profit = float(m.group(1).replace(',', '')) if m else None
+            
+            # Check price distance
+            entry = row.get('price_at_signal')
+            sl = row.get('sl_price')
+            exit_p = row.get('exit_price')
+            sig = row.get('signal')
+            price_r = None
+            if entry and sl and exit_p and entry != sl and not pd.isna(entry) and not pd.isna(sl) and not pd.isna(exit_p):
+                risk_dist = abs(entry - sl)
+                gain_dist = (exit_p - entry) if sig == 'BUY' else (entry - exit_p)
+                price_r = gain_dist / risk_dist
+                
+            is_be = False
+            if raw_profit is not None and abs(raw_profit) < 2.0:
+                is_be = True
+            elif price_r is not None and abs(price_r) < 0.12 and outcome == 'FAIL':
+                is_be = True
+            elif "BE hit" in reason or "Breakeven" in reason or "SL hit ($0.00)" in reason:
+                is_be = True
+                
+            if is_be:
+                return pd.Series([0.0, 0.0, 'BREAKEVEN'], index=['realized_r', 'pnl_amount', 'trade_status'])
+                
+            if outcome == 'FAIL':
+                # Genuine SL loss is always -1.0R (clamped to realistic bounds if price_r available)
+                r_val = -1.0
+                if price_r is not None and -1.2 <= price_r <= -0.5:
+                    r_val = round(price_r, 2)
+                return pd.Series([r_val, r_val * risk_per_trade, 'LOSS'], index=['realized_r', 'pnl_amount', 'trade_status'])
+                
+            if outcome == 'SUCCESS':
+                is_p60 = ("p60" in model_ver) or ("p60" in mode)
+                is_p25 = ("p25" in model_ver) or ("p25" in mode)
+                
+                if is_p60:
+                    if raw_profit is not None and 0 < raw_profit < 35.0:
+                        r_val = 0.90  # TP1 (60% @ 1.5R) + BE runner
+                    elif price_r is not None and price_r >= 1.4:
+                        r_val = 1.50  # Full TP reached on runner
+                    else:
+                        r_val = 1.15
+                elif is_p25:
+                    if raw_profit is not None and 0 < raw_profit < 25.0:
+                        r_val = 0.38  # TP1 (25% @ 1.5R) + BE runner
+                    elif price_r is not None and price_r >= 1.4:
+                        r_val = 1.50  # Full TP reached
+                    else:
+                        r_val = 0.94
+                else:
+                    if "Friday" in reason and price_r is not None and price_r > 0:
+                        r_val = round(min(reward_multiplier, max(0.2, price_r)), 2)
+                    else:
+                        r_val = reward_multiplier
+                        
+                return pd.Series([r_val, r_val * risk_per_trade, 'WIN'], index=['realized_r', 'pnl_amount', 'trade_status'])
+                
+            return pd.Series([0.0, 0.0, 'OTHER'], index=['realized_r', 'pnl_amount', 'trade_status'])
 
-            calc_df = filtered.apply(calc_mt5_trade, axis=1)
+        if 'trade_status' not in filtered.columns:
+            calc_df = filtered.apply(robust_calc_trade, axis=1)
             filtered['realized_r'] = calc_df['realized_r']
             filtered['pnl_amount'] = calc_df['pnl_amount']
+            filtered['trade_status'] = calc_df['trade_status']
 
         t_naive = filtered['time_metric'].dt.tz_localize(None)
         if period == "monthly":
@@ -212,7 +414,6 @@ class PerformanceReporter:
 
         periods = sorted(filtered['period_obj'].unique(), reverse=True)
         rows = []
-        reward_per_trade = risk_per_trade * reward_multiplier
 
         for p_obj in periods:
             sub = filtered[filtered['period_obj'] == p_obj]
@@ -220,33 +421,25 @@ class PerformanceReporter:
             if tot == 0:
                 continue
 
-            if mode == "mt5_live" and 'pnl_amount' in sub.columns:
-                pnl = float(sub['pnl_amount'].sum())
-                net_r = float(sub['realized_r'].sum())
-                gross_win_r = float(sub[sub['realized_r'] > 0]['realized_r'].sum())
-                gross_loss_r = abs(float(sub[sub['realized_r'] < 0]['realized_r'].sum()))
-                pf = (gross_win_r / gross_loss_r) if gross_loss_r > 0 else 999.0
-                w = len(sub[sub['realized_r'] > 0])
-                l = len(sub[sub['realized_r'] < 0])
-                wr = (w / tot * 100.0) if tot > 0 else 0.0
-            else:
-                w = len(sub[sub['outcome'] == 'SUCCESS'])
-                l = tot - w
-                wr = (w / tot * 100.0) if tot > 0 else 0.0
-                net_r = (w * reward_multiplier) - (l * 1.0)
-                pnl = net_r * risk_per_trade
-                gross_win = w * reward_multiplier
-                gross_loss = l * 1.0
-                pf = (gross_win / gross_loss) if gross_loss > 0 else 999.0
+            pnl = float(sub['pnl_amount'].sum())
+            net_r = float(sub['realized_r'].sum())
+            gross_win_r = float(sub[sub['realized_r'] > 0]['realized_r'].sum())
+            gross_loss_r = abs(float(sub[sub['realized_r'] < 0]['realized_r'].sum()))
+            pf = round(gross_win_r / gross_loss_r, 2) if gross_loss_r > 0 else (999.0 if gross_win_r > 0 else 0.0)
+            w = len(sub[sub['trade_status'] == 'WIN'])
+            l = len(sub[sub['trade_status'] == 'LOSS'])
+            be = len(sub[sub['trade_status'] == 'BREAKEVEN'])
+            wr = (w / tot * 100.0) if tot > 0 else 0.0
 
             rows.append({
                 'Period': format_fn(p_obj),
                 'Trades': tot,
                 'Wins': w,
                 'Losses': l,
+                'Breakeven': be,
                 'Win Rate (%)': round(wr, 1),
                 'Net R': round(net_r, 2),
-                'Profit Factor': round(pf, 2),
+                'Profit Factor': pf,
                 'Net PnL ($)': round(pnl, 2),
                 'Return (%)': round((pnl / account_size) * 100.0, 2)
             })
@@ -265,7 +458,7 @@ class PerformanceReporter:
         if account_size is None or account_size <= 0:
             account_size = 100000.0 if risk_per_trade >= 500.0 else 10000.0
 
-        policy_label = "Master MT5 Executed Trades" if mode == "mt5_live" else ("Live Telegram Signals" if mode == "telegram_live" else "61.0%+ Live Production (Shielded)")
+        policy_label = "🎯 Manual M15 Wick Sniper Trades" if mode == "manual" else ("Master MT5 Executed Trades" if mode == "mt5_live" else ("Live Telegram Signals" if mode == "telegram_live" else "61.0%+ Live Production (Shielded)"))
         msg_parts = []
         msg_parts.append("📊 *ForexAlert AI · PERFORMANCE SCORECARD*")
         msg_parts.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -324,5 +517,118 @@ class PerformanceReporter:
 
         msg_parts.append(f"\n_Updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}_")
         return "\n".join(msg_parts)
+
+    def get_model_comparison_breakdown(
+        self,
+        risk_per_trade: float = 50.0,
+        start_date: Optional[str] = "2026-08-01",
+        end_date: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """
+        Compare all active, shadow, and baseline models side-by-side, plus aggregate performance:
+        - 🧠 Confluence M15 + Deep Learning (AI Gate)
+        - ⚡ Confluence M15 Standard (Rule-Based)
+        - 🛡️ Confluence M15 Suppressed Setups (ML-Blocked)
+        - 🌐 Foundation V1 Macro AI
+        - 🎯 Manual M15 Wick Sniper
+        - 🏦 Master MT5 Executed Deals
+        - 🌟 Aggregate: All Models Combined (Live + Shadow)
+        - 🏆 Aggregate: Selected Live Models
+        """
+        try:
+            from core.model_gatekeeper import load_gatekeeper_config
+            gate_cfg = load_gatekeeper_config()
+        except Exception:
+            gate_cfg = {}
+
+        active_counts = {}
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT COALESCE(model_version, 'v1'), COUNT(*)
+                    FROM signals
+                    WHERE outcome = 'ACTIVE' AND signal IN ('BUY', 'SELL')
+                    GROUP BY COALESCE(model_version, 'v1')
+                """)
+                for mv, cnt in cur.fetchall():
+                    active_counts[mv] = cnt
+        except Exception:
+            pass
+
+        try:
+            from core.dynamic_model_whitelist import get_dynamic_whitelist_manager
+            ytd_sub_models = get_dynamic_whitelist_manager().get_sub_models_config()
+        except Exception:
+            ytd_sub_models = {}
+
+        model_active_map = {
+            "dynamic_ytd_model": sum(v for k, v in active_counts.items() if gate_cfg.get(k, False) and ytd_sub_models.get(k, True)),
+            "confluence_ml_p60": active_counts.get("confluence_ml_p60", 0),
+            "confluence_std_p25": active_counts.get("confluence_std_p25", 0),
+            "confluence_ml_all": active_counts.get("confluence_ml_m15", 0),
+            "confluence_standard_all": active_counts.get("confluence_m15", 0),
+            "confluence_ml_suppressed": 0,
+            "foundation_all": active_counts.get("v1", 0),
+            "manual": active_counts.get("manual_m15", 0),
+            "mt5_live": sum(v for k, v in active_counts.items() if "confluence" in k or k == "manual_m15"),
+            "aggregate_all": sum(active_counts.values()),
+            "aggregate_live": sum(v for k, v in active_counts.items() if gate_cfg.get(k, False)),
+        }
+
+        active_sub_cnt = sum(1 for v in ytd_sub_models.values() if v)
+        models_to_compare = [
+            (f"🌟 Dynamic YTD Model ({active_sub_cnt} Active Models)", "dynamic_ytd_model", "🌟 LIVE ACTIVE" if gate_cfg.get("dynamic_ytd_model", True) else "👻 SHADOW MODE"),
+            ("🧠 Confluence ML M15 (60% TP + 2p BE)", "confluence_ml_p60", "🟢 LIVE ACTIVE" if gate_cfg.get("confluence_ml_p60") else "👻 SHADOW MODE"),
+            ("⚡ Confluence Standard M15 (25% TP + 2p BE)", "confluence_std_p25", "🟢 LIVE ACTIVE" if gate_cfg.get("confluence_std_p25") else "👻 SHADOW MODE"),
+            ("🧠 Confluence AI Quality Gate (Fixed 1.5R)", "confluence_ml_all", "🟢 LIVE ACTIVE" if gate_cfg.get("confluence_ml_m15") else "👻 SHADOW MODE"),
+            ("⚡ Confluence Standard Rule-Based (Fixed 1.5R)", "confluence_standard_all", "🟢 LIVE ACTIVE" if gate_cfg.get("confluence_m15") else "👻 SHADOW MODE"),
+            ("🛡️ Confluence Suppressed Trades", "confluence_ml_suppressed", "🛡️ AI FILTERED"),
+            ("🌐 Foundation V1 Macro AI", "foundation_all", "🟢 LIVE ACTIVE" if gate_cfg.get("foundation_v1") else "👻 SHADOW MODE"),
+            ("🎯 Manual M15 Sniper", "manual", "🟢 LIVE ACTIVE" if gate_cfg.get("manual_m15", True) else "👻 SHADOW MODE"),
+            ("🏦 Master MT5 Live Fills", "mt5_live", "🏦 BROKER FILLS"),
+            ("🌟 Aggregate: All Models Combined", "aggregate_all", "🌟 AGGREGATE (ALL)"),
+            ("🏆 Aggregate: Selected Live Models", "aggregate_live", "🏆 AGGREGATE (LIVE)"),
+        ]
+        rows = []
+        for label, m_key, status_label in models_to_compare:
+            try:
+                df = self.get_performance_matrix(
+                    period="monthly",
+                    mode=m_key,
+                    risk_per_trade=risk_per_trade,
+                    start_date=start_date,
+                    end_date=end_date,
+                    use_close_time=True
+                )
+                if not df.empty:
+                    tot_t = int(df['Trades'].sum())
+                    tot_w = int(df['Wins'].sum())
+                    tot_l = int(df['Losses'].sum())
+                    tot_be = int(df['Breakeven'].sum()) if 'Breakeven' in df.columns else (tot_t - tot_w - tot_l)
+                    wr = (tot_w / tot_t * 100.0) if tot_t > 0 else 0.0
+                    net_r = float(df['Net R'].sum())
+                    pnl = float(df['Net PnL ($)'].sum())
+                    gross_win_r = float(df['Wins'].sum()) * (1.15 if ('p60' in m_key or 'dynamic' in m_key) else (0.94 if 'p25' in m_key else 1.5))
+                    gross_loss_r = float(df['Losses'].sum()) * 1.0
+                    pf = round(gross_win_r / gross_loss_r, 2) if gross_loss_r > 0 else (999.0 if gross_win_r > 0 else 0.0)
+                else:
+                    tot_t, tot_w, tot_l, tot_be, wr, net_r, pnl, pf = 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0
+
+                record_str = f"{tot_w}W – {tot_l}L" + (f" – {tot_be}BE" if tot_be > 0 else "")
+                rows.append({
+                    "Model Engine": label,
+                    "Execution Mode": status_label,
+                    "Active Setups": model_active_map.get(m_key, 0),
+                    "Total Trades": tot_t,
+                    "Record (W-L)": record_str,
+                    "Win Rate (%)": f"{wr:.1f}%",
+                    "Net Edge (R)": f"{net_r:+.1f}R",
+                    "Net PnL ($)": f"${pnl:+,.0f}",
+                    "Profit Factor": f"{pf:.2f}",
+                })
+            except Exception as e:
+                pass
+        return pd.DataFrame(rows)
 
 

@@ -60,15 +60,8 @@ class PropGuardrail:
             return {'safe': False, 'reason': weekend_reason, 'drawdown': 0.0}
 
         # 2. Check Daily Drawdown & Emergency Kill Switch
-        state = self._load_state()
-        if state.get("halted_for_day", False):
-            halt_dd = state.get("halt_drawdown", 450.0)
-            return {
-                'safe': False,
-                'reason': f"DAILY_DRAWDOWN_KILLSWITCH_ACTIVE: Trading halted for today (Daily loss reached ${halt_dd:.2f}). Resets at 00:00 CEST.",
-                'drawdown': 100.0
-            }
-
+        # Always calculate daily drawdown FIRST so that trading day rollover (00:00 CEST = 22:00 UTC)
+        # resets state["halted_for_day"] = False at midnight.
         result = self._calculate_daily_drawdown()
         drawdown = result["drawdown_pct"]
         dollar_drawdown = result.get("dollar_drawdown", 0.0)
@@ -76,12 +69,21 @@ class PropGuardrail:
         account_tier = result.get("account_tier", 10000.0)
         max_dd_pct = float(conf.get('max_daily_drawdown_pct', 4.5))
 
+        state = self._load_state()
+        if state.get("halted_for_day", False):
+            halt_dd = state.get("halt_drawdown", dollar_drawdown)
+            return {
+                'safe': False,
+                'reason': f"DAILY_DRAWDOWN_KILLSWITCH_ACTIVE: Trading halted for today (Daily loss reached ${halt_dd:.2f} / limit ${max_loss_amount:.2f}). Resets at 00:00 CEST.",
+                'drawdown': 100.0
+            }
+
         # Trigger Kill Switch if dollar loss or percentage floor breached
         if dollar_drawdown >= max_loss_amount or drawdown >= max_dd_pct:
             self.execute_drawdown_killswitch(dollar_drawdown, max_loss_amount, exec_engine)
             return {
                 'safe': False,
-                'reason': f"DAILY_DRAWDOWN_KILLSWITCH_TRIGGERED: Daily loss reached ${dollar_drawdown:.2f} (Limit: ${max_loss_amount:.2f} [{max_dd_pct:.1f}% of ${account_tier:,.0f} tier]). All positions liquidated.",
+                'reason': f"DAILY_DRAWDOWN_KILLSWITCH_TRIGGERED: Daily loss reached ${dollar_drawdown:.2f} (Limit: ${max_loss_amount:.2f} [{max_dd_pct:.1f}% of ${account_tier:,.0f} tier]). All positions liquidated & pending orders cancelled.",
                 'drawdown': drawdown
             }
 
@@ -91,9 +93,11 @@ class PropGuardrail:
         """
         Emergency Drawdown Kill Switch:
         1. Closes ALL open MT5 positions immediately.
-        2. Resolves active signals in signals.db.
-        3. Sets halted_for_day = True until midnight rollover.
-        4. Sends high-priority Telegram emergency alert.
+        2. Cancels ALL pending MT5 orders immediately.
+        3. Broadcasts emergency liquidation to all follower copy-trading accounts.
+        4. Transitions active signals in signals.db to Virtual Shadow Tracking.
+        5. Sets halted_for_day = True until midnight rollover.
+        6. Sends high-priority Telegram emergency alert.
         """
         logger.critical(f"🚨 EMERGENCY KILL SWITCH: Daily loss ${dollar_drawdown:.2f} reached limit ${max_loss_amount:.2f}!")
 
@@ -139,7 +143,7 @@ class PropGuardrail:
                             "price": close_price,
                             "deviation": 25,
                             "magic": 999450,
-                            "comment": "Apex $450 DD Stop",
+                            "comment": f"Apex ${max_loss_amount:.0f} DD Stop",
                             "type_time": mt5.ORDER_TIME_GTC,
                             "type_filling": filling,
                         }
@@ -153,6 +157,30 @@ class PropGuardrail:
         except Exception as e:
             logger.error(f"Error executing MT5 emergency liquidation: {e}", exc_info=True)
 
+        # 2a. Cancel all pending orders in MT5 Master
+        cancelled_orders = []
+        try:
+            from core.mt5_connector import get_mt5
+            mt5 = get_mt5()
+            if mt5:
+                orders = mt5.orders_get()
+                if orders:
+                    logger.critical(f"🛑 Kill Switch: Cancelling {len(orders)} pending MT5 orders immediately!")
+                    for o in orders:
+                        cancel_req = {
+                            "action": mt5.TRADE_ACTION_REMOVE,
+                            "order": o.ticket,
+                        }
+                        res_ord = mt5.order_send(cancel_req)
+                        if res_ord and res_ord.retcode == mt5.TRADE_RETCODE_DONE:
+                            logger.info(f"✅ Emergency Cancel: Pending order #{o.ticket} ({o.symbol}) removed.")
+                            cancelled_orders.append(f"{o.symbol} (#{o.ticket})")
+                        else:
+                            comment = res_ord.comment if res_ord else "No response"
+                            logger.error(f"❌ Failed to remove pending order #{o.ticket}: {comment}")
+        except Exception as e:
+            logger.error(f"Error cancelling MT5 pending orders on killswitch: {e}", exc_info=True)
+
         # 2b. Broadcast emergency liquidation to all copy trading accounts
         try:
             from scripts.multi_executor import close_all_positions_for_all_users
@@ -160,43 +188,42 @@ class PropGuardrail:
         except Exception as _gke:
             logger.error(f"Failed to close secondary accounts on drawdown killswitch: {_gke}")
 
-        # 3. Resolve active signals in signals.db
+        # 3. Transition active signals in signals.db to Virtual Shadow Tracking
+        # Real MT5 broker orders are flattened above to protect capital, but signals remain ACTIVE
+        # so watchdog and dashboard can continue tracking their natural market outcome (TP/SL).
         try:
             from core.database import SignalDatabase
             db = SignalDatabase()
             active_signals = db.get_active_signals(include_hidden=True)
             if active_signals:
-                for sig in active_signals:
-                    sig_id = sig['id']
-                    sym = sig['symbol']
-                    cur_price = sig.get('price_at_signal')
-                    try:
-                        from core.mt5_connector import get_mt5
-                        m = get_mt5()
-                        if m:
-                            t = m.symbol_info_tick(sym)
-                            if t:
-                                cur_price = t.bid if sig['signal'] == 'BUY' else t.ask
-                    except Exception:
-                        pass
-                    db.update_signal_outcome(
-                        sig_id,
-                        'FAIL',
-                        exit_price=cur_price,
-                        exit_reason=f"Emergency Kill Switch: Daily Drawdown Limit Reached (${max_loss_amount:.0f})"
-                    )
-                logger.info(f"Resolved {len(active_signals)} active signals in DB with Kill Switch exit reason.")
+                with db._get_connection() as conn:
+                    cursor = conn.cursor()
+                    for sig in active_signals:
+                        sig_id = sig['id']
+                        cursor.execute(
+                            """
+                            UPDATE signals 
+                            SET mt5_ticket = NULL,
+                                exit_reason = ?
+                            WHERE id = ?
+                            """,
+                            (f"MT5 Flattened by Drawdown Stop (${max_loss_amount:.0f}) - Running virtually", sig_id)
+                        )
+                    conn.commit()
+                logger.info(f"Transitioned {len(active_signals)} active signals to Virtual Shadow Tracking (outcome kept ACTIVE).")
         except Exception as e:
-            logger.error(f"Error resolving active signals during killswitch: {e}", exc_info=True)
+            logger.error(f"Error transitioning active signals during killswitch: {e}", exc_info=True)
 
         # 4. Dispatch Telegram emergency notification
         try:
             from core.notifications import NotificationManager
             notifier = NotificationManager()
+            orders_line = f"• *Pending Orders Cancelled:* {len(cancelled_orders)}\n" if cancelled_orders else ""
             alert_msg = (
                 f"🚨 *EMERGENCY DRAWDOWN KILL SWITCH ACTIVATED* 🚨\n\n"
                 f"• *Daily Drawdown:* `${dollar_drawdown:.2f}` (Limit: `${max_loss_amount:.2f}`)\n"
                 f"• *Positions Liquidated:* {len(closed_positions)} open trades closed\n"
+                f"{orders_line}"
                 f"• *Status:* Trading *HALTED* for the rest of the day.\n"
                 f"• *Automatic Reset:* 00:00 CEST (22:00 UTC rollover)."
             )
@@ -256,9 +283,9 @@ class PropGuardrail:
             current_equity = float(account.equity)   # includes open floating P&L
             current_balance = float(account.balance) # closed trades only
 
-            # --- CEST Rollover: 00:00 CEST = 22:00 UTC (UTC+2 in summer) ---
-            now_utc = datetime.now(timezone.utc)
-            now_cest = now_utc + timedelta(hours=2)  # CEST = UTC+2
+            # --- CE(S)T Rollover: Dynamic European timezone handling (CET/CEST) ---
+            from zoneinfo import ZoneInfo
+            now_cest = datetime.now(ZoneInfo("Europe/Prague"))
             trading_day = now_cest.strftime("%Y-%m-%d")
 
             state = self._load_state()
@@ -301,14 +328,12 @@ class PropGuardrail:
                 tier = state.get("account_tier") or detect_account_tier(initial_balance)
 
             # --- Dynamic Daily Loss Cap Formula ---
-            # Scales dynamically with account tier/initial balance:
-            # $10,000 account -> $450 (4.5%)
-            # $100,000 account -> $4,500 (4.5%)
-            # $1,000,000 account -> $45,000 (4.5%)
-            if 'max_daily_drawdown_amount' in conf and conf['max_daily_drawdown_amount'] is not None:
-                max_loss_amount = float(conf['max_daily_drawdown_amount'])
-            else:
-                max_loss_amount = (max_dd_pct / 100.0) * tier
+            # Strictly scales dynamically with account tier / initial challenge balance:
+            # $10,000 account -> $450.00 (4.5%)
+            # $50,000 account -> $2,250.00 (4.5%)
+            # $100,000 account -> $4,500.00 (4.5%)
+            # $1,000,000 account -> $45,000.00 (4.5%)
+            max_loss_amount = (max_dd_pct / 100.0) * tier
             daily_floor = midnight_balance - max_loss_amount
 
             # Drawdown = how far equity has fallen below midnight balance

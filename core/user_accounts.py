@@ -66,6 +66,7 @@ def init_db():
             risk_type        TEXT NOT NULL DEFAULT 'fixed',
             risk_value       REAL NOT NULL DEFAULT 0.01,
             max_daily_trades INTEGER NOT NULL DEFAULT 10,
+            max_open_trades  INTEGER NOT NULL DEFAULT 3,
 
             -- Personalized terminal & broker settings
             terminal_path    TEXT NOT NULL DEFAULT '',
@@ -101,12 +102,78 @@ def init_db():
         "last_balance":        "REAL NOT NULL DEFAULT 0.0",
         "last_equity":         "REAL NOT NULL DEFAULT 0.0",
         "last_synced_at":      "TEXT NOT NULL DEFAULT ''",
+        "is_master":           "INTEGER NOT NULL DEFAULT 0",
+        "max_open_trades":     "INTEGER NOT NULL DEFAULT 3",
     }
     for col, definition in migrations.items():
         if col not in existing_cols:
             conn.execute(f"ALTER TABLE user_accounts ADD COLUMN {col} {definition}")
     conn.commit()
+
+    # Sync master account from config.yaml into user_accounts if none marked is_master
+    _sync_config_master_to_db(conn)
+    conn.commit()
     conn.close()
+
+
+def _sync_config_master_to_db(conn):
+    """
+    Ensure the active master account in config.yaml exists in user_accounts and has is_master = 1.
+    If an account already has is_master = 1, do nothing.
+    """
+    try:
+        cur_master = conn.execute("SELECT id, mt5_login FROM user_accounts WHERE is_master = 1 LIMIT 1").fetchone()
+        if cur_master:
+            return
+
+        import yaml
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if not cfg_path.exists():
+            return
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        mt5_cfg = cfg.get("mt5", {})
+        login = str(mt5_cfg.get("login", "")).strip()
+        if not login:
+            return
+
+        # Check if an account with this login already exists in user_accounts
+        existing = conn.execute("SELECT id FROM user_accounts WHERE mt5_login = ? LIMIT 1", (login,)).fetchone()
+        if existing:
+            conn.execute("UPDATE user_accounts SET is_master = 1 WHERE id = ?", (existing[0],))
+        else:
+            now = _now_iso()
+            conn.execute("""
+                INSERT INTO user_accounts (
+                    name, email, mt5_login, mt5_password, mt5_server,
+                    risk_type, risk_value, max_daily_trades, max_open_trades,
+                    terminal_path, account_type,
+                    subscription_status, trial_started_at, trial_ends_at,
+                    enabled, is_master, created_at
+                ) VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?,
+                    'paid', '', '',
+                    1, 1, ?
+                )
+            """, (
+                "FTMO Master (Signal Source)",
+                "master@apexforex.local",
+                login,
+                str(mt5_cfg.get("password", "")),
+                str(mt5_cfg.get("server", "FTMO-Server3")),
+                str(mt5_cfg.get("risk_type", "percent")),
+                float(mt5_cfg.get("risk_value", 0.5)),
+                50,
+                int(mt5_cfg.get("max_open_trades", 3)) or 3,
+                str(mt5_cfg.get("path", "")),
+                "prop_firm",
+                now,
+            ))
+    except Exception as e:
+        import logging
+        logging.getLogger("user_accounts").error(f"Error syncing master account to DB: {e}")
 
 
 def update_account_balance(user_id: int, balance: float, equity: float):
@@ -213,7 +280,8 @@ def is_subscription_active(user: dict) -> bool:
 def add_user(name: str, email: str, mt5_login: str, mt5_password: str,
              mt5_server: str, risk_type: str = "fixed",
              risk_value: float = 0.01, max_daily_trades: int = 10,
-             terminal_path: str = "", account_type: str = "standard") -> int:
+             terminal_path: str = "", account_type: str = "standard",
+             max_open_trades: int = 3) -> int:
     """Register a new subscriber. Starts a 14-day trial automatically."""
     conn = get_connection()
     now = _now_iso()
@@ -221,13 +289,13 @@ def add_user(name: str, email: str, mt5_login: str, mt5_password: str,
     cur = conn.execute("""
         INSERT INTO user_accounts
             (name, email, mt5_login, mt5_password, mt5_server,
-             risk_type, risk_value, max_daily_trades,
+             risk_type, risk_value, max_daily_trades, max_open_trades,
              terminal_path, account_type,
              subscription_status, trial_started_at, trial_ends_at,
              enabled, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'trial', ?, ?, 1, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'trial', ?, ?, 1, ?)
     """, (name, email, mt5_login, mt5_password, mt5_server,
-          risk_type, risk_value, max_daily_trades,
+          risk_type, risk_value, max_daily_trades, max_open_trades,
           terminal_path, account_type,
           now, trial_end, now))
     conn.commit()
@@ -240,10 +308,10 @@ def update_user(user_id: int, **kwargs):
     """Update any fields of a user row by id."""
     allowed = {
         "name", "email", "mt5_login", "mt5_password", "mt5_server",
-        "risk_type", "risk_value", "max_daily_trades", "enabled",
+        "risk_type", "risk_value", "max_daily_trades", "max_open_trades", "enabled",
         "subscription_status", "paid_until", "paid_note",
         "trial_ends_at", "telegram_chat_id", "terminal_path", "account_type",
-        "last_balance", "last_equity", "last_synced_at",
+        "last_balance", "last_equity", "last_synced_at", "is_master",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:
@@ -297,22 +365,167 @@ def delete_user(user_id: int):
     conn.close()
 
 
+def get_user_by_id(user_id: int) -> dict | None:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM user_accounts WHERE id = ?", (int(user_id),)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def get_all_users() -> list[dict]:
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM user_accounts ORDER BY created_at DESC").fetchall()
+    rows = conn.execute("SELECT * FROM user_accounts ORDER BY is_master DESC, enabled DESC, id ASC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_master_account() -> dict | None:
+    """Return the designated master MT5 account record."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM user_accounts WHERE is_master = 1 LIMIT 1").fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+
+    # Fallback to config.yaml if none marked in DB
+    try:
+        import yaml
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if cfg_path.exists():
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            mt5_cfg = cfg.get("mt5", {})
+            m_login = str(mt5_cfg.get("login", "")).strip()
+            if m_login:
+                conn = get_connection()
+                row = conn.execute("SELECT * FROM user_accounts WHERE mt5_login = ? LIMIT 1", (m_login,)).fetchone()
+                conn.close()
+                if row:
+                    return dict(row)
+    except Exception:
+        pass
+    return None
+
+
+def set_master_account(account_id: int) -> bool:
+    """
+    Designate a connected account as the institutional Master Account.
+    1. Sets is_master = 0 for all accounts in DB.
+    2. Sets is_master = 1 for the target account.
+    3. Synchronizes login, password, server, terminal_path to config.yaml under mt5.
+    4. Triggers MT5Connector reload so subsequent operations run on this new master.
+    """
+    conn = get_connection()
+    target = conn.execute("SELECT * FROM user_accounts WHERE id = ?", (int(account_id),)).fetchone()
+    if not target:
+        conn.close()
+        return False
+    target_dict = dict(target)
+
+    conn.execute("UPDATE user_accounts SET is_master = 0")
+    conn.execute("UPDATE user_accounts SET is_master = 1, enabled = 1 WHERE id = ?", (int(account_id),))
+    conn.commit()
+    conn.close()
+
+    # Sync to config.yaml
+    try:
+        import yaml
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if cfg_path.exists():
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                full_cfg = yaml.safe_load(f) or {}
+            if "mt5" not in full_cfg:
+                full_cfg["mt5"] = {}
+            login_val = target_dict.get("mt5_login", "")
+            full_cfg["mt5"]["login"] = int(login_val) if str(login_val).isdigit() else str(login_val)
+            if target_dict.get("mt5_password"):
+                full_cfg["mt5"]["password"] = str(target_dict["mt5_password"])
+            full_cfg["mt5"]["server"] = str(target_dict.get("mt5_server", ""))
+            try:
+                from scripts.multi_executor import _get_terminal_path_for_server
+                resolved_term = _get_terminal_path_for_server(
+                    target_dict.get("mt5_server", ""),
+                    target_dict.get("terminal_path", "")
+                )
+            except Exception:
+                resolved_term = str(target_dict.get("terminal_path", ""))
+            full_cfg["mt5"]["path"] = resolved_term
+            if target_dict.get("risk_type"):
+                full_cfg["mt5"]["risk_type"] = str(target_dict["risk_type"])
+            if target_dict.get("risk_value") is not None:
+                full_cfg["mt5"]["risk_value"] = float(target_dict["risk_value"])
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(full_cfg, f, default_flow_style=False)
+    except Exception as e:
+        import logging
+        logging.getLogger("user_accounts").error(f"Failed to sync master to config.yaml: {e}")
+
+    # Reload connector singleton
+    try:
+        from core.mt5_connector import MT5Connector
+        connector = MT5Connector()
+        connector.shutdown()
+        if hasattr(connector, 'reload_config'):
+            connector.reload_config()
+    except Exception:
+        pass
+
+    return True
+
+
+def set_account_copy_status(account_id: int, enabled: bool) -> bool:
+    """Select (enable) or deselect (disable) an account for copy trading."""
+    conn = get_connection()
+    conn.execute("UPDATE user_accounts SET enabled = ? WHERE id = ?", (1 if enabled else 0, int(account_id)))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def set_all_copy_targets(enabled: bool) -> int:
+    """Bulk select or deselect all non-master accounts for copy trading."""
+    conn = get_connection()
+    cur = conn.execute("UPDATE user_accounts SET enabled = ? WHERE (is_master = 0 OR is_master IS NULL)", (1 if enabled else 0,))
+    count = cur.rowcount
+    conn.commit()
+    conn.close()
+    return count
+
+
+def get_copy_target_accounts() -> list[dict]:
+    """Return all accounts eligible to receive copied trades (excludes master)."""
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM user_accounts WHERE (is_master = 0 OR is_master IS NULL) ORDER BY enabled DESC, id ASC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def get_enabled_users() -> list[dict]:
-    """Return only users whose subscription is currently active."""
+    """Return only non-master accounts whose subscription is active and copy trading is enabled."""
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM user_accounts WHERE enabled = 1 ORDER BY id"
+        "SELECT * FROM user_accounts WHERE enabled = 1 AND (is_master = 0 OR is_master IS NULL) ORDER BY id"
     ).fetchall()
     conn.close()
-    # Filter by live subscription status (trial not expired, paid not expired)
-    return [dict(r) for r in rows if is_subscription_active(dict(r))]
+
+    # Get master login to protect against accidental duplicate execution
+    m_login = ""
+    try:
+        import yaml
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if cfg_path.exists():
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            m_login = str(cfg.get("mt5", {}).get("login", "")).strip()
+    except Exception:
+        pass
+
+    res = []
+    for r in rows:
+        d = dict(r)
+        if is_subscription_active(d) and (not m_login or str(d.get("mt5_login", "")).strip() != m_login):
+            res.append(d)
+    return res
 
 
 def get_user_by_email(email: str) -> dict | None:

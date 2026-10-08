@@ -1,28 +1,48 @@
 {
-  "last_updated": "2026-09-20T16:05:24.681203+00:00",
+  "last_updated": "2026-10-08T12:13:13.490413+00:00",
   "performance_matrix": {
     "AUDCAD": {
       "BUY": {
         "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 2,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.197653+00:00",
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:12.369791+00:00",
           "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
+        },
+        "60": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.199226+00:00",
+          "last_updated": "2026-10-08T12:13:12.373197+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.382210+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.397171+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -30,25 +50,35 @@
     "AUDCHF": {
       "BUY": {
         "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.400766+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.403598+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.203437+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 2,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.205490+00:00",
+          "last_updated": "2026-10-08T12:13:12.436604+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -56,35 +86,45 @@
     "AUDJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.4,
-          "win_rate": 0.4,
-          "trades": 5,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.216794+00:00",
+          "last_updated": "2026-10-08T12:13:12.446743+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 4,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.224334+00:00",
+          "last_updated": "2026-10-08T12:13:12.457165+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
         "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.264532+00:00",
+          "last_updated": "2026-10-08T12:13:12.499243+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.551598+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -92,23 +132,23 @@
     "AUDNZD": {
       "BUY": {
         "50": {
-          "accuracy": 0.4,
-          "win_rate": 0.4,
-          "trades": 5,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.310048+00:00",
-          "source": "Live Data (14d)"
-        },
-        "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
+          "accuracy": 0.5,
+          "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
-          "status": "APPROVED",
-          "last_updated": "2026-09-20T16:05:24.313143+00:00",
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.557539+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.562123+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -116,25 +156,25 @@
         "50": {
           "accuracy": 0.0,
           "win_rate": 0.0,
-          "trades": 2,
+          "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.326677+00:00",
+          "last_updated": "2026-10-08T12:13:12.582457+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "AUDUSD": {
       "BUY": {
-        "60": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.341869+00:00",
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:12.610416+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -146,23 +186,38 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.342851+00:00",
+          "last_updated": "2026-10-08T12:13:12.610726+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.612003+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "BTCUSD": {
+      "BUY": {},
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.612197+00:00",
           "source": "Live Data (14d)"
         }
       }
     },
     "CADCHF": {
       "BUY": {
-        "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 2,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.346061+00:00",
-          "source": "Live Data (14d)"
-        },
         "60": {
           "accuracy": 0.0,
           "win_rate": 0.0,
@@ -170,19 +225,19 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.346290+00:00",
+          "last_updated": "2026-10-08T12:13:12.620586+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 2,
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 5,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.347083+00:00",
+          "last_updated": "2026-10-08T12:13:12.661627+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -190,85 +245,13 @@
     "CADJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.42857142857142855,
-          "win_rate": 0.42857142857142855,
-          "trades": 7,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.355040+00:00",
-          "source": "Live Data (14d)"
-        },
-        "60": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 4,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.363464+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.410408+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "CHFJPY": {
-      "BUY": {
-        "50": {
-          "accuracy": 0.36363636363636365,
-          "win_rate": 0.36363636363636365,
-          "trades": 11,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.467386+00:00",
-          "source": "Live Data (14d)"
-        },
-        "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.467843+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "accuracy": 0.3333333333333333,
-          "win_rate": 0.3333333333333333,
-          "trades": 3,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.469404+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "EURAUD": {
-      "BUY": {
-        "50": {
           "accuracy": 0.0,
           "win_rate": 0.0,
-          "trades": 3,
+          "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.472408+00:00",
+          "last_updated": "2026-10-08T12:13:12.673535+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -278,23 +261,162 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.472774+00:00",
+          "last_updated": "2026-10-08T12:13:12.683798+00:00",
           "source": "Live Data (14d)"
         }
       },
-      "SELL": {}
+      "SELL": {
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.779814+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
     },
-    "EURCAD": {
+    "CHFJPY": {
+      "BUY": {
+        "50": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 4,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.783773+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.786750+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 7,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:12.797988+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.816043+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "ETHUSD": {
       "BUY": {},
       "SELL": {
         "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.816266+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "EURAUD": {
+      "BUY": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:12.820181+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.476960+00:00",
+          "last_updated": "2026-10-08T12:13:12.823620+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.836019+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.854101+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "EURCAD": {
+      "BUY": {
+        "100": {
+          "accuracy": 0.2,
+          "win_rate": 0.2,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.856957+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:12.857148+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.857946+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -302,25 +424,45 @@
     "EURCHF": {
       "BUY": {
         "50": {
-          "accuracy": 0.3333333333333333,
-          "win_rate": 0.3333333333333333,
-          "trades": 3,
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.480358+00:00",
+          "last_updated": "2026-10-08T12:13:12.864083+00:00",
           "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
+        },
+        "60": {
           "accuracy": 0.0,
           "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.481617+00:00",
+          "last_updated": "2026-10-08T12:13:12.868944+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.885983+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.905298+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -334,17 +476,27 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.485207+00:00",
+          "last_updated": "2026-10-08T12:13:12.908447+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.485479+00:00",
+          "last_updated": "2026-10-08T12:13:12.911532+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.922420+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -353,35 +505,45 @@
     "EURJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.4444444444444444,
-          "win_rate": 0.4444444444444444,
-          "trades": 9,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 6,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.490484+00:00",
+          "last_updated": "2026-10-08T12:13:12.941411+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.490926+00:00",
+          "last_updated": "2026-10-08T12:13:12.945197+00:00",
           "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
+        },
+        "100": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.492289+00:00",
+          "last_updated": "2026-10-08T12:13:12.959582+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.978515+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -389,53 +551,73 @@
     "EURNZD": {
       "BUY": {
         "50": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.981184+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:12.984741+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
           "accuracy": 0.3333333333333333,
           "win_rate": 0.3333333333333333,
           "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.496550+00:00",
+          "last_updated": "2026-10-08T12:13:12.995733+00:00",
           "source": "Live Data (14d)"
-        },
-        "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 4,
+        }
+      },
+      "SELL": {}
+    },
+    "EURUSD": {
+      "BUY": {
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
-          "status": "APPROVED",
-          "last_updated": "2026-09-20T16:05:24.496945+00:00",
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.014126+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
         "50": {
-          "accuracy": 0.2,
-          "win_rate": 0.2,
-          "trades": 10,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.498452+00:00",
+          "last_updated": "2026-10-08T12:13:13.014286+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.015031+00:00",
           "source": "Live Data (14d)"
         }
       }
-    },
-    "EURUSD": {
-      "BUY": {
-        "60": {
-          "accuracy": 0.4,
-          "win_rate": 0.4,
-          "trades": 5,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-11T15:43:00.998514+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
     },
     "GBPAUD": {
       "BUY": {
@@ -446,17 +628,27 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.502776+00:00",
+          "last_updated": "2026-10-08T12:13:13.018016+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
           "accuracy": 1.0,
           "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.021966+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
-          "status": "APPROVED",
-          "last_updated": "2026-09-20T16:05:24.503208+00:00",
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.038063+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -471,19 +663,29 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.508175+00:00",
+          "last_updated": "2026-10-08T12:13:13.058554+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.059804+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
         "50": {
-          "accuracy": 0.42857142857142855,
-          "win_rate": 0.42857142857142855,
-          "trades": 7,
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.509190+00:00",
+          "last_updated": "2026-10-08T12:13:13.060107+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -491,25 +693,55 @@
     "GBPCHF": {
       "BUY": {
         "50": {
-          "accuracy": 0.6666666666666666,
-          "win_rate": 0.6666666666666666,
-          "trades": 3,
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 4,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.511881+00:00",
+          "last_updated": "2026-10-08T12:13:13.065251+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.069203+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.085144+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
         "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 4,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.512946+00:00",
+          "last_updated": "2026-10-08T12:13:13.088918+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.104723+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -517,35 +749,45 @@
     "GBPJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.4,
-          "win_rate": 0.4,
-          "trades": 10,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.517136+00:00",
+          "last_updated": "2026-10-08T12:13:13.109201+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.113969+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
           "accuracy": 1.0,
           "win_rate": 1.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.520056+00:00",
+          "last_updated": "2026-10-08T12:13:13.130359+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
+        "100": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.537636+00:00",
+          "last_updated": "2026-10-08T12:13:13.157749+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -553,35 +795,45 @@
     "GBPNZD": {
       "BUY": {
         "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 4,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.557859+00:00",
+          "last_updated": "2026-10-08T12:13:13.161057+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
           "accuracy": 1.0,
           "win_rate": 1.0,
-          "trades": 3,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.164519+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.8571428571428571,
+          "win_rate": 0.8571428571428571,
+          "trades": 7,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-09-20T16:05:24.558135+00:00",
+          "last_updated": "2026-10-08T12:13:13.177763+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
-          "accuracy": 0.23809523809523808,
-          "win_rate": 0.23809523809523808,
-          "trades": 21,
+        "100": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.559032+00:00",
+          "last_updated": "2026-10-08T12:13:13.193663+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -589,35 +841,45 @@
     "GBPUSD": {
       "BUY": {
         "50": {
-          "accuracy": 0.3333333333333333,
-          "win_rate": 0.3333333333333333,
-          "trades": 3,
+          "accuracy": 0.6,
+          "win_rate": 0.6,
+          "trades": 5,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.562666+00:00",
+          "last_updated": "2026-10-08T12:13:13.195724+00:00",
           "source": "Live Data (14d)"
         },
-        "60": {
-          "accuracy": 0.6666666666666666,
-          "win_rate": 0.6666666666666666,
-          "trades": 3,
+        "100": {
+          "accuracy": 0.25,
+          "win_rate": 0.25,
+          "trades": 4,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.563058+00:00",
+          "last_updated": "2026-10-08T12:13:13.210325+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
         "50": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.564735+00:00",
+          "last_updated": "2026-10-08T12:13:13.213259+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:13.225989+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -625,71 +887,80 @@
     "NZDCAD": {
       "BUY": {
         "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 3,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.569335+00:00",
-          "source": "Live Data (14d)"
-        },
-        "60": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.571682+00:00",
+          "last_updated": "2026-10-08T12:13:13.230109+00:00",
           "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
+        },
+        "60": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.233702+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.583416+00:00",
+          "last_updated": "2026-10-08T12:13:13.243629+00:00",
           "source": "Live Data (14d)"
         }
-      }
+      },
+      "SELL": {}
     },
     "NZDCHF": {
       "BUY": {
         "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.261198+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.599527+00:00",
+          "last_updated": "2026-10-08T12:13:13.263841+00:00",
           "source": "Live Data (14d)"
         },
-        "60": {
+        "100": {
           "accuracy": 0.0,
           "win_rate": 0.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.599851+00:00",
+          "last_updated": "2026-10-08T12:13:13.280239+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.601318+00:00",
+          "last_updated": "2026-10-08T12:13:13.300839+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -697,59 +968,33 @@
     "NZDJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.16666666666666666,
-          "win_rate": 0.16666666666666666,
-          "trades": 6,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.606057+00:00",
-          "source": "Live Data (14d)"
-        },
-        "60": {
           "accuracy": 0.0,
           "win_rate": 0.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.606346+00:00",
+          "last_updated": "2026-10-08T12:13:13.304901+00:00",
           "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
+        },
+        "60": {
           "accuracy": 0.3333333333333333,
           "win_rate": 0.3333333333333333,
           "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.607178+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "NZDUSD": {
-      "BUY": {
-        "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 3,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.611612+00:00",
+          "last_updated": "2026-10-08T12:13:13.309312+00:00",
           "source": "Live Data (14d)"
         },
-        "60": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.611995+00:00",
+          "last_updated": "2026-10-08T12:13:13.325707+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -761,7 +1006,78 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.613346+00:00",
+          "last_updated": "2026-10-08T12:13:13.329743+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.348776+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "NZDUSD": {
+      "BUY": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:13.351608+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.354718+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.364911+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.367922+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "SOLUSD": {
+      "BUY": {},
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.383797+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -775,7 +1091,27 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.616586+00:00",
+          "last_updated": "2026-10-08T12:13:13.386386+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.386718+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:13.387391+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -783,11 +1119,21 @@
         "50": {
           "accuracy": 0.0,
           "win_rate": 0.0,
-          "trades": 2,
+          "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.617604+00:00",
+          "last_updated": "2026-10-08T12:13:13.387507+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.0,
+          "win_rate": 0.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.388390+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -795,35 +1141,45 @@
     "USDCHF": {
       "BUY": {
         "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.393519+00:00",
+          "source": "Live Data (14d)"
+        },
+        "60": {
           "accuracy": 0.5,
           "win_rate": 0.5,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.620816+00:00",
+          "last_updated": "2026-10-08T12:13:13.398529+00:00",
           "source": "Live Data (14d)"
         },
-        "60": {
+        "100": {
           "accuracy": 0.0,
           "win_rate": 0.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.624164+00:00",
+          "last_updated": "2026-10-08T12:13:13.419232+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
+        "100": {
           "accuracy": 0.0,
           "win_rate": 0.0,
-          "trades": 2,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.649961+00:00",
+          "last_updated": "2026-10-08T12:13:13.441939+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -831,35 +1187,45 @@
     "USDJPY": {
       "BUY": {
         "50": {
-          "accuracy": 0.4,
-          "win_rate": 0.4,
-          "trades": 10,
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.665395+00:00",
+          "last_updated": "2026-10-08T12:13:13.445435+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.665763+00:00",
+          "last_updated": "2026-10-08T12:13:13.448232+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:13.461141+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
-        "50": {
-          "accuracy": 1.0,
-          "win_rate": 1.0,
-          "trades": 1,
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 6,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.666979+00:00",
+          "last_updated": "2026-10-08T12:13:13.478089+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -867,98 +1233,81 @@
     "USDSGD": {
       "BUY": {
         "50": {
-          "accuracy": 0.6666666666666666,
-          "win_rate": 0.6666666666666666,
-          "trades": 3,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.671177+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {}
-    },
-    "USOIL.cash": {
-      "BUY": {
-        "60": {
-          "accuracy": 0.6,
-          "win_rate": 0.6,
-          "trades": 5,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.673768+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
+          "accuracy": 1.0,
+          "win_rate": 1.0,
           "trades": 1,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.673865+00:00",
+          "last_updated": "2026-10-08T12:13:13.481240+00:00",
           "source": "Live Data (14d)"
         },
-        "50": {
-          "accuracy": 0.3333333333333333,
-          "win_rate": 0.3333333333333333,
-          "trades": 9,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.673615+00:00",
-          "source": "Live Data (14d)"
-        }
-      },
-      "SELL": {
-        "50": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 3,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.674205+00:00",
-          "source": "Live Data (14d)"
-        }
-      }
-    },
-    "XAUUSD": {
-      "BUY": {
         "60": {
-          "accuracy": 0.0,
-          "win_rate": 0.0,
-          "trades": 4,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.675218+00:00",
-          "source": "Live Data (14d)"
-        },
-        "70": {
-          "accuracy": 0.5,
-          "win_rate": 0.5,
-          "trades": 2,
-          "oos_trades": 0,
-          "oos_accuracy": 0.0,
-          "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.675391+00:00",
-          "source": "Live Data (14d)"
-        },
-        "50": {
           "accuracy": 1.0,
           "win_rate": 1.0,
           "trades": 2,
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-09-20T16:05:24.675021+00:00",
+          "last_updated": "2026-10-08T12:13:13.481697+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "APPROVED",
+          "last_updated": "2026-10-08T12:13:13.483152+00:00",
           "source": "Live Data (14d)"
         }
       },
       "SELL": {
+        "100": {
+          "accuracy": 0.4,
+          "win_rate": 0.4,
+          "trades": 5,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.484156+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "USOIL.cash": {
+      "BUY": {},
+      "SELL": {
+        "100": {
+          "accuracy": 0.6666666666666666,
+          "win_rate": 0.6666666666666666,
+          "trades": 6,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.487419+00:00",
+          "source": "Live Data (14d)"
+        }
+      }
+    },
+    "XAGUSD": {
+      "BUY": {
+        "100": {
+          "accuracy": 0.3333333333333333,
+          "win_rate": 0.3333333333333333,
+          "trades": 3,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.487708+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {}
+    },
+    "XAUUSD": {
+      "BUY": {
         "50": {
           "accuracy": 0.0,
           "win_rate": 0.0,
@@ -966,7 +1315,29 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-09-20T16:05:24.675882+00:00",
+          "last_updated": "2026-10-08T12:13:13.488577+00:00",
+          "source": "Live Data (14d)"
+        }
+      },
+      "SELL": {
+        "50": {
+          "accuracy": 1.0,
+          "win_rate": 1.0,
+          "trades": 1,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.489509+00:00",
+          "source": "Live Data (14d)"
+        },
+        "100": {
+          "accuracy": 0.5,
+          "win_rate": 0.5,
+          "trades": 2,
+          "oos_trades": 0,
+          "oos_accuracy": 0.0,
+          "status": "BENCHED",
+          "last_updated": "2026-10-08T12:13:13.489999+00:00",
           "source": "Live Data (14d)"
         }
       }

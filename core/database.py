@@ -135,7 +135,8 @@ class SignalDatabase:
                     'cci': 'REAL',
                     'bb_position': 'REAL',
                     'ema_cross': 'REAL',
-                    'indicator_values': 'TEXT'
+                    'indicator_values': 'TEXT',
+                    'is_manual': 'INTEGER DEFAULT 0'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -217,6 +218,14 @@ class SignalDatabase:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 
+                # Ticket deduplication guard: never insert duplicate row for same MT5 ticket
+                if data.get('mt5_ticket'):
+                    cursor.execute("SELECT id FROM signals WHERE mt5_ticket = ?", (str(data['mt5_ticket']),))
+                    existing_t = cursor.fetchone()
+                    if existing_t:
+                        logger.warning(f"🛑 DB DEDUP: Signal for MT5 ticket {data['mt5_ticket']} already exists (ID {existing_t[0]}). Skipping duplicate insert.")
+                        return existing_t[0]
+
                 cursor.execute("""
                 INSERT INTO signals (
                     timestamp, symbol, signal, expert_signal, confidence, confidence_tier,
@@ -226,8 +235,9 @@ class SignalDatabase:
                     yield_slope, buy_prob, sell_prob, wait_prob,
                     suggested_lots, is_proven, is_hidden, adx, atr_zscore,
                     raw_confidence, expert_intent, rsi, atr, macd, macd_signal,
-                    macd_hist, stoch_k, stoch_d, cci, bb_position, ema_cross, indicator_values
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    macd_hist, stoch_k, stoch_d, cci, bb_position, ema_cross, indicator_values,
+                    mt5_ticket, is_manual
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     data['timestamp'], 
                     data['symbol'], 
@@ -268,7 +278,9 @@ class SignalDatabase:
                     data.get('cci'),
                     data.get('bb_position'),
                     data.get('ema_cross'),
-                    data.get('indicator_values')
+                    data.get('indicator_values'),
+                    str(data.get('mt5_ticket')) if data.get('mt5_ticket') is not None else None,
+                    data.get('is_manual', 0)
                 ))
 
                 
@@ -490,7 +502,7 @@ class SignalDatabase:
 
     def get_validated_win_rate(self) -> Dict[str, float]:
         """
-        Get the overall win rate for signals that were generated while the pair was proven.
+        Get the overall win rate for signals that were generated while the pair was proven or executed live.
         """
         try:
             with self._get_connection() as conn:
@@ -500,7 +512,7 @@ class SignalDatabase:
                         COUNT(*) as total_resolved,
                         SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins
                     FROM signals 
-                    WHERE is_proven = 1 
+                    WHERE (is_proven = 1 OR is_manual = 1 OR mt5_ticket IS NOT NULL) 
                       AND signal IN ('BUY', 'SELL')
                       AND outcome IN ('SUCCESS', 'FAIL')
                 """)
@@ -515,25 +527,20 @@ class SignalDatabase:
 
     def get_live_win_rate(self) -> Dict[str, float]:
         """
-        Get the live win rate for the v1 model specifically.
-        Only counts trades that:
-          - model_version = 'v1'
-          - is_proven = 1
-          - mt5_ticket IS NOT NULL (trade actually executed on MT5, not simulator)
-          - outcome IN ('SUCCESS', 'FAIL')
+        Get the live win rate for all real live MT5 executed trades (v1 and manual).
         """
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                # Overall v1 live win rate — MT5-executed trades only
+                # Overall live win rate — MT5-executed trades only
                 cursor.execute("""
                     SELECT 
                         COUNT(*) as total_resolved,
                         SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
                         SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses
                     FROM signals 
-                    WHERE model_version = 'v1'
-                      AND is_proven = 1
+                    WHERE (model_version IN ('v1', 'manual_m15') OR is_manual = 1)
+                      AND (is_proven = 1 OR is_manual = 1 OR mt5_ticket IS NOT NULL)
                       AND mt5_ticket IS NOT NULL
                       AND (is_hidden IS NULL OR is_hidden = 0)
                       AND signal IN ('BUY', 'SELL')
@@ -552,8 +559,8 @@ class SignalDatabase:
                         SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
                         SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses
                     FROM signals 
-                    WHERE model_version = 'v1'
-                      AND is_proven = 1
+                    WHERE (model_version IN ('v1', 'manual_m15') OR is_manual = 1)
+                      AND (is_proven = 1 OR is_manual = 1 OR mt5_ticket IS NOT NULL)
                       AND mt5_ticket IS NOT NULL
                       AND (is_hidden IS NULL OR is_hidden = 0)
                       AND signal IN ('BUY', 'SELL')
@@ -724,10 +731,11 @@ class SignalDatabase:
                 cursor.execute(
                     """
                     UPDATE signals 
-                    SET outcome = ?, exit_price = ?, exit_reason = ?, exit_time = ?, duration_seconds = ? 
+                    SET outcome = ?, exit_price = ?, exit_reason = ?, exit_time = ?, duration_seconds = ?,
+                        is_proven = CASE WHEN ? IN ('SUCCESS', 'FAIL') THEN 1 ELSE is_proven END
                     WHERE id = ?
                     """, 
-                    (outcome, exit_price, exit_reason, exit_time, duration_sec, signal_id)
+                    (outcome, exit_price, exit_reason, exit_time, duration_sec, outcome, signal_id)
                 )
                 conn.commit()
                 logger.info(f"Signal {signal_id} marked as {outcome} ({exit_reason}) | Exit: {exit_time} | Duration: {duration_sec}s")
@@ -755,35 +763,217 @@ class SignalDatabase:
             logger.error(f"Failed to get stats: {e}")
             return {}
 
-    def get_performance_matrix_stats(self, lookback_days: int = 14) -> List[Dict]:
+    def get_performance_matrix_stats(
+        self,
+        lookback_days: int = 14,
+        model_version: Optional[str] = None,
+        live_only: bool = True
+    ) -> List[Dict]:
         """
         Aggregate performance metrics for all symbols within a lookback window.
+        Optionally filter by model_version.
+        If live_only=True, only considers real executed broker trades (mt5_ticket IS NOT NULL)
+        and deduplicates by mt5_ticket to avoid multi-model duplicate counts.
         """
         try:
             from datetime import timedelta
+            if model_version in ("dynamic_ytd_model", "dynamic_ytd"):
+                from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+                with self._get_connection() as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.cursor()
+                    t_filter = "AND mt5_ticket IS NOT NULL" if live_only else ""
+                    q = f"""
+                        SELECT symbol, outcome, confidence, timestamp, model_version, mt5_ticket
+                        FROM signals
+                        WHERE timestamp >= ? 
+                          AND outcome IN ('SUCCESS', 'FAIL')
+                          AND signal IN ('BUY', 'SELL')
+                          AND symbol != 'SYSTEM'
+                          {t_filter}
+                        ORDER BY timestamp ASC
+                    """
+                    cursor.execute(q, (cutoff,))
+                    rows = cursor.fetchall()
+
+                sym_groups = {}
+                seen_tickets = set()
+                for r in rows:
+                    mv = r["model_version"]
+                    sym = r["symbol"]
+                    if not is_pair_whitelisted_for_model(mv, sym):
+                        continue
+                    if live_only:
+                        ticket = r["mt5_ticket"]
+                        if ticket in seen_tickets:
+                            continue
+                        seen_tickets.add(ticket)
+
+                    if sym not in sym_groups:
+                        sym_groups[sym] = {
+                            "symbol": sym,
+                            "total_trades": 0,
+                            "wins": 0,
+                            "losses": 0,
+                            "conf_sum": 0.0,
+                            "last_trade": r["timestamp"]
+                        }
+                    g = sym_groups[sym]
+                    g["total_trades"] += 1
+                    if r["outcome"] == "SUCCESS":
+                        g["wins"] += 1
+                    elif r["outcome"] == "FAIL":
+                        g["losses"] += 1
+                    g["conf_sum"] += float(r["confidence"] or 0.0)
+                    if r["timestamp"] > g["last_trade"]:
+                        g["last_trade"] = r["timestamp"]
+
+                result = []
+                for sym, g in sym_groups.items():
+                    result.append({
+                        "symbol": sym,
+                        "total_trades": g["total_trades"],
+                        "wins": g["wins"],
+                        "losses": g["losses"],
+                        "avg_confidence": (g["conf_sum"] / g["total_trades"]) if g["total_trades"] > 0 else 0.0,
+                        "last_trade": g["last_trade"]
+                    })
+                result.sort(key=lambda x: (x["wins"], x["total_trades"]), reverse=True)
+                return result
+
             cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                if live_only:
+                    query = """
+                        SELECT 
+                            symbol,
+                            COUNT(DISTINCT mt5_ticket) as total_trades,
+                            COUNT(DISTINCT CASE WHEN outcome = 'SUCCESS' THEN mt5_ticket END) as wins,
+                            COUNT(DISTINCT CASE WHEN outcome = 'FAIL' THEN mt5_ticket END) as losses,
+                            AVG(confidence) as avg_confidence,
+                            MAX(timestamp) as last_trade
+                        FROM signals
+                        WHERE timestamp >= ? 
+                          AND outcome IN ('SUCCESS', 'FAIL')
+                          AND signal IN ('BUY', 'SELL')
+                          AND symbol != 'SYSTEM'
+                          AND mt5_ticket IS NOT NULL
+                    """
+                    params = [cutoff]
+                    if model_version and model_version != "ALL":
+                        if model_version.endswith("_live"):
+                            actual_mv = model_version[:-5]
+                            query += " AND model_version = ?"
+                            params.append(actual_mv)
+                        else:
+                            query += " AND model_version = ?"
+                            params.append(model_version)
+                    query += " GROUP BY symbol ORDER BY wins DESC, total_trades DESC"
+                else:
+                    query = """
+                        SELECT 
+                            symbol,
+                            COUNT(*) as total_trades,
+                            SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
+                            SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses,
+                            AVG(confidence) as avg_confidence,
+                            MAX(timestamp) as last_trade
+                        FROM signals
+                        WHERE timestamp >= ? 
+                          AND outcome IN ('SUCCESS', 'FAIL')
+                          AND signal IN ('BUY', 'SELL')
+                          AND symbol != 'SYSTEM'
+                    """
+                    params = [cutoff]
+                    if model_version and model_version != "ALL":
+                        if model_version.endswith("_live"):
+                            actual_mv = model_version[:-5]
+                            query += " AND model_version = ? AND mt5_ticket IS NOT NULL"
+                            params.append(actual_mv)
+                        else:
+                            query += " AND model_version = ?"
+                            params.append(model_version)
+                    query += " GROUP BY symbol ORDER BY wins DESC, total_trades DESC"
+
+                cursor.execute(query, tuple(params))
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to fetch performance matrix stats: {e}")
+            return []
+
+    def get_model_engine_registry_stats(self) -> List[Dict]:
+        """
+        Aggregate all-time performance metrics per strategy model engine.
+        """
+        try:
             with self._get_connection() as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT 
-                        symbol,
-                        COUNT(*) as total_trades,
+                        COALESCE(model_version, 'v1') as model_engine,
+                        COUNT(*) as total_setups,
+                        SUM(CASE WHEN outcome IN ('SUCCESS', 'FAIL') THEN 1 ELSE 0 END) as closed_trades,
                         SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
                         SUM(CASE WHEN outcome = 'FAIL' THEN 1 ELSE 0 END) as losses,
+                        SUM(CASE WHEN outcome = 'ACTIVE' THEN 1 ELSE 0 END) as active_setups,
                         AVG(confidence) as avg_confidence,
-                        MAX(timestamp) as last_trade
+                        MAX(timestamp) as last_seen
                     FROM signals
-                    WHERE timestamp >= ? 
-                      AND outcome IN ('SUCCESS', 'FAIL')
-                      AND signal IN ('BUY', 'SELL')
+                    WHERE signal IN ('BUY', 'SELL')
                       AND symbol != 'SYSTEM'
-                    GROUP BY symbol
-                    ORDER BY wins DESC
-                """, (cutoff,))
-                return [dict(row) for row in cursor.fetchall()]
+                    GROUP BY COALESCE(model_version, 'v1')
+                    ORDER BY total_setups DESC
+                """)
+                rows = [dict(row) for row in cursor.fetchall()]
+                try:
+                    from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
+                    cursor.execute("""
+                        SELECT model_version, symbol, outcome, confidence, timestamp
+                        FROM signals
+                        WHERE signal IN ('BUY', 'SELL') AND symbol != 'SYSTEM'
+                    """)
+                    all_sigs = cursor.fetchall()
+                    dyn_total = 0
+                    dyn_closed = 0
+                    dyn_wins = 0
+                    dyn_losses = 0
+                    dyn_active = 0
+                    dyn_conf_sum = 0.0
+                    dyn_last_seen = None
+                    for s in all_sigs:
+                        if is_pair_whitelisted_for_model(s["model_version"], s["symbol"]):
+                            dyn_total += 1
+                            out = s["outcome"]
+                            if out in ('SUCCESS', 'FAIL'):
+                                dyn_closed += 1
+                                if out == 'SUCCESS': dyn_wins += 1
+                                elif out == 'FAIL': dyn_losses += 1
+                            elif out == 'ACTIVE':
+                                dyn_active += 1
+                            dyn_conf_sum += float(s["confidence"] or 0.0)
+                            if not dyn_last_seen or s["timestamp"] > dyn_last_seen:
+                                dyn_last_seen = s["timestamp"]
+
+                    if dyn_total > 0:
+                        rows.insert(0, {
+                            "model_engine": "dynamic_ytd_model",
+                            "total_setups": dyn_total,
+                            "closed_trades": dyn_closed,
+                            "wins": dyn_wins,
+                            "losses": dyn_losses,
+                            "active_setups": dyn_active,
+                            "avg_confidence": (dyn_conf_sum / dyn_total) if dyn_total > 0 else 0.0,
+                            "last_seen": dyn_last_seen
+                        })
+                except Exception:
+                    pass
+                return rows
         except Exception as e:
-            logger.error(f"Failed to fetch performance matrix stats: {e}")
+            logger.error(f"Failed to fetch model engine registry stats: {e}")
             return []
 
     def get_model_registry_stats(self) -> List[Dict]:

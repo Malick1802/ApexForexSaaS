@@ -112,6 +112,11 @@ def resolve_symbol_for_server(symbol: str, mt5_conn) -> str:
     OIL_BRENT_ROOTS = ["UKOIL", "XBRUSD", "BRENT", "BRENTOIL", "BRENTSPOT", "UKOUSD", "BRN"]
     GOLD_ROOTS = ["XAUUSD", "GOLD", "XAUEUR", "XAUAUD"]
     SILVER_ROOTS = ["XAGUSD", "SILVER"]
+    CRYPTO_BTC_ROOTS = ["BTCUSD", "BTC", "BTCUSDT", "XBTUSD", "BTC.USD", "BTCUSD.m", "BTCUSD.raw"]
+    CRYPTO_ETH_ROOTS = ["ETHUSD", "ETH", "ETHUSDT", "ETH.USD", "ETHUSD.m", "ETHUSD.raw"]
+    CRYPTO_SOL_ROOTS = ["SOLUSD", "SOL", "SOLUSDT", "SOL.USD", "SOLUSD.m", "SOLUSD.raw"]
+    CRYPTO_XRP_ROOTS = ["XRPUSD", "XRP", "XRPUSDT", "XRP.USD"]
+    CRYPTO_LTC_ROOTS = ["LTCUSD", "LTC", "LTCUSDT", "LTC.USD"]
 
     candidate_roots = []
     if any(k in clean for k in ["USOIL", "WTI", "CRUDE", "CL", "XTI"]):
@@ -122,6 +127,16 @@ def resolve_symbol_for_server(symbol: str, mt5_conn) -> str:
         candidate_roots = GOLD_ROOTS
     elif any(k in clean for k in ["XAG", "SILVER"]):
         candidate_roots = SILVER_ROOTS
+    elif any(k in clean for k in ["BTC", "XBT"]):
+        candidate_roots = CRYPTO_BTC_ROOTS
+    elif any(k in clean for k in ["ETH"]):
+        candidate_roots = CRYPTO_ETH_ROOTS
+    elif any(k in clean for k in ["SOL"]):
+        candidate_roots = CRYPTO_SOL_ROOTS
+    elif any(k in clean for k in ["XRP"]):
+        candidate_roots = CRYPTO_XRP_ROOTS
+    elif any(k in clean for k in ["LTC"]):
+        candidate_roots = CRYPTO_LTC_ROOTS
     else:
         # Forex pairs: strip .cash or custom suffixes
         base_clean = clean.split(".")[0].split("_")[0]
@@ -163,6 +178,45 @@ def resolve_symbol_for_server(symbol: str, mt5_conn) -> str:
                     return s.name
 
     return symbol
+
+
+def get_subscriber_daily_pnl(mt5_conn, user: dict, acc) -> tuple:
+    """
+    Calculate FTMO-compliant daily P&L and max loss for a subscriber account.
+    Accurately handles:
+    1. FTMO Midnight CE(S)T rollover (Europe/Prague timezone, dynamically handling CET vs CEST).
+    2. Broker server timezone offset (dynamically queries active tick to convert to server epoch).
+    3. Prevents truncation of recent deals by querying up to current server time + safety margin.
+    4. Prevents leakage of precedent-day deals.
+    Returns: (today_pnl, max_user_loss, tier)
+    """
+    from core.guardrail import detect_account_tier
+    from zoneinfo import ZoneInfo
+
+    tier = detect_account_tier(acc.balance)
+    max_user_loss = (float(user.get("max_daily_drawdown_pct", 4.5)) / 100.0) * tier
+
+    # Detect broker server offset relative to UTC
+    tick = mt5_conn.symbol_info_tick("EURUSD")
+    now_utc_ts = int(datetime.now(timezone.utc).timestamp())
+    broker_offset_sec = (tick.time - now_utc_ts) if tick and tick.time > 0 else 7200
+    broker_offset_hours = round(broker_offset_sec / 3600)
+    broker_offset_sec = broker_offset_hours * 3600
+
+    # FTMO rollover is midnight CE(S)T (Europe/Prague)
+    cest_tz = ZoneInfo("Europe/Prague")
+    now_cest = datetime.now(cest_tz)
+    start_cest = now_cest.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    start_broker_ts = int(start_cest.timestamp()) + broker_offset_sec
+    end_broker_ts = (tick.time if tick and tick.time > 0 else (now_utc_ts + broker_offset_sec)) + 86400
+
+    deals = mt5_conn.history_deals_get(start_broker_ts, end_broker_ts)
+    today_closed = sum(d.profit + d.commission + d.swap for d in (deals or []))
+    today_floating = acc.equity - acc.balance
+    today_pnl = today_closed + today_floating
+
+    return today_pnl, max_user_loss, tier
 
 
 def _worker_execute_order(user: dict, signal_row: dict) -> dict:
@@ -224,26 +278,45 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     acc = mt5.account_info()
 
     if not acc or acc.login != login:
+        logger.info(f"🔄 Switching account in running terminal to #{login} on {server}...")
+        mt5.login(login=int(login), password=str(password), server=str(server))
+        acc = mt5.account_info()
+
+    if not acc or acc.login != login:
         logger.error(f"❌ Account mismatch in worker! Target #{login}, but connected to #{getattr(acc, 'login', 'None')}. "
                      f"Credentials may be wrong or terminal may not be running.")
         mt5.shutdown()
-        return {"status": "FAILED", "error": "ACCOUNT_MISMATCH"}
+        return {"status": "FAILED", "error": f"ACCOUNT_MISMATCH_EXPECTED_{login}_GOT_{getattr(acc, 'login', 'None')}"}
 
     logger.info(f"✅ Worker logged in: {acc.name} (#{acc.login}) on {acc.server} | Balance: ${acc.balance:,.2f}")
+
+    # Verify trade connection to broker server is ready (prevents 10031 NO_CONNECTION error)
+    connected = False
+    for _ in range(8):
+        t_info = mt5.terminal_info()
+        if t_info and getattr(t_info, "connected", False):
+            connected = True
+            break
+        time.sleep(0.5)
+    if not connected:
+        logger.warning(f"⚠️ Terminal network connection still establishing on #{login}. Will rely on retry loop.")
+
+    if not getattr(acc, "trade_allowed", True):
+        err_detail = "Trading disabled by broker server (trial expired, max loss reached, or read-only password)"
+        logger.error(f"❌ {err_detail} on account #{login}")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": f"BROKER_TRADE_DISABLED: {err_detail}"}
+
+    if not getattr(acc, "trade_expert", True):
+        err_detail = "AutoTrading/API disabled by broker server on this account (Code 10026). Enable EA trading in prop firm dashboard or verify Master password."
+        logger.error(f"❌ {err_detail} on account #{login}")
+        mt5.shutdown()
+        return {"status": "FAILED", "error": f"AUTOTRADING_DISABLED: {err_detail}"}
 
     # ── Secondary Account Daily Drawdown Check ────────────────────────
     # Dynamically scales to subscriber's account tier:
     # e.g., $10k -> $450, $100k -> $4,500, $1M -> $45,000 (4.5%)
-    from core.guardrail import detect_account_tier
-    from datetime import timedelta
-    tier = detect_account_tier(acc.balance)
-    max_user_loss = (float(user.get("max_daily_drawdown_pct", 4.5)) / 100.0) * tier
-    now_utc = datetime.now(timezone.utc)
-    today_start = (now_utc + timedelta(hours=2)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=2)
-    deals = mt5.history_deals_get(today_start, now_utc)
-    today_closed = sum(d.profit + d.commission + d.swap for d in (deals or []))
-    today_floating = acc.equity - acc.balance
-    today_pnl = today_closed + today_floating
+    today_pnl, max_user_loss, tier = get_subscriber_daily_pnl(mt5, user, acc)
 
     if today_pnl <= -max_user_loss:
         logger.warning(
@@ -256,14 +329,67 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     # Resolve broker-specific symbol alias (e.g. USOIL.cash -> WTI)
     actual_symbol = resolve_symbol_for_server(symbol, mt5)
 
+    mod_ver = str(signal_row.get("model_version") or "").lower()
+    is_manual = bool(
+        signal_row.get("is_manual") == 1 or
+        mod_ver in ("manual_m15", "confluence_ml_p60", "confluence_std_p25", "confluence_ml_m15", "confluence_m15") or
+        mod_ver.startswith("confluence_") or
+        signal_row.get("order_type") in ("BUY_STOP", "SELL_STOP", "BUY_LIMIT", "SELL_LIMIT")
+    )
+
+    try:
+        from core.confluence_model import is_order_from_model, MODEL_MAGIC_MAP
+        target_magic = int(signal_row.get("magic") or MODEL_MAGIC_MAP.get(mod_ver, 202425))
+    except Exception:
+        target_magic = 202425
+        is_order_from_model = lambda c, m: True
+
+    # Check max open trades & currency basket cap on this subscriber account
+    all_subscriber_positions = mt5.positions_get()
+    if all_subscriber_positions:
+        # Automated scanner signals are capped at 3 concurrent trades.
+        # Manual discretionary trades are permitted up to 8 positions (or user setting) to allow
+        user_max = user.get("max_open_trades")
+        max_open = int(user_max) if (user_max is not None and int(user_max) > 0) else (8 if is_manual else 3)
+        if len(all_subscriber_positions) >= max_open:
+            logger.warning(f"🛑 MAX OPEN REACHED on #{login}: Already {len(all_subscriber_positions)}/{max_open} positions open. Skipping.")
+            mt5.shutdown()
+            return {"status": "SKIPPED", "reason": "MAX_OPEN_REACHED"}
+            
+        # Currency basket cap only applies to automated scanner signals, not manual discretionary setups
+        if not is_manual:
+            clean_s = actual_symbol.upper().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_SB", "")
+            currencies = {clean_s[:3], clean_s[3:6]} if len(clean_s) >= 6 else {clean_s}
+            for c in currencies:
+                matching_pairs = []
+                for ap in all_subscriber_positions:
+                    ap_s = ap.symbol.upper().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_SB", "")
+                    if c in (ap_s[:3], ap_s[3:6]):
+                        matching_pairs.append(ap.symbol)
+                if len(matching_pairs) >= 1:
+                    logger.warning(f"🛑 CURRENCY BASKET CAP on #{login}: Currency {c} already in open trade ({', '.join(matching_pairs)}). Skipping {actual_symbol}.")
+                    mt5.shutdown()
+                    return {"status": "SKIPPED", "reason": f"CURRENCY_BASKET_CAP_{c}"}
+
     # Check if position already open on this account (Deduplication)
     existing_pos = mt5.positions_get(symbol=actual_symbol)
     if existing_pos:
         for p in existing_pos:
-            if (signal_type == "BUY" and p.type == 0) or (signal_type == "SELL" and p.type == 1):
-                logger.warning(f"🛑 DEDUP: {actual_symbol} {signal_type} already open on #{login} (Ticket #{p.ticket}). Blocking duplicate.")
-                mt5.shutdown()
-                return {"status": "SKIPPED", "ticket": p.ticket, "reason": "ALREADY_OPEN"}
+            p_comm = str(getattr(p, "comment", "") or "").upper()
+            p_magic = getattr(p, "magic", 0)
+            is_same_model = is_order_from_model(p_comm, mod_ver) or (p_magic == target_magic)
+            if is_manual:
+                # Confluence / manual models: ONLY deduplicate against positions belonging to the SAME model!
+                # Different models are permitted to trade the same currency pair.
+                if is_same_model and ((signal_type == "BUY" and p.type == 0) or (signal_type == "SELL" and p.type == 1)):
+                    logger.warning(f"🛑 DEDUP: {actual_symbol} {signal_type} already open on #{login} by {mod_ver} (Ticket #{p.ticket}). Blocking duplicate.")
+                    mt5.shutdown()
+                    return {"status": "SKIPPED", "ticket": p.ticket, "reason": "ALREADY_OPEN"}
+            else:
+                if (signal_type == "BUY" and p.type == 0) or (signal_type == "SELL" and p.type == 1):
+                    logger.warning(f"🛑 DEDUP: {actual_symbol} {signal_type} already open on #{login} (Ticket #{p.ticket}). Blocking duplicate.")
+                    mt5.shutdown()
+                    return {"status": "SKIPPED", "ticket": p.ticket, "reason": "ALREADY_OPEN"}
 
     if not mt5.symbol_select(actual_symbol, True):
         from core.symbol_guard import is_commodity
@@ -287,29 +413,109 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         mt5.shutdown()
         return {"status": "FAILED", "error": "NO_TICK"}
 
-    price = tick.ask if signal_type == "BUY" else tick.bid
-    order_type = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
+    # Check if pending order already active on this account for manual signals
+    if is_manual:
+        existing_orders = mt5.orders_get(symbol=actual_symbol)
+        if existing_orders:
+            for o in existing_orders:
+                o_comm = str(getattr(o, "comment", "") or "").upper()
+                o_magic = getattr(o, "magic", 0)
+                is_same_model = is_order_from_model(o_comm, mod_ver) or (o_magic == target_magic)
+                if is_same_model:
+                    logger.warning(f"🛑 DEDUP: {actual_symbol} pending order already active on #{login} by {mod_ver} (Ticket #{o.ticket}). Blocking duplicate.")
+                    mt5.shutdown()
+                    return {"status": "SKIPPED", "ticket": o.ticket, "reason": "ALREADY_PENDING"}
 
-    # Dynamic 0.5% risk lot size calculation
+    # Dynamic risk lot size calculation (percent, fixed_cash, fixed_lot)
+    risk_type = str(user.get("risk_type", "percent")).lower()
     risk_value = float(user.get("risk_value", 0.5))
-    risk_amount = acc.balance * (risk_value / 100.0)
+
+    if risk_type in ("fixed_cash", "cash", "usd", "fixed_usd", "dollar"):
+        risk_amount = risk_value
+    elif risk_type in ("fixed", "fixed_lot", "lot"):
+        risk_amount = 0.0  # computed once loss_per_lot is determined
+    else:  # "percent"
+        risk_amount = acc.balance * (risk_value / 100.0)
 
     s_info = mt5.symbol_info(actual_symbol)
     default_pips = 0.28 if "JPY" in actual_symbol else 0.0028
-    if sl <= 0:
-        price_dist = default_pips
+
+    if is_manual:
+        order_price = float(signal_row.get("price_at_signal") or signal_row.get("entry") or (tick.ask if signal_type == "BUY" else tick.bid))
+        sig_ot = str(signal_row.get("order_type", "")).upper()
+        pip_sz = 0.01 if ("JPY" in actual_symbol or any(x in actual_symbol for x in ("XAU", "GOLD", "OIL", "USOIL"))) else 0.0001
+
+        if "BUY" in signal_type:
+            if order_price > tick.ask:
+                order_action = mt5.TRADE_ACTION_PENDING
+                order_type = mt5.ORDER_TYPE_BUY_STOP
+            elif sig_ot in ("BUY_STOP",) or signal_row.get("status") in ("ARMED_WAITING_CLOSE", "PENDING", "NEW"):
+                order_action = mt5.TRADE_ACTION_PENDING
+                order_type = mt5.ORDER_TYPE_BUY_STOP
+                order_price = max(order_price, round(tick.ask + 1 * pip_sz, 5))
+            else:
+                order_action = mt5.TRADE_ACTION_DEAL
+                order_type = mt5.ORDER_TYPE_BUY
+                order_price = tick.ask
+        else:
+            if order_price < tick.bid:
+                order_action = mt5.TRADE_ACTION_PENDING
+                order_type = mt5.ORDER_TYPE_SELL_STOP
+            elif sig_ot in ("SELL_STOP",) or signal_row.get("status") in ("ARMED_WAITING_CLOSE", "PENDING", "NEW"):
+                order_action = mt5.TRADE_ACTION_PENDING
+                order_type = mt5.ORDER_TYPE_SELL_STOP
+                order_price = min(order_price, round(tick.bid - 1 * pip_sz, 5))
+            else:
+                order_action = mt5.TRADE_ACTION_DEAL
+                order_type = mt5.ORDER_TYPE_SELL
+                order_price = tick.bid
+
+        price_dist = abs(order_price - sl) if sl > 0 else default_pips
+        target_sl = (order_price - price_dist) if signal_type == "BUY" else (order_price + price_dist)
+        magic = target_magic
+        comment = signal_row.get("comment") or f"APEX-M15 {signal_type}"
+
+        expiry_utc = signal_row.get("expiry_utc")
+        expiration = 0
+        if expiry_utc:
+            try:
+                if not hasattr(expiry_utc, "timestamp"):
+                    from datetime import datetime as _dt
+                    expiry_dt = _dt.fromisoformat(str(expiry_utc))
+                else:
+                    expiry_dt = expiry_utc
+                sub_offset = 0
+                if tick and tick.time > 0:
+                    from datetime import datetime as _dt, timezone as _tz
+                    sub_now = _dt.now(_tz.utc)
+                    sub_tick_dt = _dt.fromtimestamp(tick.time, tz=_tz.utc)
+                    sub_offset = round((sub_tick_dt - sub_now).total_seconds() / 3600)
+                from datetime import timedelta as _td
+                sub_server_expiry = expiry_dt + _td(hours=sub_offset)
+                expiration = int(sub_server_expiry.timestamp())
+                type_time = mt5.ORDER_TIME_SPECIFIED
+            except Exception:
+                type_time = mt5.ORDER_TIME_DAY
+        else:
+            type_time = mt5.ORDER_TIME_DAY
     else:
-        price_dist = abs(price - sl)
-        if price_dist > (price * 0.05):
+        order_price = tick.ask if signal_type == "BUY" else tick.bid
+        order_type = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
+        order_action = mt5.TRADE_ACTION_DEAL
+        price_dist = abs(order_price - sl) if sl > 0 else default_pips
+        if price_dist > (order_price * 0.05):
             price_dist = default_pips
+        target_sl = (order_price - price_dist) if signal_type == "BUY" else (order_price + price_dist)
+        magic = 20260622
+        comment = f"ForexAlert {regime}"
+        type_time = mt5.ORDER_TIME_GTC
+        expiration = 0
 
     # Calculate loss per lot using native MT5 order_calc_profit FIRST.
-    # This automatically accounts for broker contract size (e.g. 100 oz Gold, 1000 bbl Oil),
-    # digits, point value, and quote currency conversions with 100% accuracy.
     loss_per_lot = None
-    target_sl = (price - price_dist) if signal_type == "BUY" else (price + price_dist)
     try:
-        profit_1lot = mt5.order_calc_profit(order_type, actual_symbol, 1.0, price, target_sl)
+        calc_ot = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
+        profit_1lot = mt5.order_calc_profit(calc_ot, actual_symbol, 1.0, order_price, target_sl)
         if profit_1lot is not None and abs(profit_1lot) > 0:
             loss_per_lot = abs(profit_1lot)
             logger.debug(f"Native order_calc_profit for 1.0 lot {actual_symbol}: ${loss_per_lot:.2f}")
@@ -324,23 +530,25 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         loss_per_lot = dist_in_ticks * tick_val if (dist_in_ticks > 0 and tick_val > 0) else 1.0
         logger.debug(f"Fallback tick-math loss_per_lot for 1.0 lot {actual_symbol}: ${loss_per_lot:.2f}")
 
-    raw_lots = risk_amount / loss_per_lot
+    if risk_type in ("fixed", "fixed_lot", "lot"):
+        raw_lots = risk_value
+        risk_amount = raw_lots * loss_per_lot
+    else:
+        raw_lots = risk_amount / loss_per_lot
 
-    # ── Master-Proportional Sanity Cap ────────────────────────────────
-    # Prevents any broker tick/contract calculation discrepancy from opening oversized trades.
-    # If Master placed 0.02 lots on $10k, Secondary ($100k) should place ~0.20 lots, NOT 1.61!
-    master_vol = float(signal_row.get("master_volume") or signal_row.get("master_lots") or signal_row.get("volume") or 0.0)
-    master_bal = float(signal_row.get("master_balance") or 10000.0)
-    if master_vol > 0 and master_bal > 0:
-        expected_scale = acc.balance / master_bal
-        expected_vol = master_vol * expected_scale
-        # Cap at 1.5x expected proportional volume
-        if raw_lots > expected_vol * 1.5:
-            logger.warning(
-                f"⚠️ LOT SANITY CAP on #{login}: Calculated raw lots ({raw_lots:.2f}) exceeds 1.5x master-proportional volume "
-                f"({expected_vol:.2f} based on Master {master_vol:.2f} lots). Clamping to {expected_vol:.2f}."
-            )
-            raw_lots = expected_vol
+        # ── Master-Proportional Sanity Cap ────────────────────────────────
+        master_vol = float(signal_row.get("master_volume") or signal_row.get("master_lots") or signal_row.get("volume") or 0.0)
+        master_bal = float(signal_row.get("master_balance") or 10000.0)
+        if master_vol > 0 and master_bal > 0:
+            expected_scale = acc.balance / master_bal
+            expected_vol = master_vol * expected_scale
+            # Cap at 1.5x expected proportional volume
+            if raw_lots > expected_vol * 1.5:
+                logger.warning(
+                    f"⚠️ LOT SANITY CAP on #{login}: Calculated raw lots ({raw_lots:.2f}) exceeds 1.5x master-proportional volume "
+                    f"({expected_vol:.2f} based on Master {master_vol:.2f} lots). Clamping to {expected_vol:.2f}."
+                )
+                raw_lots = expected_vol
 
     step = getattr(s_info, 'volume_step', 0.01) or 0.01
     volume = round(raw_lots / step) * step
@@ -359,33 +567,54 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
             filling_type = mt5.ORDER_FILLING_RETURN
 
     request = {
-        "action":       mt5.TRADE_ACTION_DEAL,
+        "action":       order_action,
         "symbol":       actual_symbol,
         "volume":       volume,
         "type":         order_type,
-        "price":        price,
-        "sl":           sl if sl > 0 else 0.0,
-        "tp":           tp if tp > 0 else 0.0,
+        "price":        round(order_price, 5),
+        "sl":           round(sl, 5) if sl > 0 else 0.0,
+        "tp":           round(tp, 5) if tp > 0 else 0.0,
         "deviation":    30,
-        "magic":        20260622,
-        "comment":      f"ForexAlert {regime}",
-        "type_time":    mt5.ORDER_TIME_GTC,
+        "magic":        magic,
+        "comment":      comment,
+        "type_time":    type_time,
         "type_filling": filling_type,
     }
+    if expiration:
+        request["expiration"] = expiration
 
-    logger.info(f"📤 Placing order: {actual_symbol} (original: {symbol}) {signal_type} | Lots: {volume:.2f} (Risk: ${risk_amount:.2f}) | Filling: {filling_type}")
-    res = mt5.order_send(request)
+    res = None
+    RETRYABLE_RETCODES = {10031, 10024, 10004, 10020, 10021, 10032}
+    for attempt in range(1, 4):
+        logger.info(f"📤 Placing order (attempt {attempt}/3): {actual_symbol} (original: {symbol}) {signal_type} | Action: {order_action} | Price: {order_price:.5f} | Lots: {volume:.2f} (Risk: ${risk_amount:.2f})")
+        res = mt5.order_send(request)
+        if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+            logger.info(f"  ✅ SUCCESS: Placed {actual_symbol} {signal_type} {volume:.2f} lots! Ticket #{res.order}")
+            mt5.shutdown()
+            return {"status": "SUCCESS", "ticket": res.order, "volume": volume, "symbol": actual_symbol}
 
-    if res and res.retcode == mt5.TRADE_RETCODE_DONE:
-        logger.info(f"  ✅ SUCCESS: Placed {actual_symbol} {signal_type} {volume:.2f} lots! Ticket #{res.order}")
-        mt5.shutdown()
-        return {"status": "SUCCESS", "ticket": res.order, "volume": volume, "symbol": actual_symbol}
-    else:
-        comment = res.comment if res else "No response"
         code = res.retcode if res else -1
-        logger.error(f"  ❌ FAILED: {comment} (Code: {code})")
-        mt5.shutdown()
-        return {"status": "FAILED", "error": f"{comment} ({code})"}
+        comment = res.comment if res else "No response"
+        if attempt < 3 and code in RETRYABLE_RETCODES:
+            logger.warning(f"  ⚠️ Transient broker failure ({comment}, code {code}). Waiting 1.0s to retry...")
+            time.sleep(1.0)
+            for _ in range(6):
+                t_info = mt5.terminal_info()
+                if t_info and getattr(t_info, "connected", False):
+                    break
+                time.sleep(0.5)
+            if order_action == mt5.TRADE_ACTION_DEAL:
+                fresh_tick = mt5.symbol_info_tick(actual_symbol)
+                if fresh_tick:
+                    request["price"] = fresh_tick.ask if signal_type == "BUY" else fresh_tick.bid
+        else:
+            break
+
+    comment = res.comment if res else "No response"
+    code = res.retcode if res else -1
+    logger.error(f"  ❌ FAILED: {comment} (Code: {code})")
+    mt5.shutdown()
+    return {"status": "FAILED", "error": f"{comment} ({code})"}
 
 
 def _worker_close_order(user: dict, symbol: str) -> dict:
@@ -426,6 +655,12 @@ def _worker_close_order(user: dict, symbol: str) -> dict:
         ticket = pos.ticket
         vol = pos.volume
         pos_sym = pos.symbol
+
+        # Protect manual M15 and Confluence trades from automated scanner close signals
+        if getattr(pos, 'magic', 0) in (202425, 202404) or "APEX" in str(getattr(pos, 'comment', '')):
+            logger.info(f"  ✓ Preserving APEX trade #{ticket} ({pos_sym}) - runs to TP/SL independently.")
+            continue
+
         calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
         tick = mt5.symbol_info_tick(pos_sym)
         if not tick:
@@ -470,6 +705,140 @@ def _worker_close_order(user: dict, symbol: str) -> dict:
     return {"status": "CLOSED" if closed_tickets else "FAILED", "tickets": closed_tickets, "failed": failed_tickets}
 
 
+def _worker_partial_close(user: dict, symbol: str, partial_pct: float = 50.0, new_sl: float = 0.0, model_tag: str = "") -> dict:
+    """Executed inside an ISOLATED worker subprocess to close partial volume and adjust SL on follower account."""
+    import MetaTrader5 as mt5
+
+    login = int(user["mt5_login"])
+    password = str(user["mt5_password"])
+    server = str(user["mt5_server"])
+    user_name = user.get("name", f"User_{login}")
+
+    term_path = _get_terminal_path_for_server(server, str(user.get("terminal_path") or ""))
+
+    try:
+        mt5.shutdown()
+    except Exception:
+        pass
+
+    init_kwargs = {"login": login, "password": password, "server": server, "timeout": 15000}
+    if term_path:
+        init_kwargs["path"] = term_path
+
+    if not mt5.initialize(**init_kwargs):
+        return {"status": "FAILED", "error": "INIT_FAILED"}
+
+    actual_symbol = resolve_symbol_for_server(symbol, mt5)
+    positions = mt5.positions_get(symbol=actual_symbol)
+    if not positions and actual_symbol != symbol:
+        positions = mt5.positions_get(symbol=symbol)
+
+    if not positions:
+        mt5.shutdown()
+        return {"status": "NO_OPEN_POSITIONS"}
+
+    processed_tickets = []
+    failed_tickets = []
+
+    for pos in positions:
+        ticket = pos.ticket
+        pos_sym = pos.symbol
+
+        # Only manage APEX/Confluence positions belonging to this model
+        if model_tag:
+            try:
+                from core.confluence_model import is_order_from_model, MODEL_MAGIC_MAP
+                t_magic = MODEL_MAGIC_MAP.get(str(model_tag).lower(), -1)
+                is_this_model = is_order_from_model(getattr(pos, 'comment', ''), model_tag) or (getattr(pos, 'magic', 0) == t_magic)
+                if not is_this_model:
+                    continue
+            except Exception:
+                if str(model_tag).upper() not in str(getattr(pos, 'comment', '')).upper():
+                    continue
+        else:
+            apex_magics = (202425, 202404, 202460, 202415, 202401)
+            try:
+                from core.confluence_model import ALL_APEX_MAGICS
+                apex_magics = ALL_APEX_MAGICS
+            except Exception:
+                pass
+            if getattr(pos, 'magic', 0) not in apex_magics and "APEX" not in str(getattr(pos, 'comment', '')):
+                continue
+
+        calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+        tick = mt5.symbol_info_tick(pos_sym)
+        if not tick:
+            failed_tickets.append({"ticket": ticket, "symbol": pos_sym, "reason": "NO_TICK"})
+            continue
+        price = tick.bid if calc_type == mt5.ORDER_TYPE_SELL else tick.ask
+
+        # 1. Calculate partial volume
+        close_vol = round(pos.volume * (partial_pct / 100.0), 2)
+        s_info = mt5.symbol_info(pos_sym)
+        vol_min = s_info.volume_min if s_info else 0.01
+        vol_step = s_info.volume_step if s_info else 0.01
+
+        filling_type = mt5.ORDER_FILLING_IOC
+        if s_info:
+            if (s_info.filling_mode & 2) != 0:
+                filling_type = mt5.ORDER_FILLING_IOC
+            elif (s_info.filling_mode & 1) != 0:
+                filling_type = mt5.ORDER_FILLING_FOK
+            else:
+                filling_type = mt5.ORDER_FILLING_RETURN
+
+        deal_done = False
+        if close_vol >= vol_min:
+            close_vol = round(round(close_vol / vol_step) * vol_step, 2)
+            req = {
+                "action": mt5.TRADE_ACTION_DEAL,
+                "symbol": pos_sym,
+                "volume": close_vol,
+                "type": calc_type,
+                "position": ticket,
+                "price": price,
+                "deviation": 30,
+                "magic": pos.magic,
+                "comment": f"{model_tag or 'APEX'} Part {int(partial_pct)}%",
+                "type_time": mt5.ORDER_TIME_GTC,
+                "type_filling": filling_type,
+            }
+            res = mt5.order_send(req)
+            if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"✅ Partial closed {close_vol} lots on #{ticket} ({pos_sym}) on #{login}")
+                deal_done = True
+            else:
+                retcode = res.retcode if res else -1
+                comment = res.comment if res else "No response"
+                logger.warning(f"⚠️ Partial close failed on #{ticket} on #{login}: {comment} (Code: {retcode})")
+        else:
+            deal_done = True  # volume at minimum, continue to SL modification
+
+        # 2. Modify SL to BE+2p
+        sl_done = False
+        if new_sl > 0:
+            sltp_req = {
+                "action": mt5.TRADE_ACTION_SLTP,
+                "position": ticket,
+                "symbol": pos_sym,
+                "sl": round(float(new_sl), 5),
+                "tp": pos.tp,
+            }
+            sres = mt5.order_send(sltp_req)
+            if sres and sres.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"🛡️ Moved SL to {new_sl} for #{ticket} on #{login}")
+                sl_done = True
+            else:
+                logger.warning(f"⚠️ SLTP modification failed for #{ticket} on #{login}: {getattr(sres, 'comment', 'N/A')}")
+
+        if deal_done or sl_done:
+            processed_tickets.append({"ticket": ticket, "deal": deal_done, "sl": sl_done})
+
+    mt5.shutdown()
+    status_str = "PROCESSED" if processed_tickets else ("FAILED" if failed_tickets else "NO_OPEN_POSITIONS")
+    return {"status": status_str, "processed": processed_tickets, "failed": failed_tickets}
+
+
 def _worker_close_all(user: dict, reason: str = "") -> dict:
     """Executed inside an ISOLATED worker subprocess to close ALL positions on that account."""
     import MetaTrader5 as mt5
@@ -492,17 +861,18 @@ def _worker_close_all(user: dict, reason: str = "") -> dict:
     if not mt5.initialize(**init_kwargs):
         return {"status": "FAILED", "error": "INIT_FAILED"}
 
-    positions = mt5.positions_get()
-    if not positions:
-        mt5.shutdown()
-        return {"status": "NO_OPEN_POSITIONS", "closed": []}
-
+    positions = mt5.positions_get() or []
     closed_tickets = []
     failed_tickets = []
     for pos in positions:
         ticket = pos.ticket
         vol = pos.volume
         pos_sym = pos.symbol
+        if "Friday" in str(reason):
+            from core.market_hours import is_crypto
+            if is_crypto(pos_sym):
+                continue  # Crypto trades 24/7 through the weekend
+
         calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
         tick = mt5.symbol_info_tick(pos_sym)
         if not tick:
@@ -546,8 +916,25 @@ def _worker_close_all(user: dict, reason: str = "") -> dict:
             logger.warning(f"❌ Failed to close ticket #{ticket} ({pos_sym}) on #{login}: {comment_err} (Code: {retcode})")
             failed_tickets.append({"ticket": ticket, "symbol": pos_sym, "retcode": retcode, "error": comment_err})
 
+    # Cancel all pending orders on this follower account
+    cancelled_orders = []
+    try:
+        pending_orders = mt5.orders_get() or []
+        for po in pending_orders:
+            c_res = mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": po.ticket})
+            if c_res and c_res.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"✅ Cancelled pending order #{po.ticket} ({po.symbol}) on #{login}")
+                cancelled_orders.append(po.ticket)
+            else:
+                c_comment = c_res.comment if c_res else "No response"
+                logger.warning(f"❌ Failed to cancel pending order #{po.ticket} on #{login}: {c_comment}")
+    except Exception as e:
+        logger.warning(f"Error cancelling pending orders in _worker_close_all on #{login}: {e}")
+
     mt5.shutdown()
-    return {"status": "PROCESSED", "closed": closed_tickets, "failed": failed_tickets}
+    if not positions and not cancelled_orders:
+        return {"status": "NO_OPEN_POSITIONS", "closed": [], "cancelled_orders": []}
+    return {"status": "PROCESSED", "closed": closed_tickets, "failed": failed_tickets, "cancelled_orders": cancelled_orders}
 
 
 def _worker_sync(user: dict, master_symbols: list) -> dict:
@@ -591,18 +978,10 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
     # ── Secondary Account Daily Drawdown Check ────────────────────────
     # If subscriber's own daily loss reaches 4.5% of their tier ($4,500 on $100k),
     # trigger emergency liquidation for this account to protect the challenge.
-    from core.guardrail import detect_account_tier
-    from datetime import timedelta
     acc = mt5.account_info()
+    is_killswitch_liquidation = False
     if acc:
-        tier = detect_account_tier(acc.balance)
-        max_user_loss = (float(user.get("max_daily_drawdown_pct", 4.5)) / 100.0) * tier
-        now_utc = datetime.now(timezone.utc)
-        today_start = (now_utc + timedelta(hours=2)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=2)
-        deals = mt5.history_deals_get(today_start, now_utc)
-        today_closed = sum(d.profit + d.commission + d.swap for d in (deals or []))
-        today_floating = acc.equity - acc.balance
-        today_pnl = today_closed + today_floating
+        today_pnl, max_user_loss, tier = get_subscriber_daily_pnl(mt5, user, acc)
 
         if today_pnl <= -max_user_loss and positions:
             logger.critical(
@@ -610,6 +989,14 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
                 f"(${abs(today_pnl):,.2f} >= ${max_user_loss:,.2f} [4.5% of ${tier:,.0f} tier]). Liquidating all positions!"
             )
             allowed_symbols = set()  # Force all open positions to be liquidated
+            is_killswitch_liquidation = True
+
+    apex_magics = (202425, 202404, 202460, 202415, 202401)
+    try:
+        from core.confluence_model import ALL_APEX_MAGICS
+        apex_magics = ALL_APEX_MAGICS
+    except Exception:
+        pass
 
     migration_cutoff = datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc).timestamp()
     closed_tickets = []
@@ -617,11 +1004,18 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
     for pos in positions:
         sym_upper = pos.symbol.upper()
         if sym_upper not in allowed_symbols:
-            # Option B Guard: Preserve existing legacy positions opened prior to Master migration
-            # if they have hard broker-side SL/TP protection.
-            if getattr(pos, 'time', 0) < migration_cutoff and (pos.sl > 0 or pos.tp > 0):
-                logger.info(f"  ✓ Preserving legacy position #{pos.ticket} ({pos.symbol}) on #{login} with SL={pos.sl}/TP={pos.tp} to run naturally (Option B).")
-                continue
+            # During emergency drawdown killswitch, liquidating ALL positions is mandatory!
+            if not is_killswitch_liquidation:
+                # Protect APEX trades across all models with hard SL/TP from automated desync liquidation!
+                if (getattr(pos, 'magic', 0) in apex_magics or "APEX" in str(getattr(pos, 'comment', ''))) and (pos.sl > 0 or pos.tp > 0):
+                    logger.info(f"  ✓ Preserving APEX trade #{pos.ticket} ({pos.symbol}) on #{login} with hard SL={pos.sl}/TP={pos.tp} to run to TP/SL naturally.")
+                    continue
+
+                # Option B Guard: Preserve existing legacy positions opened prior to Master migration
+                # if they have hard broker-side SL/TP protection.
+                if getattr(pos, 'time', 0) < migration_cutoff and (pos.sl > 0 or pos.tp > 0):
+                    logger.info(f"  ✓ Preserving legacy position #{pos.ticket} ({pos.symbol}) on #{login} with SL={pos.sl}/TP={pos.tp} to run naturally (Option B).")
+                    continue
 
             logger.warning(f"🔄 DESYNC DETECTED on #{login} ({user_name}): Position #{pos.ticket} ({pos.symbol}) not present on Master. Liquidating...")
             ticket = pos.ticket
@@ -643,6 +1037,7 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
                 else:
                     filling_type = mt5.ORDER_FILLING_RETURN
 
+            close_comment = f"Apex ${max_user_loss:.0f} DD Stop" if is_killswitch_liquidation else "ForexAlert Sync Close"
             req = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "symbol": pos.symbol,
@@ -651,8 +1046,8 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
                 "position": ticket,
                 "price": price,
                 "deviation": 30,
-                "magic": 20260622,
-                "comment": "ForexAlert Sync Close",
+                "magic": 999450 if is_killswitch_liquidation else 20260622,
+                "comment": close_comment,
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": filling_type,
             }
@@ -667,6 +1062,18 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
                 failed_tickets.append({"ticket": ticket, "symbol": pos.symbol, "retcode": retcode, "error": comment_err})
         else:
             logger.debug(f"  ✓ Position #{pos.ticket} ({pos.symbol}) matches Master. Keeping open.")
+
+    # ── Secondary Account Pending Orders Reconciliation ──────────────
+    try:
+        pending_orders = mt5.orders_get() or []
+        for po in pending_orders:
+            if po.magic in apex_magics or "APEX" in (po.comment or ""):
+                # If master does not have this symbol active, cancel pending order on follower
+                if po.symbol.upper() not in allowed_symbols and po.symbol not in master_symbols:
+                    logger.info(f"  ⏳ Synced: Removing expired/orphan pending order #{po.ticket} ({po.symbol}) on #{login}")
+                    mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": po.ticket})
+    except Exception as _po_err:
+        logger.warning(f"Pending order sync warning on #{login}: {_po_err}")
 
     mt5.shutdown()
     remaining = len(positions) - len(closed_tickets)
@@ -714,25 +1121,29 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, cwd=str(PROJECT_ROOT))
             out = proc.stdout.strip()
-            if proc.returncode == 0:
-                logger.info(f"  Worker Output for {user_name}:\n{out}")
-                results[user_name] = "SUCCESS"
+            # Extract JSON output from worker
+            worker_res = {}
+            for line in reversed(out.splitlines()):
+                line = line.strip()
+                if line.startswith("{") and line.endswith("}"):
+                    try:
+                        worker_res = json.loads(line)
+                        break
+                    except Exception:
+                        pass
+
+            status = worker_res.get("status", "")
+            if status == "SUCCESS":
+                ticket = worker_res.get("ticket")
+                logger.info(f"  Worker SUCCESS for {user_name}: Ticket #{ticket}")
+                results[user_name] = str(ticket) if ticket else "SUCCESS"
                 mark_last_trade(user_id)
+            elif status == "SKIPPED":
+                reason = worker_res.get("reason", "SKIPPED")
+                logger.warning(f"  Worker SKIPPED for {user_name}: {reason}")
+                results[user_name] = f"SKIPPED: {reason}"
             else:
-                err_detail = proc.stderr.strip()
-                if not err_detail:
-                    for line in reversed(out.splitlines()):
-                        line = line.strip()
-                        if line.startswith("{") and line.endswith("}"):
-                            try:
-                                res_obj = json.loads(line)
-                                err_detail = res_obj.get("error") or res_obj.get("details") or res_obj.get("reason") or ""
-                                if err_detail:
-                                    break
-                            except Exception:
-                                pass
-                if not err_detail:
-                    err_detail = out.splitlines()[-1] if out.splitlines() else f"Exit code {proc.returncode}"
+                err_detail = worker_res.get("error") or worker_res.get("details") or proc.stderr.strip() or (out.splitlines()[-1] if out.splitlines() else f"Exit code {proc.returncode}")
                 logger.error(f"  Worker error for {user_name} (Exit code {proc.returncode}): {err_detail}\n{out}")
                 results[user_name] = f"ERROR: {err_detail}"
         except subprocess.TimeoutExpired:
@@ -786,6 +1197,54 @@ def close_signal_for_all_users(symbol: str) -> dict:
                 results[user_name] = f"ERROR: {proc.stderr.strip()}"
         except Exception as _ce:
             results[user_name] = f"EXCEPTION: {_ce}"
+
+    return results
+
+
+def partial_close_and_modify_sl_for_all_users(symbol: str, partial_pct: float = 50.0, new_sl: float = 0.0, model_tag: str = "") -> dict:
+    """
+    Broadcast a partial close and SL modification across all enabled follower accounts using ISOLATED worker subprocesses.
+    """
+    from core.user_accounts import get_enabled_users
+
+    users = get_enabled_users()
+    if not users:
+        return {}
+
+    logger.info(f"🌐 Multi-Executor: Broadcasting Partial Close ({partial_pct}%) & SL Move ({new_sl}) for {symbol} to {len(users)} user(s)")
+    results = {}
+
+    for user in users:
+        user_name = user["name"]
+        cmd = [
+            sys.executable,
+            "-X", "utf8",
+            "-m", "scripts.multi_executor",
+            "--worker-partial",
+            "--user-json", json.dumps(dict(user), default=str),
+            "--symbol", symbol,
+            "--partial-pct", str(partial_pct),
+            "--new-sl", str(new_sl),
+            "--model-tag", str(model_tag),
+        ]
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=25, cwd=str(PROJECT_ROOT))
+            out = proc.stdout.strip()
+            worker_res = {}
+            for line in reversed(out.splitlines()):
+                line = line.strip()
+                if line.startswith("{") and line.endswith("}"):
+                    try:
+                        worker_res = json.loads(line)
+                        break
+                    except Exception:
+                        pass
+            results[user_name] = worker_res.get("status", "NO_OUTPUT")
+        except Exception as e:
+            logger.error(f"Error broadcasting partial close to {user_name}: {e}")
+            results[user_name] = f"ERROR: {e}"
+
+        time.sleep(0.5)
 
     return results
 
@@ -912,9 +1371,10 @@ def _worker_test_connection(user: dict) -> dict:
             "details": f"Connected to terminal, but account #{login} was not authorized. Verify credentials."
         }
 
-    # Test Gold and Oil symbol resolution
+    # Test Gold, Oil, and Crypto (BTC) symbol resolution
     gold_res = resolve_symbol_for_server("XAUUSD", mt5)
     oil_res = resolve_symbol_for_server("USOIL.cash", mt5)
+    btc_res = resolve_symbol_for_server("BTCUSD", mt5)
 
     gold_ok = False
     if gold_res:
@@ -927,6 +1387,12 @@ def _worker_test_connection(user: dict) -> dict:
         mt5.symbol_select(oil_res, True)
         tick = mt5.symbol_info_tick(oil_res)
         oil_ok = tick is not None
+
+    btc_ok = False
+    if btc_res:
+        mt5.symbol_select(btc_res, True)
+        tick = mt5.symbol_info_tick(btc_res)
+        btc_ok = tick is not None
 
     # Query active positions on this account
     positions = mt5.positions_get()
@@ -958,11 +1424,15 @@ def _worker_test_connection(user: dict) -> dict:
         "equity": acc.equity,
         "currency": acc.currency,
         "leverage": acc.leverage,
+        "trade_allowed": bool(getattr(acc, "trade_allowed", False)),
+        "trade_expert": bool(getattr(acc, "trade_expert", False)),
         "terminal_path": term_path or "Default MT5",
         "gold_symbol": gold_res,
         "gold_supported": gold_ok,
         "oil_symbol": oil_res,
         "oil_supported": oil_ok,
+        "btc_symbol": btc_res,
+        "btc_supported": btc_ok,
         "open_positions": open_positions,
         "open_positions_count": len(open_positions),
     }
@@ -1028,6 +1498,7 @@ if __name__ == "__main__":
     parser.add_argument("--worker-exec", action="store_true", help="Run order execution worker")
     parser.add_argument("--worker-close", action="store_true", help="Run close worker")
     parser.add_argument("--worker-close-all", action="store_true", help="Run close-all worker")
+    parser.add_argument("--worker-partial", action="store_true", help="Run partial close worker")
     parser.add_argument("--worker-sync", action="store_true", help="Run sync positions worker")
     parser.add_argument("--worker-test", action="store_true", help="Run test connection worker")
     parser.add_argument("--user-json", type=str, help="User credentials JSON string")
@@ -1035,6 +1506,9 @@ if __name__ == "__main__":
     parser.add_argument("--symbol", type=str, help="Symbol to close")
     parser.add_argument("--reason", type=str, default="", help="Reason for closure")
     parser.add_argument("--master-symbols-json", type=str, default="[]", help="JSON list of open master symbols")
+    parser.add_argument("--partial-pct", type=float, default=50.0, help="Partial close percentage")
+    parser.add_argument("--new-sl", type=float, default=0.0, help="New stop loss price")
+    parser.add_argument("--model-tag", type=str, default="", help="Model tag")
     args = parser.parse_args()
 
     if args.worker_exec and args.user_json and args.signal_json:
@@ -1043,6 +1517,12 @@ if __name__ == "__main__":
         res = _worker_execute_order(user_data, sig_data)
         print(json.dumps(res))
         sys.exit(0 if res.get("status") in ("SUCCESS", "SKIPPED") else 1)
+
+    elif args.worker_partial and args.user_json and args.symbol:
+        user_data = json.loads(args.user_json)
+        res = _worker_partial_close(user_data, args.symbol, args.partial_pct, args.new_sl, args.model_tag)
+        print(json.dumps(res))
+        sys.exit(0 if res.get("status") in ("PROCESSED", "NO_OPEN_POSITIONS") else 1)
 
     elif args.worker_close and args.user_json and args.symbol:
         user_data = json.loads(args.user_json)

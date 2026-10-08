@@ -177,15 +177,17 @@ class DataEngine:
         lookup = {}
         pairs_config = self._config.get("currency_pairs", {})
         
-        for category in ["majors", "minors", "crosses"]:
+        for category in ["majors", "minors", "crosses", "commodities", "crypto"]:
             for pair in pairs_config.get(category, []):
                 symbol = pair.get("symbol", "")
-                if symbol:
-                    lookup[symbol] = {
-                        "category": category,
-                        "pip_type": pair.get("pip_type", "standard"),
-                        "correlated_assets": pair.get("correlated_assets", []),
-                    }
+                if symbol and symbol not in lookup:
+                    from core.symbol_guard import is_symbol_blocked
+                    if not is_symbol_blocked(symbol):
+                        lookup[symbol] = {
+                            "category": category,
+                            "pip_type": pair.get("pip_type", "standard"),
+                            "correlated_assets": pair.get("correlated_assets", []),
+                        }
         
         return lookup
     

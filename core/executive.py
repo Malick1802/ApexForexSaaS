@@ -16,7 +16,7 @@ import time
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from queue import Queue
 from threading import Thread, Lock
 
@@ -106,8 +106,18 @@ class ExecutiveEngine:
         self.db = SignalDatabase()
         self.notifier = NotificationManager()
         
-        # MT5 Trade Engine
-        self.risk_pct = 0.005 # GetLeveraged.com compliance: 0.5% risk per trade
+        # MT5 Trade Engine Risk & Portfolio Configuration
+        mt5_cfg = self.config.get('mt5', {})
+        risk_val = float(mt5_cfg.get('risk_value', 0.5))
+        self.risk_pct = (risk_val / 100.0) if mt5_cfg.get('risk_type', 'percent') == 'percent' else 0.005
+        self.max_open_trades = int(mt5_cfg.get('max_open_trades', 3))
+        self.max_positions_per_currency = int(mt5_cfg.get('max_positions_per_currency', 1))
+        self.breakeven_recovery_target = float(mt5_cfg.get('breakeven_recovery_target', 10000.0))
+        logger.info(
+            f"Risk & Portfolio Policy: {self.risk_pct*100:.2f}% dynamic risk/trade | "
+            f"Max Open: {self.max_open_trades} | Max/Currency: {self.max_positions_per_currency} | "
+            f"Recovery Target: ${self.breakeven_recovery_target:,.2f}"
+        )
         
         # Recent signals tracker (deduplication)
         self._recent_signals: Dict[str, datetime] = {}
@@ -187,7 +197,27 @@ class ExecutiveEngine:
                 return 0.01
                 
             balance = account.balance
-            risk_usd = balance * self.risk_pct # 0.5%
+            
+            # Dynamic config reload in case risk was adjusted in config.yaml
+            mt5_cfg = self.config.get('mt5', {})
+            risk_val = float(mt5_cfg.get('risk_value', 0.5))
+            r_type = str(mt5_cfg.get('risk_type', 'percent')).lower()
+            if r_type in ('fixed', 'fixed_lot', 'lot'):
+                return max(0.01, risk_val)
+            elif r_type in ('fixed_cash', 'cash', 'usd', 'fixed_usd', 'dollar'):
+                risk_usd = risk_val
+                self.risk_pct = (risk_usd / balance) if balance > 0 else 0.005
+            else:
+                self.risk_pct = risk_val / 100.0
+                risk_usd = balance * self.risk_pct
+            
+            # Breakeven Milestone Tracker
+            rec_target = float(mt5_cfg.get('breakeven_recovery_target', getattr(self, 'breakeven_recovery_target', 10000.0)))
+            if balance >= rec_target:
+                logger.info(f"🎉 BREAKEVEN MILESTONE: Account balance (${balance:,.2f}) >= Target (${rec_target:,.2f})!")
+            else:
+                rem = rec_target - balance
+                logger.info(f"🛡️ RECOVERY SIZING: Balance=${balance:,.2f} | Risk=${risk_usd:.2f} ({self.risk_pct*100:.2f}%) | ${rem:,.2f} to breakeven (${rec_target:,.2f})")
             
             # Get pip value from DataEngine
             pip_value = self.inference_engine.data_engine.get_pip_value(symbol)
@@ -277,45 +307,73 @@ class ExecutiveEngine:
                 if open_positions >= max_open:
                     logger.critical(f"🛑 RISK SHIELD: Maximum open trades reached ({open_positions}/{max_open}). Blocking all Live Trades!")
                     return False
-                
-            now_utc = datetime.now(timezone.utc)
-            # Use UTC midnight as the safest anchor for daily drawdown start 
-            midnight_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            deals = self.mt5.history_deals_get(midnight_utc, now_utc + timedelta(days=1))
-            
-            realized_profit_today = 0.0
-            if deals:
-                realized_profit_today = sum(d.profit + d.swap + d.commission for d in deals)
-                
-            # Active Daily PnL = Realized Profit Today + Current Floating Profit
-            floating_profit = account.equity - account.balance
-            active_daily_pnl = realized_profit_today + floating_profit
-            
-            start_of_day_balance = account.balance - realized_profit_today
-            
-            if start_of_day_balance <= 0: 
-                return True
-            
-            # 1. Daily Drawdown Check (3% Rule)
-            max_daily_dd = float(self.config.get('safety', {}).get('max_daily_drawdown_pct', 2.0))
-            if active_daily_pnl < 0:
-                daily_dd_pct = (abs(active_daily_pnl) / start_of_day_balance) * 100
-                if daily_dd_pct >= max_daily_dd:
-                    logger.critical(f"🛑 DRAWDOWN SHIELD: Daily loss is {daily_dd_pct:.2f}% (Limit {max_daily_dd}% limit reached). Blocking all Live Trades!")
-                    return False
-            
-            # 2. Maximum Trailing Drawdown Check (6% Rule)
-            # For a 10k account, hard floor is $9400. We block at $9450 (5.5%).
-            # (Allows 0.5% margin of safety against slippage)
-            if account.equity <= 9450.0:
-                logger.critical(f"🛑 DRAWDOWN SHIELD: Equity (${account.equity:.2f}) is crossing 5.5% Max Trailing wall. Blocking all Live Trades!")
+
+            # 1. FTMO Prop Firm Guardrail Check (Enforces dynamic 4.5% daily drawdown and killswitch)
+            from core.guardrail import get_guardrail
+            guard_res = get_guardrail().get_safety_status(exec_engine=self)
+            if not guard_res.get("safe", True):
+                logger.critical(f"🛑 GUARDRAIL SHIELD: Blocked - {guard_res.get('reason')}")
                 return False
-            
+
             return True
         except Exception as e:
             logger.error(f"Drawdown calculation failed: {e}")
             return True
+
+    def _check_currency_basket_cap(self, symbol: str) -> Tuple[bool, str]:
+        """
+        Evaluates open MT5 positions against Strict Diversification rules:
+        1. Max open positions overall (max_open_trades, default 3 in recovery mode).
+        2. Max open positions per currency leg (max_positions_per_currency, default 1).
+        
+        Returns:
+            (is_blocked: bool, reason: str)
+        """
+        try:
+            if not self.mt5:
+                return False, "MT5_DISCONNECTED"
+
+            mt5_cfg = self.config.get('mt5', {})
+            max_open = int(mt5_cfg.get('max_open_trades', getattr(self, 'max_open_trades', 3)))
+            max_per_curr = int(mt5_cfg.get('max_positions_per_currency', getattr(self, 'max_positions_per_currency', 1)))
+
+            positions = self.mt5.positions_get()
+            if positions is None:
+                return False, "NO_POSITIONS_DATA"
+
+            open_positions = list(positions)
+            open_count = len(open_positions)
+
+            # 1. Total Concurrency Cap
+            if max_open > 0 and open_count >= max_open:
+                return True, f"MAX_OPEN_REACHED: {open_count}/{max_open} positions active"
+
+            # 2. Currency Basket Cap (Per-Currency Leg)
+            if max_per_curr > 0:
+                clean_sym = symbol.upper().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_SB", "")
+                target_currencies = set()
+                if len(clean_sym) >= 6:
+                    target_currencies.add(clean_sym[:3])
+                    target_currencies.add(clean_sym[3:6])
+                else:
+                    target_currencies.add(clean_sym)
+
+                for curr in target_currencies:
+                    matching_pairs = []
+                    for p in open_positions:
+                        p_sym = p.symbol.upper().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_SB", "")
+                        p_curr1 = p_sym[:3] if len(p_sym) >= 3 else p_sym
+                        p_curr2 = p_sym[3:6] if len(p_sym) >= 6 else ""
+                        if curr in (p_curr1, p_curr2):
+                            matching_pairs.append(p.symbol)
+
+                    if len(matching_pairs) >= max_per_curr:
+                        return True, f"CURRENCY_BASKET_CAP: {curr} already active in {len(matching_pairs)} trade(s) ({', '.join(matching_pairs)}, limit: {max_per_curr})"
+
+            return False, "OK"
+        except Exception as e:
+            logger.error(f"Error checking currency basket cap for {symbol}: {e}")
+            return False, f"ERROR: {e}"
 
     def place_mt5_trade(self, signal: Dict[str, Any]):
         """Place a live trade on MT5 terminal."""
@@ -326,6 +384,21 @@ class ExecutiveEngine:
                 
             if not self.config.get('trading', {}).get('execute_trades', True):
                 logger.info("Trading Disabled in config. Skipping MT5 execution.")
+                return False
+
+            # --- UNIFIED MODEL GATEKEEPER AUTHORIZATION GATE ---
+            from core.model_gatekeeper import is_model_live_authorized
+            model_ver = signal.get('model_version', 'v1')
+            if not is_model_live_authorized(model_ver):
+                logger.info(f"👻 MODEL GATEKEEPER: Model '{model_ver}' is currently in SHADOW MODE (not authorized for live trading). Blocking MT5 order for {signal['symbol']}.")
+                signal['is_hidden'] = 1
+                return False
+
+            # --- DYNAMIC YTD MODEL WHITELIST GATE (WINNING ASSETS ONLY) ---
+            from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
+            if not is_pair_whitelisted_for_model(model_ver, signal['symbol']):
+                logger.info(f"🛡️ DYNAMIC YTD GATE: {signal['symbol']} is not an approved winning asset for '{model_ver}' (YTD Net R < 0.0). Diverting to SHADOW.")
+                signal['is_hidden'] = 1
                 return False
 
             # --- COMMODITY / BLOCKED SYMBOL / DIRECTIONAL SAFETY GATE ---
@@ -350,6 +423,13 @@ class ExecutiveEngine:
             if not safety_status['safe']:
                 logger.error(f"BLOCK: {signal['symbol']} trade canceled by Safety Guardrail ({safety_status['reason']}). Saving as SHADOW instead.")
                 signal['is_hidden'] = 1 # Force it into shadow log
+                return False
+
+            # --- STRICT CONCURRENCY & CURRENCY BASKET CAP ---
+            blocked_by_cap, cap_reason = self._check_currency_basket_cap(signal['symbol'])
+            if blocked_by_cap:
+                logger.warning(f"🛑 BASKET/CONCURRENCY CAP: {signal['symbol']} trade canceled ({cap_reason}). Saving as SHADOW.")
+                signal['is_hidden'] = 1
                 return False
 
             symbol = signal['symbol']
@@ -453,7 +533,7 @@ class ExecutiveEngine:
         """
         try:
             from core.market_hours import is_weekend_halt
-            halted, reason = is_weekend_halt()
+            halted, reason = is_weekend_halt(symbol=symbol)
             if halted:
                 logger.debug(f"Weekend Halt active ({reason}). Skipping {symbol} analysis.")
                 return None
@@ -669,10 +749,41 @@ class ExecutiveEngine:
                     result['is_hidden'] = 1
                     self.db.update_signal_hidden(sig_id, 1)
 
+                # STRICT CONCURRENCY & CURRENCY BASKET CAP:
+                # If total open trades or per-currency limit reached, downgrade to shadow for tracking
+                if not bool(result.get('is_hidden', 0)):
+                    blocked_by_cap, cap_reason = self._check_currency_basket_cap(symbol)
+                    if blocked_by_cap:
+                        logger.info(f"🛑 BASKET/CONCURRENCY CAP: {symbol} downgraded to SHADOW ({cap_reason}).")
+                        result['is_hidden'] = 1
+                        self.db.update_signal_hidden(sig_id, 1)
+
                 # 3. Certification Gate: Only alert and log as NEW if proven for MT5
                 # and NOT hidden (Shadow Training)
                 is_hidden = bool(result.get('is_hidden', False))
-                
+
+                # UNIFIED MODEL GATEKEEPER:
+                # Ensure the model generating this signal is explicitly authorized for LIVE execution.
+                # If NOT authorized, downgrade to SHADOW mode (paper-traded in DB for telemetry).
+                from core.model_gatekeeper import is_model_live_authorized
+                model_ver = result.get('model_version', 'v1')
+                if not is_model_live_authorized(model_ver):
+                    if not is_hidden:
+                        logger.info(f"👻 MODEL GATEKEEPER: '{model_ver}' is in SHADOW MODE. Diverting {symbol} {signal} to background shadow trade.")
+                        result['is_hidden'] = 1
+                        self.db.update_signal_hidden(sig_id, 1)
+                        is_hidden = True
+
+                # DYNAMIC MODEL WHITELIST (WINNING ASSETS ONLY):
+                # Ensure the symbol is an approved winning asset for this model (YTD Net R >= 0.0)
+                from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
+                if not is_pair_whitelisted_for_model(model_ver, symbol):
+                    if not is_hidden:
+                        logger.info(f"🛡️ DYNAMIC YTD GATE: {symbol} is not a winning asset for '{model_ver}' (YTD Net R < 0.0). Diverting to background shadow trade.")
+                        result['is_hidden'] = 1
+                        self.db.update_signal_hidden(sig_id, 1)
+                        is_hidden = True
+
                 if is_proven and not is_hidden:
                     log_label = "BUY" if signal == "BUY" else "SELL"
                     logger.info(
@@ -804,6 +915,10 @@ class ExecutiveEngine:
                     if positions:
                         logger.info(f"Friday Exit: Found {len(positions)} open MT5 positions to close.")
                         for p in positions:
+                            from core.market_hours import is_crypto
+                            if is_crypto(p.symbol):
+                                logger.info(f"Friday Exit: Skipping crypto position {p.symbol} (trades 24/7 through weekend)")
+                                continue
                             logger.info(f"Friday Exit: Closing position {p.symbol} (Ticket: {p.ticket})")
                             tick_sym = mt5_conn.symbol_info_tick(p.symbol)
                             if not tick_sym:
@@ -856,6 +971,10 @@ class ExecutiveEngine:
                 # Resolve all active signals (both live and shadow) in DB
                 for sig in active_signals:
                     symbol = sig['symbol']
+                    from core.market_hours import is_crypto
+                    if is_crypto(symbol):
+                        logger.debug(f"Friday Exit: Skipping active crypto signal {symbol} (trades 24/7 through weekend)")
+                        continue
                     sig_id = sig['id']
                     direction = sig['signal']
                     price_at_sig = sig.get('price_at_signal')
@@ -953,8 +1072,12 @@ class ExecutiveEngine:
 
                     if is_connected and is_authorized:
                         master_pos = mt5_conn.positions_get()
+                        master_orders = mt5_conn.orders_get()
                         if master_pos is not None:
                             master_symbols = [p.symbol for p in master_pos]
+                            if master_orders:
+                                master_symbols.extend([o.symbol for o in master_orders])
+                            master_symbols = list(set(master_symbols))
                             from scripts.multi_executor import sync_positions_with_master
                             sync_positions_with_master(master_symbols)
                         else:
@@ -982,6 +1105,12 @@ class ExecutiveEngine:
         for sig in active_signals:
             symbol = sig['symbol']
             sig_id = sig['id']
+
+            # Skip manual M15 trades! Manual trades are governed by broker-side SL/TP
+            # and must never be closed or resolved by the automated scanner watchdog.
+            if sig.get('is_manual') == 1 or sig.get('model_version') == 'manual_m15':
+                continue
+
             ticket = sig.get('mt5_ticket')
             tp = sig.get('tp_price')
             sl = sig.get('sl_price')
@@ -1003,21 +1132,45 @@ class ExecutiveEngine:
             # save the ticket to the DB and keep the signal ACTIVE.
             # This prevents the watchdog from resolving via live tick with wrong outcomes.
             if (not ticket or not str(ticket).isdigit() or int(ticket) == 0) and mt5_conn:
-                try:
-                    open_positions = mt5_conn.positions_get(symbol=symbol)
-                    if open_positions:
-                        for pos in open_positions:
-                            pos_direction = 'BUY' if pos.type == 0 else 'SELL'
-                            if pos_direction == direction:
-                                recovered_ticket = pos.ticket
-                                logger.info(f"🔗 TICKET RECONCILE: {symbol} {direction} (ID {sig_id}) matched open MT5 position #{recovered_ticket}. Saving ticket.")
-                                self.db.update_signal_ticket(sig_id, recovered_ticket)
-                                ticket = recovered_ticket
-                                sig = dict(sig)
-                                sig['mt5_ticket'] = recovered_ticket
-                                break
-                except Exception as _te:
-                    logger.warning(f"Ticket reconciliation failed for {symbol}: {_te}")
+                is_suppressed = (sig.get('exit_reason') == 'ML_SUPPRESSED') or (sig.get('is_hidden', 0) == 1)
+                model_ver = str(sig.get('model_version') or '')
+                conf_val = float(sig.get('confidence') or 0.0)
+                if not is_suppressed and not (model_ver == 'confluence_ml_m15' and conf_val < 0.48):
+                    try:
+                        open_positions = mt5_conn.positions_get(symbol=symbol)
+                        if open_positions:
+                            for pos in open_positions:
+                                pos_direction = 'BUY' if pos.type == 0 else 'SELL'
+                                pos_comment = str(getattr(pos, 'comment', '') or '').upper()
+
+                                # Strict model ownership check
+                                try:
+                                    from core.confluence_model import is_order_from_model, MODEL_MAGIC_MAP
+                                    target_magic = MODEL_MAGIC_MAP.get(model_ver, -1)
+                                    model_match = is_order_from_model(pos_comment, model_ver) or (getattr(pos, 'magic', 0) == target_magic)
+                                except Exception:
+                                    model_match = True
+                                    if model_ver == 'confluence_ml_p60':
+                                        model_match = ('P60' in pos_comment)
+                                    elif model_ver == 'confluence_std_p25':
+                                        model_match = ('P25' in pos_comment)
+                                    elif model_ver == 'confluence_ml_m15':
+                                        model_match = ('APEX-ML' in pos_comment and 'P60' not in pos_comment)
+                                    elif model_ver == 'confluence_m15':
+                                        model_match = ('APEX-STD' in pos_comment and 'P25' not in pos_comment)
+                                    elif model_ver == 'manual_m15':
+                                        model_match = ('APEX-M15' in pos_comment or 'M15' in pos_comment)
+
+                                if pos_direction == direction and model_match:
+                                    recovered_ticket = pos.ticket
+                                    logger.info(f"🔗 TICKET RECONCILE: {symbol} {direction} (ID {sig_id}) matched open MT5 position #{recovered_ticket}. Saving ticket.")
+                                    self.db.update_signal_ticket(sig_id, recovered_ticket)
+                                    ticket = recovered_ticket
+                                    sig = dict(sig)
+                                    sig['mt5_ticket'] = recovered_ticket
+                                    break
+                    except Exception as _te:
+                        logger.warning(f"Ticket reconciliation failed for {symbol}: {_te}")
 
             # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
             if ticket and str(ticket).isdigit() and int(ticket) > 0:

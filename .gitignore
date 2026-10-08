@@ -68,6 +68,7 @@ Thumbs.db
 
 # Databases
 *.db
+data/
 
 # Logs
 *.log
@@ -88,6 +89,7 @@ debug_*.txt
 verify_*.txt
 *.json
 !config/trading_whitelist.json
+!config/dynamic_model_whitelists.json
 db_status*.txt
 internal_log.txt
 *.bak

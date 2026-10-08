@@ -169,15 +169,19 @@ class PerformanceGate:
         # Support both 'accuracy' (live) and 'win_rate' (OOS script)
         return float(tier_data.get("accuracy", tier_data.get("win_rate", 0.0)))
 
-    def recompute_from_db(self, lookback_days: int = 30):
+    def recompute_from_db(self, lookback_days: int = 30, model_versions: Optional[List[str]] = None):
         """
         Scan signals.db for the last X days and update all 5 tiers for all symbols BY DIRECTION.
         Recency Rule applies perfectly matching user logic.
-        Now strictly filters for v1 model performance ONLY.
+        Now evaluates all active trading models (v1, confluence_m15, manual_m15).
         """
         if not Path(self.db_path).exists():
             return
 
+        if model_versions is None:
+            model_versions = ['v1', 'confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25', 'manual_m15', 'dynamic_ytd_model']
+
+        placeholders = ",".join("?" for _ in model_versions)
         cutoff_date = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
         found_recent = False
 
@@ -186,9 +190,9 @@ class PerformanceGate:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # 1. Get all symbols seen recently (v1 only)
-            cursor.execute("SELECT DISTINCT symbol FROM signals WHERE timestamp >= ? AND model_version = 'v1'", (cutoff_date,))
-            symbols = [row[0] for row in cursor.fetchall()]
+            # 1. Get all symbols seen recently across active models (live executions only for confluence)
+            cursor.execute(f"SELECT DISTINCT symbol FROM signals WHERE timestamp >= ? AND (model_version IN ({placeholders}) OR model_version IS NULL) AND (model_version NOT IN ('confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25') OR mt5_ticket IS NOT NULL)", (cutoff_date, *model_versions))
+            symbols = [row[0] for row in cursor.fetchall() if row[0] and row[0] != "SYSTEM"]
 
             for symbol in symbols:
                 if symbol not in self.performance_matrix:
@@ -212,19 +216,20 @@ class PerformanceGate:
                         next_t_val = TIERS[idx+1] / 100.0 if idx < len(TIERS) - 1 else 1.01
                         
                         # 2. Calculate tier accuracy by direction (BUY or SELL only)
-                        query = """
+                        query = f"""
                             SELECT outcome, COUNT(*) as count 
                             FROM signals 
                             WHERE symbol = ? 
                             AND signal = ?
-                            AND model_version = 'v1'
+                            AND (model_version IN ({placeholders}) OR model_version IS NULL)
+                            AND (model_version NOT IN ('confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25') OR mt5_ticket IS NOT NULL)
                             AND timestamp >= ? 
                             AND confidence >= ?
                             AND confidence < ?
                             AND outcome IN ('SUCCESS', 'FAIL')
                             GROUP BY outcome
                         """
-                        params = (symbol, direction, cutoff_date, t / 100.0, next_t_val)
+                        params = (symbol, direction, *model_versions, cutoff_date, t / 100.0, next_t_val)
                         
                         cursor.execute(query, params)
                         

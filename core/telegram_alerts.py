@@ -62,16 +62,32 @@ def build_signal_message(signal_row: dict, user: dict) -> str:
     regime      = signal_row.get("regime", "")
     risk_val    = user.get("risk_value", 0.01)
     risk_type   = user.get("risk_type", "fixed")
+    model_ver   = signal_row.get("model_version", "foundation_v1")
+
+    from core.dynamic_model_whitelist import get_ytd_model_attribution
+    ytd_attr    = get_ytd_model_attribution(model_ver, symbol)
 
     arrow       = "🟢 BUY" if sig_type == "BUY" else "🔴 SELL"
     risk_label  = f"{risk_val} lots" if risk_type == "fixed" else f"{risk_val}% risk"
     regime_str  = f" · {regime}" if regime else ""
 
+    header_title = "🏆 <b>Dynamic YTD Model Signal</b>" if ytd_attr["is_ytd"] else "⚡ <b>ForexAlert Signal</b>"
+
+    if ytd_attr["is_ytd"]:
+        model_block = (
+            f"🏆 Model:  <b>Dynamic YTD Model</b>\n"
+            f"⚙️ Strategy: <code>{ytd_attr['sub_model_name']}</code>\n"
+            f"🛡️ YTD Gate: <b>Approved Winning Asset</b>\n"
+        )
+    else:
+        model_block = f"📊 Model:  <code>{model_ver}</code>\n"
+
     return (
-        f"⚡ <b>ForexAlert Signal</b>\n"
+        f"{header_title}\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"{arrow}  <b>{symbol}</b>{regime_str}\n"
         f"━━━━━━━━━━━━━━━━━━\n"
+        f"{model_block}"
         f"📍 Entry:  <code>{price:.5f}</code>\n"
         f"🛑 SL:     <code>{sl:.5f}</code>\n"
         f"🎯 TP:     <code>{tp:.5f}</code>\n"
@@ -82,8 +98,11 @@ def build_signal_message(signal_row: dict, user: dict) -> str:
     )
 
 
-def build_trade_result_message(symbol: str, sig_type: str, result_code: str, user: dict) -> str:
+def build_trade_result_message(symbol: str, sig_type: str, result_code: str, user: dict, model_version: str = "") -> str:
     """Build a Telegram message confirming trade execution."""
+    from core.dynamic_model_whitelist import get_ytd_model_attribution
+    ytd_attr = get_ytd_model_attribution(model_version, symbol) if model_version else {"is_ytd": False}
+
     if result_code and result_code.isdigit():
         status = f"✅ Executed — Ticket #{result_code}"
     elif "BROKER_UNSUPPORTED" in str(result_code):
@@ -98,9 +117,11 @@ def build_trade_result_message(symbol: str, sig_type: str, result_code: str, use
         status = f"⚠️ {result_code}"
 
     arrow = "🟢 BUY" if sig_type == "BUY" else "🔴 SELL"
+    title = "🏆 <b>Dynamic YTD Trade Update</b>" if ytd_attr["is_ytd"] else "⚡ <b>Trade Update</b>"
+    ytd_sub = f" (<code>{ytd_attr['sub_model_name']}</code>)" if ytd_attr["is_ytd"] else ""
     return (
-        f"⚡ <b>Trade Update</b>\n"
-        f"{arrow} <b>{symbol}</b>\n"
+        f"{title}\n"
+        f"{arrow} <b>{symbol}</b>{ytd_sub}\n"
         f"{status}"
     )
 
@@ -135,6 +156,7 @@ def notify_subscribers(signal_row: dict, execution_results: dict | None = None) 
                 signal_row.get("signal", "?"),
                 result_code,
                 user,
+                model_version=signal_row.get("model_version", ""),
             )
         else:
             text = build_signal_message(signal_row, user)

@@ -19,6 +19,7 @@ import numpy as np
 import time
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict, Any, List
 
 # Shared design system
 from theme import (
@@ -63,6 +64,20 @@ def load_engine():
     engine = get_engine()
     return engine
 
+def get_all_active_instruments(engine=None):
+    """Return all unblocked trading instruments across Foundation, Confluence, Commodities, and Crypto."""
+    from core.confluence_model import load_confluence_config
+    from core.symbol_guard import is_symbol_blocked
+    base_pairs = []
+    if engine:
+        try:
+            base_pairs = engine.get_all_pairs()
+        except Exception:
+            pass
+    conf_syms = load_confluence_config().get("symbols", [])
+    combined = list(dict.fromkeys(base_pairs + conf_syms))
+    return [s for s in combined if not is_symbol_blocked(s)]
+
 @st.cache_resource
 def load_inference_v2():
     engine = get_inference()
@@ -100,7 +115,7 @@ def get_training_status():
         return None
 
 # ── Chart Renderer (TradingView Lightweight Charts – blink-free) ───
-def render_chart(df, symbol, key=None):
+def render_chart(df, symbol, key=None, levels=None):
     if df.empty:
         st.warning("Chart unavailable.")
         return
@@ -126,16 +141,19 @@ def render_chart(df, symbol, key=None):
 
     candles_json = _json.dumps(candles)
     volumes_json = _json.dumps(volumes)
+    levels_json = _json.dumps(levels) if levels else "null"
 
     # Determine price precision from symbol
     precision = 3 if "JPY" in symbol else 5
+    chart_id = f"tv-chart-{key}" if key else f"tv-chart-{symbol.lower()}"
 
     html = f"""
-    <div id="tv-chart" style="width:100%;height:460px;border-radius:12px;overflow:hidden;"></div>
+    <div id="{chart_id}" style="width:100%;height:460px;border-radius:12px;overflow:hidden;"></div>
     <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     <script>
     (function() {{
-        const container = document.getElementById('tv-chart');
+        const container = document.getElementById('{chart_id}');
+        if (!container) return;
         const chart = LightweightCharts.createChart(container, {{
             width: container.offsetWidth,
             height: 460,
@@ -186,6 +204,81 @@ def render_chart(df, symbol, key=None):
         }});
         volumeSeries.setData({volumes_json});
 
+        // Optional price lines for Entry, TP, SL, Day Lines & Swing Lines
+        const lvls = {levels_json};
+        if (lvls) {{
+            if (lvls.upper_day) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.upper_day),
+                    color: '#FFA726',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'DAY HIGH ' + parseFloat(lvls.upper_day).toFixed({precision}),
+                }});
+            }}
+            if (lvls.lower_day) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.lower_day),
+                    color: '#FFA726',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'DAY LOW ' + parseFloat(lvls.lower_day).toFixed({precision}),
+                }});
+            }}
+            if (lvls.upper_swing) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.upper_swing),
+                    color: '#AB47BC',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dotted,
+                    axisLabelVisible: true,
+                    title: 'SWING HIGH ' + parseFloat(lvls.upper_swing).toFixed({precision}),
+                }});
+            }}
+            if (lvls.lower_swing) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.lower_swing),
+                    color: '#AB47BC',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dotted,
+                    axisLabelVisible: true,
+                    title: 'SWING LOW ' + parseFloat(lvls.lower_swing).toFixed({precision}),
+                }});
+            }}
+            if (lvls.entry) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.entry),
+                    color: '#00E5FF',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: 'ENTRY ' + parseFloat(lvls.entry).toFixed({precision}),
+                }});
+            }}
+            if (lvls.tp) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.tp),
+                    color: '#00FF88',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TP ' + parseFloat(lvls.tp).toFixed({precision}),
+                }});
+            }}
+            if (lvls.sl) {{
+                candleSeries.createPriceLine({{
+                    price: parseFloat(lvls.sl),
+                    color: '#FF4466',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'SL ' + parseFloat(lvls.sl).toFixed({precision}),
+                }});
+            }}
+        }}
+
         chart.timeScale().fitContent();
 
         // Responsive resize
@@ -209,6 +302,40 @@ def show_command_center():
     hero_banner("Command Center",
                 "Real-time AI surveillance across 31 assets (Forex & Commodities) · Institutional-level precision targeting",
                 show_status=True)
+
+    # ── Active AI Engine Model Strip ─────────────────────────────
+    _cfg_path = PROJECT_ROOT / "config.yaml"
+    _cur_ver = "v3"
+    _cur_mode = "truth"
+    if _cfg_path.exists():
+        try:
+            with open(_cfg_path, 'r', encoding='utf-8') as _f:
+                _ycfg = yaml.safe_load(_f) or {}
+            _cur_ver = _ycfg.get("foundation", {}).get("active_version", "v3")
+            _cur_mode = _ycfg.get("fleet", {}).get("routing_mode", "truth")
+        except Exception:
+            pass
+    _ver_titles = {
+        "v3": "Foundation Brain v3 (57-Feature TFT · 30 Pairs + Macro)",
+        "v1": "Foundation Brain v1 (34-Feature TFT · 833k Samples)",
+        "v2": "Foundation Brain v2 (Extended 29-Pair TFT)",
+    }
+    _curr_title = _ver_titles.get(_cur_ver, f"Foundation Brain {_cur_ver.upper()}")
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:10px 18px;margin-bottom:18px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.15rem;">🧠</span>
+            <div>
+                <span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);font-weight:600;">Active AI Engine:</span>
+                <span style="font-size:0.88rem;font-weight:700;color:var(--text-primary);margin-left:6px;">{_curr_title}</span>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:0.75rem;padding:3px 9px;border-radius:12px;background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.25);font-weight:600;">Routing: {_cur_mode.upper()}</span>
+            <span style="font-size:0.75rem;padding:3px 9px;border-radius:12px;background:rgba(41,182,246,0.1);color:#29b6f6;border:1px solid rgba(41,182,246,0.25);font-weight:600;">Conviction: 61%+</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── Onboarding Banner for Subscribers ───────────────────────
     _u_email = st.session_state.get("user_email", "")
@@ -243,7 +370,7 @@ def show_command_center():
         except Exception:
             pass
 
-    all_pairs = engine.get_all_pairs()
+    all_pairs = get_all_active_instruments(engine)
     
     # 1. Active Signals Pool
     # We fetch ALL signals marked as ACTIVE (Success/Fail/Wait intent)
@@ -528,9 +655,10 @@ def show_market_overview():
                 sig_map[sym] = s
 
         # Signal grid categories
-        from core.symbol_guard import is_symbol_blocked, is_commodity
+        from core.symbol_guard import is_symbol_blocked, is_commodity, is_crypto
         active_commodities = [p for p in config_pairs.get('commodities', []) if not is_symbol_blocked(p.get('symbol', ''))]
-        minors_forex = [p for p in config_pairs.get('minors', []) if not is_commodity(p.get('symbol', ''))]
+        active_crypto = [p for p in config_pairs.get('crypto', []) if not is_symbol_blocked(p.get('symbol', ''))]
+        minors_forex = [p for p in config_pairs.get('minors', []) if not is_commodity(p.get('symbol', '')) and not is_crypto(p.get('symbol', ''))]
 
         categories = {
             "⚡ Majors": config_pairs.get('majors', []),
@@ -539,6 +667,8 @@ def show_market_overview():
         }
         if active_commodities:
             categories["🏆 Commodities & Metals"] = active_commodities
+        if active_crypto:
+            categories["🪙 Crypto (24/7)"] = active_crypto
 
         for cat_name, pair_list in categories.items():
             if not pair_list: continue
@@ -715,7 +845,7 @@ def show_trading_terminal():
 
     with st.sidebar:
         section_header("🎛️", "Analysis Controls")
-        all_pairs = engine.get_all_pairs()
+        all_pairs = get_all_active_instruments(engine)
 
         # Check for navigation from Market Overview
         qp = st.query_params
@@ -748,6 +878,96 @@ def show_trading_terminal():
 
         st.slider("Confidence Filter", 50, 95, key='confidence_thresh')
         confidence_thresh = st.session_state['confidence_thresh']
+
+    # ── Trading Engine Selector ───────────────────────────────────────────────
+    if "terminal_active_strategy" not in st.session_state:
+        st.session_state["terminal_active_strategy"] = "🎯 M15 Wick Sniper (Discretionary)"
+
+    c_strat1, c_strat2 = st.columns([3.4, 1.1])
+    with c_strat1:
+        strategy_options = [
+            "🌟 Dynamic YTD Model (Daily Winning Asset Strategy)",
+            "🧠 Confluence ML M15 (P60 · 60% Partial + BE+2p)",
+            "⚡ Confluence Standard M15 (P25 · 25% Partial + BE+2p)",
+            "🧠 Confluence ML M15 (Original AI Gate · Fixed 1.5R)",
+            "⚡ Confluence Standard M15 (Original Rule-Based · Fixed 1.5R)",
+            "🎯 M15 Wick Sniper (Discretionary)",
+            "🤖 AI Automated Scanner (TFT Neural Network)",
+        ]
+        curr_strat = st.session_state.get("terminal_active_strategy", strategy_options[0])
+        # Backwards compatibility check
+        if curr_strat == "🧠 Confluence M15 + Deep Learning (AI Gate)":
+            curr_strat = strategy_options[1]
+        elif curr_strat == "⚡ Confluence M15 Standard (Rule-Based)":
+            curr_strat = strategy_options[2]
+
+        idx = strategy_options.index(curr_strat) if curr_strat in strategy_options else 0
+        active_strategy = st.radio(
+            "Select Trading Strategy Engine",
+            strategy_options,
+            index=idx,
+            horizontal=True,
+            key="terminal_active_strategy",
+            label_visibility="collapsed"
+        )
+    with c_strat2:
+        if "Dynamic" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(255,214,0,0.15);border:1px solid #ffd60066;color:#ffd600;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">🌟 DYNAMIC YTD · WINNING ASSETS</span></div>',
+                unsafe_allow_html=True
+            )
+        elif "P60" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(168,85,247,0.15);border:1px solid #a855f755;color:#c084fc;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">🧠 AI GATE · P60 & BE+2p</span></div>',
+                unsafe_allow_html=True
+            )
+        elif "P25" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(0,230,118,0.15);border:1px solid #00e67655;color:#00e676;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">⚡ STANDARD · P25 & BE+2p</span></div>',
+                unsafe_allow_html=True
+            )
+        elif "Original AI Gate" in active_strategy or "Deep Learning" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(168,85,247,0.15);border:1px solid #a855f755;color:#c084fc;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">🧠 ORIGINAL AI GATE · FIXED 1.5R</span></div>',
+                unsafe_allow_html=True
+            )
+        elif "Confluence" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(255,214,0,0.12);border:1px solid #ffd60044;color:#ffd600;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">⚡ ORIGINAL STANDARD · FIXED 1.5R</span></div>',
+                unsafe_allow_html=True
+            )
+        elif "M15" in active_strategy:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(0,230,118,0.12);border:1px solid #00e67644;color:#00e676;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">🟢 PENDING STOP ENGINE</span></div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                '<div style="text-align:right;padding-top:4px;"><span style="background:rgba(41,182,246,0.12);border:1px solid #29b6f644;color:#29b6f6;font-size:0.75rem;padding:4px 10px;border-radius:12px;font-weight:700;">🧠 TFT NEURAL SCANNER</span></div>',
+                unsafe_allow_html=True
+            )
+
+    st.markdown("<hr style='margin: 8px 0 16px 0; border: none; border-top: 1px solid rgba(255,255,255,0.08);'>", unsafe_allow_html=True)
+
+    if "Dynamic" in active_strategy:
+        _show_dynamic_ytd_cockpit(symbol, all_pairs)
+        return
+
+    if "Confluence" in active_strategy:
+        if "P60" in active_strategy:
+            m_key = "confluence_ml_p60"
+        elif "P25" in active_strategy:
+            m_key = "confluence_std_p25"
+        elif "Original AI Gate" in active_strategy:
+            m_key = "confluence_ml_m15"
+        else:
+            m_key = "confluence_m15"
+        _show_confluence_cockpit(symbol, all_pairs, active_model_key=m_key)
+        return
+
+    if "M15" in active_strategy:
+        _show_manual_m15_cockpit(symbol, all_pairs)
+        return
 
     # ── Live Data Fragment (reruns every 10s WITHOUT full page blink) ──
     @st.fragment(run_every=timedelta(seconds=10))
@@ -1243,16 +1463,1456 @@ STATUS: {status_text}
     # Invoke the fragment — first call renders, subsequent calls auto-rerun every 15s
     _live_terminal_data()
 
+def _show_manual_m15_cockpit(symbol: str, all_pairs: list):
+    """
+    Manual M15 Wick Sniper Terminal.
+    Full technical analysis suite with interactive candlestick charting, AI Foundation
+    intelligence, live trade locking, precision M15 wick execution, and complete audit recording.
+    """
+    try:
+        from core.manual_model import (
+            get_forming_candle, get_last_15m_candle, calculate_manual_order,
+            submit_manual_order, get_active_manual_orders,
+            cancel_manual_order, close_manual_position, get_pip_size,
+            arm_m15_order, disarm_order, get_armed_orders,
+            start_armed_sniper_watcher
+        )
+        start_armed_sniper_watcher()
+    except ImportError as e:
+        st.error(f"Manual Model module not available: {e}")
+        return
+
+    engine = load_engine()
+    inf_engine = load_inference_v2()
+    db = get_db()
+
+    # ── Top Bar: Pair & Timeframe Selector + Live Quote ───────────────────────────
+    col_sym, col_tf, col_quote, col_ref = st.columns([1.8, 1.2, 3.2, 0.8])
+    with col_sym:
+        sniper_sym = st.selectbox(
+            "Instrument", all_pairs,
+            index=all_pairs.index(symbol) if symbol in all_pairs else 0,
+            key="sniper_symbol",
+            label_visibility="collapsed"
+        )
+    with col_tf:
+        m15_tf = st.selectbox(
+            "Timeframe", ["15m", "1h", "4h", "1d"],
+            index=0,
+            key="sniper_tf_selector",
+            label_visibility="collapsed"
+        )
+    with col_quote:
+        try:
+            from core.mt5_connector import MT5Connector
+            _mt5_q = MT5Connector().get_connection()
+            if _mt5_q is None:
+                import MetaTrader5 as _mt5_q
+                _mt5_q.initialize()
+            _si  = _mt5_q.symbol_info(sniper_sym)
+            _acc = _mt5_q.account_info()
+            if _si and _acc:
+                _sp_pips = _si.spread * _si.point / get_pip_size(sniper_sym)
+                _login_str = f"#{_acc.login}" if hasattr(_acc, 'login') else ""
+                st.markdown(
+                    f'<div style="padding:6px 14px;background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;display:flex;gap:18px;align-items:center">'
+                    f'<span style="font-family:monospace;font-size:0.95rem;font-weight:700;color:#29b6f6">Bid: {_si.bid:.5f}</span>'
+                    f'<span style="font-family:monospace;font-size:0.95rem;font-weight:700;color:#00e676">Ask: {_si.ask:.5f}</span>'
+                    f'<span style="font-size:0.75rem;color:var(--text-secondary)">Spread: {_sp_pips:.1f}p</span>'
+                    f'<span style="font-size:0.75rem;color:var(--text-secondary)">Master {_login_str}: <b>${_acc.balance:,.2f}</b></span>'
+                    f'</div>', unsafe_allow_html=True)
+            else:
+                st.caption("Awaiting MT5 quotes...")
+        except Exception:
+            st.caption("Connect MT5 to see live quotes.")
+    with col_ref:
+        if st.button("🔄", key="sniper_top_refresh", help="Refresh M15 candle & terminal data"):
+            st.rerun()
+
+    # ── Trade Locking & Active Position Detection ─────────────────────────────
+    active_manual_orders = []
+    armed_setups = []
+    try:
+        active_manual_orders = get_active_manual_orders()
+    except Exception:
+        pass
+    try:
+        armed_setups = get_armed_orders()
+    except Exception:
+        pass
+
+    sym_open = [o for o in active_manual_orders if o.get("symbol") == sniper_sym and o.get("type") == "OPEN"]
+    sym_pending = [o for o in active_manual_orders if o.get("symbol") == sniper_sym and o.get("type") == "PENDING"]
+    sym_armed = [a for a in armed_setups if a.get("symbol") == sniper_sym and a.get("status") == "ARMED_WAITING_CLOSE"]
+
+    locked_trade = None
+    lock_mode = None
+    if sym_open:
+        locked_trade = sym_open[0]
+        lock_mode = "OPEN"
+    elif sym_pending:
+        locked_trade = sym_pending[0]
+        lock_mode = "PENDING"
+    elif sym_armed:
+        locked_trade = sym_armed[0]
+        lock_mode = "ARMED"
+
+    # ── Fetch Candlestick Chart Data & Technical Metrics ───────────────────────
+    df = pd.DataFrame()
+    try:
+        df = inf_engine.data_engine.fetch(sniper_sym, interval=m15_tf, days=4, use_cache=False)
+    except Exception as e:
+        logger.warning(f"Could not fetch {sniper_sym} data for chart: {e}")
+
+    # Technical Indicators (Price, RSI, Volatility, Spread)
+    last_price = 0.0
+    change = 0.0
+    current_rsi = 50.0
+    volatility = 0.0
+    if not df.empty and len(df) >= 2:
+        try:
+            last_price = float(df['close'].iloc[-1])
+            prev_price = float(df['close'].iloc[-2])
+            change = (last_price - prev_price) / prev_price if prev_price > 0 else 0.0
+            current_rsi = calculate_rsi_manual(df['close'])
+            volatility = float(df['close'].pct_change().std() * 100)
+            if np.isnan(volatility): volatility = 0.0
+        except Exception:
+            pass
+
+    # ── Fetch AI Foundation Intelligence Context ──────────────────────────────
+    ai_result = None
+    try:
+        ai_result = inf_engine.predict_symbol(
+            sniper_sym, save_to_db=False,
+            win_rate=st.session_state.get('accuracy_target', '70%'),
+            allow_stale=True, use_cache=False
+        )
+    except Exception as e:
+        logger.debug(f"AI pulse fetch in manual cockpit: {e}")
+
+    ai_pred = ai_result.get('signal', 'WAIT') if ai_result else 'WAIT'
+    ai_conf = ai_result.get('confidence', 0.0) if ai_result else 0.0
+    ai_regime = str(ai_result.get('regime') or 'RANGING').upper() if ai_result else 'RANGING'
+    p_buy = float(ai_result.get('buy_prob') or 0.0) if ai_result else 0.0
+    p_wait = float(ai_result.get('wait_prob') or 0.0) if ai_result else 0.0
+    p_sell = float(ai_result.get('sell_prob') or 0.0) if ai_result else 0.0
+
+    # ── High-Visibility Locked Position / Armed Banner ────────────────────────
+    pip_sz = get_pip_size(sniper_sym)
+    if lock_mode == "OPEN" and locked_trade:
+        open_dir = locked_trade.get("direction", "BUY")
+        open_entry = float(locked_trade.get("entry", 0.0))
+        open_pnl = float(locked_trade.get("pnl") or 0.0)
+        open_tkt = locked_trade.get("ticket", "")
+        dir_mult = 1 if open_dir == "BUY" else -1
+        pnl_pips = ((last_price - open_entry) / pip_sz * dir_mult) if last_price > 0 and open_entry > 0 else 0.0
+        pnl_color = "#00FF88" if open_pnl >= 0 else "#FF4466"
+
+        st.markdown(f"""
+        <div style="background:rgba(0,229,255,0.08);border:1px solid #00e5ff;padding:10px 18px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin:10px 0 14px 0;box-shadow:0 0 18px rgba(0,229,255,0.15)">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="background:#00E5FF;color:#000;padding:4px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:900;letter-spacing:0.05em">LOCKED</span>
+                <span style="font-weight:800;color:#ffffff;font-size:0.95rem">ACTIVE POSITION #{open_tkt}</span>
+                <span style="color:{'#00FF88' if open_dir == 'BUY' else '#FF4466'};font-weight:700;font-size:0.9rem">{open_dir} {locked_trade.get('lots', '')} Lots @ {open_entry:.5f}</span>
+                <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:{pnl_color};background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:4px">{pnl_pips:+.1f} pips ({open_pnl:+.2f} USD)</span>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">SL: {locked_trade.get('sl', 0):.5f} · TP: {locked_trade.get('tp', 0):.5f}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif lock_mode == "PENDING" and locked_trade:
+        pen_tkt = locked_trade.get("ticket", "")
+        pen_dir = locked_trade.get("direction", "BUY")
+        pen_entry = float(locked_trade.get("entry", 0.0))
+        pen_dir_color = "#00FF88" if pen_dir == "BUY" else "#FF4466"
+        st.markdown(f"""
+        <div style="background:rgba(255,214,0,0.08);border:1px solid #ffd600;padding:10px 18px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin:10px 0 14px 0">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="background:#FFD600;color:#000;padding:4px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:900;letter-spacing:0.05em">LOCKED</span>
+                <span style="font-weight:800;color:#ffffff;font-size:0.95rem">PENDING STOP ORDER #{pen_tkt}</span>
+                <span style="color:{pen_dir_color};font-weight:700;font-size:0.9rem">{pen_dir} {locked_trade.get('lots', '')} Lots @ {pen_entry:.5f}</span>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">Awaiting next candle wick touch · SL: {locked_trade.get('sl', 0):.5f} · TP: {locked_trade.get('tp', 0):.5f}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif lock_mode == "ARMED" and locked_trade:
+        arm_dir = locked_trade.get("direction", "BUY")
+        arm_close = locked_trade.get("target_close_time", "")
+        arm_id = locked_trade.get("arm_id", "")
+        arm_dir_color = "#00FF88" if arm_dir == "BUY" else "#FF4466"
+        try:
+            arm_dt = datetime.fromisoformat(arm_close)
+            sec_left = max(0, int((arm_dt - datetime.now(timezone.utc)).total_seconds()))
+            countdown_label = f"{sec_left//60:02d}:{sec_left%60:02d} left"
+            close_label = arm_dt.strftime("%H:%M UTC")
+        except Exception:
+            countdown_label = "awaiting close"
+            close_label = arm_close[:16]
+
+        st.markdown(f"""
+        <div style="background:rgba(0,230,118,0.08);border:1px solid #00e676;padding:10px 18px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin:10px 0 14px 0">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="background:#00E676;color:#000;padding:4px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:900;letter-spacing:0.05em">ARMED</span>
+                <span style="font-weight:800;color:#ffffff;font-size:0.95rem">M15 WICK SNIPER PRE-ARMED</span>
+                <span style="color:{arm_dir_color};font-weight:700;font-size:0.9rem">{arm_dir} (Next M15 Candle)</span>
+                <span style="font-family:monospace;font-size:0.95rem;color:#00FF88">Locks in {countdown_label} (at {close_label})</span>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">RRR 1:{locked_trade.get('rrr', 1.5)} · Risk {locked_trade.get('risk_value', 0.5)}%</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Fetch Forming M15 Candle (for sniper calculations) ───────────────────
+    candle = get_forming_candle(sniper_sym)
+
+    # ── Two-Column Main Layout (Left: Chart & Analysis, Right: AI & Cockpit) ──
+    col_main, col_side = st.columns([3, 1])
+
+    with col_side:
+        section_header("🤖", "AI Market Intelligence")
+        
+        # 1. AI Regime & Verdict Card
+        status_color = "#00FF88" if ai_pred == "BUY" else "#FF4466" if ai_pred == "SELL" else "var(--text-muted)"
+        if "CRISIS" in ai_regime:
+            status_text = "⚠️ CRISIS REGIME"
+            status_color = "#FF4466"
+        else:
+            status_text = f"{ai_regime} ({ai_pred})"
+
+        st.markdown(f"""
+        <div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:14px">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Foundation Brain Bias</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:1.1rem;font-weight:800;color:{status_color}">{ai_pred}</span>
+                <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:var(--accent-cyan)">{ai_conf:.1%}</span>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">Regime: <b>{ai_regime}</b></div>
+            <!-- Sentiment Heatmap -->
+            <div style="display:flex;height:5px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.05);margin-top:10px;margin-bottom:6px">
+                <div style="width:{p_buy:.1%};background:var(--signal-buy)"></div>
+                <div style="width:{p_wait:.1%};background:var(--signal-wait)"></div>
+                <div style="width:{p_sell:.1%};background:var(--signal-sell)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:monospace;font-size:0.62rem;color:var(--text-muted)">
+                <span>B {p_buy:.0%}</span>
+                <span>W {p_wait:.0%}</span>
+                <span>S {p_sell:.0%}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        section_header("⚙️", "Order Configuration")
+        direction = st.radio(
+            "Direction", ["BUY", "SELL"], horizontal=True, key="sniper_direction",
+            format_func=lambda x: f"🟢 {x}" if x == "BUY" else f"🔴 {x}"
+        )
+
+        can_arm_prev = candle.get("can_arm_previous", False) if candle else False
+        grace_left = candle.get("grace_seconds_left", 0) if candle else 0
+        target_candle_sel = "forming"
+
+        if can_arm_prev:
+            m_left = grace_left // 60
+            s_left = grace_left % 60
+            st.markdown(f"""
+            <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.3);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+                <div style="font-weight:700;font-size:0.78rem;color:#00E676;display:flex;justify-content:space-between">
+                    <span>🟢 5-MIN GRACE WINDOW</span>
+                    <span style="font-family:monospace">{m_left:02d}:{s_left:02d} left</span>
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px">
+                    You can trade the previous completed candle's wicks.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            mode_choice = st.radio(
+                "Wick Target Reference",
+                [
+                    f"🎯 Previous Candle (5-Min Grace: {m_left:02d}:{s_left:02d})",
+                    "⏳ Current Forming Candle (Pre-Arm for Close)"
+                ],
+                index=0,
+                key="sniper_target_choice",
+                help="Select whether to trade using the previous candle's locked wicks (immediate submission) or pre-arm the currently forming candle."
+            )
+            target_candle_sel = "previous" if "Previous Candle" in mode_choice else "forming"
+
+        sl_buffer = st.number_input(
+            "SL Buffer (pips beyond wick)",
+            min_value=0.5, max_value=20.0, value=5.0, step=0.5,
+            format="%.1f", key="sniper_sl_buffer",
+            help="BUY: SL = Low wick − buffer  |  SELL: SL = High wick + buffer"
+        )
+
+        rrr_map = {"1:1.5 (Default)": 1.5, "1:2.0": 2.0, "1:1.0": 1.0}
+        rrr_sel = st.radio("Risk:Reward Ratio", list(rrr_map.keys()), key="sniper_rrr")
+        rrr = rrr_map[rrr_sel]
+
+        risk_type_sel = st.radio("Risk Mode", ["Account %", "Fixed $"], horizontal=True, key="sniper_risk_type")
+        risk_type = "percent" if risk_type_sel == "Account %" else "amount"
+
+        if risk_type == "percent":
+            risk_value = st.number_input("Risk %", min_value=0.01, max_value=10.0, value=0.5, step=0.1, format="%.2f", key="sniper_risk_pct")
+        else:
+            risk_value = st.number_input("Risk Amount ($)", min_value=1.0, max_value=10000.0, value=50.0, step=5.0, format="%.2f", key="sniper_risk_amt")
+
+        broadcast_toggle = st.toggle("📡 Copy to Subscribers", value=True, key="sniper_broadcast", help="Execute order on all connected broker accounts.")
+        telegram_toggle = st.toggle("📲 Telegram Alert", value=True, key="sniper_telegram")
+
+        # Finish Color Safety Notice
+        st.caption(
+            "🛡️ **Finish Color Rule**: SELL setup cancels if candle closes Bullish. BUY setup cancels if candle closes Bearish."
+        )
+
+        # Compute Pre-Flight Spec
+        spec = {}
+        if candle:
+            spec = calculate_manual_order(
+                symbol=sniper_sym, direction=direction, rrr=rrr,
+                risk_type=risk_type, risk_value=risk_value,
+                sl_buffer_pips=sl_buffer,
+                target_candle=target_candle_sel,
+            )
+
+        if spec and not spec.get("valid") and spec.get("error"):
+            st.error(f"⚠️ {spec.get('error')}")
+
+        st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
+        
+        # Primary Action Button
+        if lock_mode == "ARMED" and sym_armed:
+            disarm_id = sym_armed[0].get("arm_id")
+            if st.button("❌ DISARM SETUP", type="secondary", use_container_width=True, key="btn_disarm_main"):
+                disarm_order(disarm_id)
+                st.toast(f"Setup {sniper_sym} disarmed.", icon="ℹ️")
+                st.rerun()
+        elif lock_mode == "OPEN" and sym_open:
+            close_tkt = sym_open[0].get("ticket")
+            if st.button("🚨 CLOSE POSITION", type="secondary", use_container_width=True, key="btn_close_main"):
+                cr = close_manual_position(close_tkt)
+                if cr.get("success"):
+                    st.toast(f"Position #{close_tkt} closed.", icon="✅")
+                    st.rerun()
+                else:
+                    st.error(f"Close failed: {cr.get('error')}")
+        else:
+            btn_title = (
+                f"🚀 SUBMIT M15 SNIPER — {direction} {sniper_sym} (Prev Wicks)"
+                if target_candle_sel == "previous" else
+                f"🚀 ARM M15 SNIPER — {direction} {sniper_sym}"
+            )
+            arm_btn = st.button(
+                btn_title,
+                type="primary", use_container_width=True, key="sniper_arm_btn",
+                disabled=not (spec and spec.get("valid"))
+            )
+            if arm_btn and spec and spec.get("valid"):
+                with st.spinner(f"Processing M15 Wick Sniper for {direction} {sniper_sym}..."):
+                    arm_result = arm_m15_order(
+                        symbol=sniper_sym,
+                        direction=direction,
+                        rrr=rrr,
+                        risk_type=risk_type,
+                        risk_value=risk_value,
+                        sl_buffer_pips=sl_buffer,
+                        broadcast_to_subscribers=broadcast_toggle,
+                        send_telegram=telegram_toggle,
+                        target_candle=target_candle_sel,
+                    )
+                if arm_result.get("success"):
+                    if arm_result.get("placed_immediately"):
+                        st.success(
+                            f"🎯 **Order #{arm_result.get('ticket')} PLACED on MT5!**\n\n"
+                            f"• Executed on Previous Candle wicks under 5-minute grace window.\n"
+                            f"• Expiry set to end of current candle (**{arm_result.get('target_close_str')}**).\n"
+                            f"• Broadcast to connected subscriber accounts."
+                        )
+                    else:
+                        st.success(
+                            f"🎯 **Setup PRE-ARMED for {direction} {sniper_sym}!**\n\n"
+                            f"• Watching current M15 candle.\n"
+                            f"• Locks wick at **{arm_result.get('target_close_str')}**.\n"
+                            f"• 🛡️ Evaluates finish color (auto-cancels if finishes opposite color).\n"
+                            f"• Places **{direction}_STOP** pending order on MT5 & copy accounts."
+                        )
+                    st.rerun()
+                else:
+                    st.error(f"Arming failed: {arm_result.get('error')}")
+
+    with col_main:
+        # Determine chart levels: if locked position/pending exists, plot them; otherwise plot pre-flight spec
+        chart_levels = None
+        if lock_mode in ("OPEN", "PENDING") and locked_trade:
+            chart_levels = {
+                "entry": locked_trade.get("entry"),
+                "tp": locked_trade.get("tp"),
+                "sl": locked_trade.get("sl"),
+            }
+        elif spec and spec.get("valid"):
+            chart_levels = {
+                "entry": spec.get("entry"),
+                "tp": spec.get("tp"),
+                "sl": spec.get("sl"),
+            }
+
+        # 1. Header Metrics Row
+        if not df.empty and len(df) >= 2:
+            m1, m2, m3, m4, m5 = st.columns(5)
+            m1.metric("Live Price", f"{last_price:.5f}", f"{change:+.2%}")
+            m2.metric("Timeframe", f"{m15_tf.upper()}")
+            m3.metric("Volatility", f"{volatility:.3f}%")
+            m4.metric("RSI (14)", f"{current_rsi:.1f}", "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral")
+            if lock_mode == "OPEN" and locked_trade:
+                pnl_val = float(locked_trade.get("pnl") or 0.0)
+                m5.metric("Floating P/L", f"${pnl_val:+.2f}", f"{pnl_pips:+.1f} pips")
+            else:
+                m5.metric("Engine", "M15 SNIPER", "Discretionary")
+
+        # 2. Interactive Candlestick Chart (with Entry, TP, SL price lines)
+        render_chart(df, sniper_sym, key=f"m15_{m15_tf}_{sniper_sym.lower()}", levels=chart_levels)
+
+        # 3. M15 Reference Candle Card
+        if candle:
+            now_utc = datetime.now(timezone.utc)
+            candle_close = candle.get("close_time")
+            next_close   = candle.get("next_candle_close")
+            time_to_close = int((candle_close - now_utc).total_seconds()) if candle_close else 0
+            time_to_close = max(0, time_to_close)
+            mins_left  = time_to_close // 60
+            secs_left  = time_to_close % 60
+            candle_open_str  = candle["time"].strftime("%H:%M")
+            candle_close_str = candle_close.strftime("%H:%M UTC") if candle_close else "—"
+            next_close_str   = next_close.strftime("%H:%M UTC") if next_close else "—"
+
+            if target_candle_sel == "previous" and candle.get("previous_candle"):
+                ref = candle["previous_candle"]
+                candle_range_pips = (ref["high"] - ref["low"]) / pip_sz
+                bull = ref["is_bullish"]
+                body_color = "#00e676" if bull else "#ff4466"
+                status_color = "#00e676" if bull else "#ff4466"
+                finish_text = "🟢 CLOSED BULLISH" if bull else "🔴 CLOSED BEARISH"
+                ref_open_str = ref["open_time"].strftime("%H:%M")
+                ref_close_str = ref["close_time"].strftime("%H:%M UTC")
+
+                st.markdown(f"""
+                <div style="padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(0,230,118,0.3);border-radius:10px;margin-top:10px;margin-bottom:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                        <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:#00E676;font-weight:700">
+                            🎯 Reference Target: Previous Closed Candle &middot; {ref_open_str}–{ref_close_str}
+                        </span>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <span style="padding:2px 10px;border-radius:10px;background:{status_color}22;color:{status_color};border:1px solid {status_color}44;font-size:0.7rem;font-weight:700">{finish_text}</span>
+                            <span style="font-size:0.7rem;color:var(--text-secondary)">Current candle ends: <b>{candle_close_str}</b> ({mins_left:02d}:{secs_left:02d} left)</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">PREV HIGH (BUY)</span><br>
+                            <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:#00e676">HIGH {ref["high"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">OPEN</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;color:var(--text-primary)">{ref["open"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">CLOSE</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;font-weight:700;color:{body_color}">{ref["close"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">PREV LOW (SELL)</span><br>
+                            <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:#ff4466">LOW {ref["low"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">RANGE</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;color:var(--accent-cyan)">{candle_range_pips:.1f} pips</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                candle_range_pips = (candle["high"] - candle["low"]) / pip_sz
+                bull = candle["close"] >= candle["open"]
+                body_color = "#00e676" if bull else "#ff4466"
+                is_forming = candle.get("is_forming", False)
+
+                status_badge = (
+                    f'<span style="padding:2px 10px;border-radius:10px;background:#00e67622;color:#00e676;'
+                    f'border:1px solid #00e67644;font-size:0.7rem;font-weight:700">⏱ FORMING · {mins_left:02d}:{secs_left:02d} left</span>'
+                    if is_forming else
+                    f'<span style="padding:2px 10px;border-radius:10px;background:#ff446622;color:#ff4466;'
+                    f'border:1px solid #ff446644;font-size:0.7rem;font-weight:700">🔴 MARKET CLOSED</span>'
+                )
+
+                st.markdown(f"""
+                <div style="padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-top:10px;margin-bottom:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                        <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary)">
+                            Current M15 Candle &middot; {candle_open_str}–{candle_close_str}
+                        </span>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            {status_badge}
+                            <span style="font-size:0.7rem;color:var(--text-secondary)">Next candle closes: <b>{next_close_str}</b></span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">BUY TRIGGER</span><br>
+                            <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:#00e676">HIGH {candle["high"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">OPEN</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;color:var(--text-primary)">{candle["open"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">CURRENT</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;font-weight:700;color:{body_color}">{candle["close"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">SELL TRIGGER</span><br>
+                            <span style="font-family:monospace;font-size:1.05rem;font-weight:700;color:#ff4466">LOW {candle["low"]:.5f}</span>
+                        </div>
+                        <div>
+                            <span style="font-size:0.68rem;color:var(--text-secondary)">CANDLE RANGE</span><br>
+                            <span style="font-family:monospace;font-size:0.95rem;color:var(--accent-cyan)">{candle_range_pips:.1f} pips</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # 4. Trading Levels Execution Bracket
+        disp_entry = 0.0
+        disp_tp = 0.0
+        disp_sl = 0.0
+        disp_tp_pips = 0.0
+        disp_sl_pips = 0.0
+        disp_rr = rrr
+        disp_label = "Pre-Flight Calculation"
+
+        if lock_mode in ("OPEN", "PENDING") and locked_trade:
+            disp_entry = float(locked_trade.get("entry", 0.0))
+            disp_tp = float(locked_trade.get("tp", 0.0))
+            disp_sl = float(locked_trade.get("sl", 0.0))
+            disp_tp_pips = abs(disp_tp - disp_entry) / pip_sz if pip_sz > 0 else 0
+            disp_sl_pips = abs(disp_entry - disp_sl) / pip_sz if pip_sz > 0 else 0
+            disp_rr = (disp_tp_pips / max(disp_sl_pips, 1.0)) if disp_sl_pips > 0 else rrr
+            disp_label = f"Active Position #{locked_trade.get('ticket')}" if lock_mode == "OPEN" else f"Pending Stop #{locked_trade.get('ticket')}"
+        elif spec and spec.get("valid"):
+            disp_entry = spec.get("entry", 0.0)
+            disp_tp = spec.get("tp", 0.0)
+            disp_sl = spec.get("sl", 0.0)
+            disp_tp_pips = spec.get("tp_pips", 0.0)
+            disp_sl_pips = spec.get("sl_pips", 0.0)
+            disp_rr = spec.get("rrr", rrr)
+            disp_label = f"M15 Wick Auto-Brackets ({spec.get('lots', '')} Lots · Risk ${spec.get('risk_usd', 0):.2f})"
+
+        disp_entry_footer = "Low Wick Target" if direction == "SELL" else "High Wick Target"
+
+        if disp_entry > 0 and disp_tp > 0 and disp_sl > 0:
+            st.markdown(f"""
+            <div style="margin-top: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-glass);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1rem;">📍</span>
+                        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);">Trading Levels & Execution Brackets</span>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">
+                        {disp_label}
+                    </div>
+                </div>
+                <div class="trading-levels-grid">
+                    <div class="trading-level-card tl-entry">
+                        <div class="tl-header">Entry Price</div>
+                        <div class="tl-value">{disp_entry:.5f}</div>
+                        <div class="tl-footer">{disp_entry_footer}</div>
+                    </div>
+                    <div class="trading-level-card tl-tp">
+                        <div class="tl-header">Take Profit (TP)</div>
+                        <div class="tl-value">{disp_tp:.5f}</div>
+                        <div class="tl-footer">+{disp_tp_pips:.1f} pips target</div>
+                    </div>
+                    <div class="trading-level-card tl-sl">
+                        <div class="tl-header">Stop Loss (SL)</div>
+                        <div class="tl-value">{disp_sl:.5f}</div>
+                        <div class="tl-footer">-{disp_sl_pips:.1f} pips ({sl_buffer:.1f}p buffer)</div>
+                    </div>
+                    <div class="trading-level-card tl-rr">
+                        <div class="tl-header">Risk / Reward</div>
+                        <div class="tl-value">1:{disp_rr:.1f}</div>
+                        <div class="tl-footer">Selectable Bracket</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── Active Orders & Armed Queue Monitor (Full Width) ──────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.container(border=True):
+        section_header("📊", "Active M15 Sniper Orders & Armed Queue")
+        st.caption("All pre-armed setups awaiting candle close + live pending and open MT5 positions (Magic #202425)")
+
+        # 1. Armed Queue
+        if armed_setups:
+            st.markdown("##### ⏱️ Pre-Armed Setups (Waiting for Candle Close)")
+            for a in armed_setups:
+                a_sym = a.get("symbol", "?")
+                a_dir = a.get("direction", "?")
+                a_close = a.get("target_close_time", "")
+                a_id = a.get("arm_id", "")
+                a_dir_color = "#00e676" if a_dir == "BUY" else "#ff4466"
+                try:
+                    c_dt = datetime.fromisoformat(a_close)
+                    c_str = c_dt.strftime("%H:%M UTC")
+                    sec_left = max(0, int((c_dt - datetime.now(timezone.utc)).total_seconds()))
+                    countdown_str = f"locks in {sec_left//60:02d}:{sec_left%60:02d}"
+                except Exception:
+                    c_str = a_close[:16]
+                    countdown_str = "pending close"
+
+                with st.container(border=True):
+                    c1, c2 = st.columns([5, 1])
+                    with c1:
+                        st.markdown(
+                            f'<span style="padding:2px 8px;border-radius:6px;background:#ffd60022;color:#ffd600;border:1px solid #ffd60044;font-size:0.72rem;font-weight:700">⏱ ARMED</span> '
+                            f'<span style="color:{a_dir_color};font-weight:700">{a_dir}</span> '
+                            f'<b>{a_sym}</b> · Target Close: <code>{c_str}</code> ({countdown_str}) · '
+                            f'RRR: <code>1:{a.get("rrr", 1.5)}</code> · Risk: <code>{a.get("risk_value", 0.5)}%</code> · '
+                            f'Buffer: <code>{a.get("sl_buffer_pips", 2.5)}p</code>',
+                            unsafe_allow_html=True
+                        )
+                        st.caption(f"Armed at: {a.get('created_at', '')[:19]} UTC · Pending stop order will be submitted right as candle closes.")
+                    with c2:
+                        if st.button("❌ Disarm", key=f"disarm_q_{a_id}", use_container_width=True):
+                            disarm_order(a_id)
+                            st.toast(f"Setup {a_sym} disarmed.", icon="ℹ️")
+                            st.rerun()
+
+        # 2. MT5 Active Pending & Open Orders
+        if active_manual_orders:
+            st.markdown("##### 📌 MT5 Active Orders & Positions")
+            for o in active_manual_orders:
+                badge_color = "#ffd600" if o["type"] == "PENDING" else "#00e676"
+                dir_color   = "#00e676" if o["direction"] == "BUY" else "#ff4466"
+                pnl_str = ""
+                if o.get("pnl") is not None:
+                    pnl_color = "#00e676" if o["pnl"] >= 0 else "#ff4466"
+                    pnl_str = f'<span style="color:{pnl_color};font-weight:700"> · Floating P/L: ${o["pnl"]:.2f}</span>'
+                with st.container(border=True):
+                    row1, row2 = st.columns([5, 1])
+                    with row1:
+                        st.markdown(
+                            f'<span style="padding:2px 8px;border-radius:6px;background:{badge_color}22;color:{badge_color};border:1px solid {badge_color}44;font-size:0.72rem;font-weight:700">{o["type"]}</span> '
+                            f'<span style="color:{dir_color};font-weight:700"> {o["direction"]}</span> '
+                            f'<b>{o["symbol"]}</b> · <code>{o["order_type_str"]}</code> · '
+                            f'Entry: <code>{o["entry"]:.5f}</code> · SL: <code>{o["sl"]:.5f}</code> · TP: <code>{o["tp"]:.5f}</code> · '
+                            f'Lots: <code>{o["lots"]}</code> · Ticket: <code>#{o["ticket"]}</code>{pnl_str}',
+                            unsafe_allow_html=True)
+                        st.caption(f"Placed: {o['placed_at'][:16]} UTC  ·  {o.get('comment', '')}")
+                    with row2:
+                        if o["type"] == "PENDING":
+                            if st.button("❌ Cancel", key=f"cancel_{o['ticket']}", use_container_width=True):
+                                r = cancel_manual_order(o["ticket"])
+                                if r["success"]:
+                                    st.toast(f"Order #{o['ticket']} cancelled.", icon="✅")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Cancel failed: {r.get('error')}")
+                        elif o["type"] == "OPEN":
+                            if st.button("🚨 Close", key=f"close_{o['ticket']}", use_container_width=True):
+                                r = close_manual_position(o["ticket"])
+                                if r["success"]:
+                                    st.toast(f"Position #{o['ticket']} closed.", icon="✅")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Close failed: {r.get('error')}")
+        elif not armed_setups:
+            st.info("No active armed setups or pending M15 Sniper orders. Configure and arm a setup above.")
+
+    # ── Recorded Manual Trades History (Audit Trail) ───────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.container(border=True):
+        section_header("📜", "Recorded Manual Trades History (Audit Trail)")
+        st.caption("Permanent record of all manual precision M15 trades recorded in SignalDatabase with resolved outcomes.")
+
+        manual_trades = []
+        try:
+            import sqlite3
+            with db._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, timestamp, symbol, signal, price_at_signal, exit_price,
+                           sl_price, tp_price, suggested_lots, outcome, exit_reason,
+                           duration_seconds, mt5_ticket
+                    FROM signals
+                    WHERE is_manual = 1 OR model_version = 'manual_m15'
+                    ORDER BY timestamp DESC
+                    LIMIT 50
+                """)
+                manual_trades = [dict(r) for r in cursor.fetchall()]
+        except Exception as e:
+            logger.warning(f"Failed to query manual trade history: {e}")
+
+        if manual_trades:
+            # Summary KPIs for manual trading
+            m_completed = [t for t in manual_trades if t.get("outcome") in ("SUCCESS", "FAIL")]
+            m_wins = len([t for t in m_completed if t.get("outcome") == "SUCCESS"])
+            m_wr = (m_wins / len(m_completed) * 100) if m_completed else 0.0
+
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Recorded Trades", str(len(manual_trades)))
+            k2.metric("Win Rate", f"{m_wr:.1f}%", f"{m_wins} wins / {len(m_completed)} closed")
+            k3.metric("Resolved", str(len(m_completed)))
+            k4.metric("Active / Pending", str(len(manual_trades) - len(m_completed)))
+
+            # Table of recorded trades
+            trade_rows = []
+            for t in manual_trades:
+                dur_m = (t.get("duration_seconds") or 0) // 60
+                dur_str = f"{dur_m}m" if dur_m > 0 else "<1m"
+                trade_rows.append({
+                    "Timestamp": t.get("timestamp", "")[:19].replace("T", " "),
+                    "Symbol": t.get("symbol"),
+                    "Signal": t.get("signal"),
+                    "Lots": t.get("suggested_lots"),
+                    "Entry": f"{float(t.get('price_at_signal') or 0):.5f}",
+                    "Exit": f"{float(t.get('exit_price') or 0):.5f}" if t.get("exit_price") else "—",
+                    "TP": f"{float(t.get('tp_price') or 0):.5f}" if t.get("tp_price") else "—",
+                    "SL": f"{float(t.get('sl_price') or 0):.5f}" if t.get("sl_price") else "—",
+                    "Outcome": t.get("outcome"),
+                    "Duration": dur_str,
+                    "Ticket": f"#{t.get('mt5_ticket')}" if t.get("mt5_ticket") else "—",
+                    "Reason": t.get("exit_reason") or "—"
+                })
+
+            st.dataframe(
+                pd.DataFrame(trade_rows),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("No past manual trades recorded in database yet. Trades will appear here permanently once armed or placed.")
+
+
+
+
+def _show_dynamic_ytd_cockpit(symbol: str, all_pairs: list):
+    """
+    Dedicated cockpit for the 🌟 Dynamic YTD Model (Daily Winning Asset Strategy).
+    Displays:
+    - Real-time Winning Asset status for the selected symbol across each activated model
+    - Global model-by-model winning assets breakdown
+    - Daily 24h autonomous cycle countdown and status
+    - Instant 'Recompute Whitelists Now' button
+    - Fast pair switching and live MT5 execution controls
+    """
+    from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, is_pair_whitelisted_for_model
+    from core.model_gatekeeper import load_gatekeeper_config, save_gatekeeper_config
+    
+    dw_mgr = get_dynamic_whitelist_manager()
+    summary = dw_mgr.get_all_models_summary()
+    as_of_date = summary.get("as_of_date", "Today")
+    models_data = summary.get("models", {})
+    gate_cfg = load_gatekeeper_config()
+    is_dyn_live = bool(gate_cfg.get("dynamic_ytd_model", True))
+
+    # Header Card
+    with st.container(border=True):
+        hc1, hc2, hc3 = st.columns([2.8, 1.2, 1.0])
+        with hc1:
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:12px;">'
+                '<span style="font-size:1.8rem;">🌟</span>'
+                '<div>'
+                '<h3 style="margin:0;padding:0;font-size:1.35rem;font-weight:700;color:var(--text-primary);">'
+                'Dynamic YTD Model (Daily Winning Asset Strategy)'
+                '</h3>'
+                '<span style="font-size:0.82rem;color:var(--text-secondary);">'
+                'Autonomous 24h Cycle · Daily Winning Asset Whitelist Filter (Net R ≥ 0.0)'
+                '</span>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True
+            )
+        with hc2:
+            st.caption(f"📅 Active Whitelist Date: **{as_of_date}**")
+            st.caption("🔄 Auto-Rollover: **00:01 UTC Daily**")
+        with hc3:
+            badge_html = '<div style="margin-top:4px;padding:6px 12px;background:rgba(255,214,0,0.15);border:1px solid #ffd60066;border-radius:8px;text-align:center;font-weight:700;color:#ffd600;font-size:0.82rem">🌟 LIVE ACTIVE</div>' if is_dyn_live else '<div style="margin-top:4px;padding:6px 12px;background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);border-radius:8px;text-align:center;font-weight:700;color:#ff5252;font-size:0.82rem">⏸️ DISABLED</div>'
+            st.markdown(badge_html, unsafe_allow_html=True)
+            t_dyn = st.toggle("Live Execution", value=is_dyn_live, key="toggle_dyn_cockpit_live")
+            if t_dyn != is_dyn_live:
+                gate_cfg["dynamic_ytd_model"] = t_dyn
+                save_gatekeeper_config(gate_cfg)
+                action = "Activated" if t_dyn else "Deactivated"
+                st.toast(f"🌟 Dynamic YTD Model {action}!", icon="🌟" if t_dyn else "⏸️")
+                st.rerun()
+
+    # Controls Row
+    ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1.5, 1.5])
+    with ctrl_col1:
+        st.markdown(f"**Asset Inspector: `{symbol}`**")
+        st.caption("Inspect whether this asset is an approved winning asset for each active model.")
+    with ctrl_col2:
+        if st.button("🔄 Recompute Whitelists Now", key="btn_cockpit_recompute_whitelists", use_container_width=True):
+            with st.spinner("Recomputing YTD winning assets across all models..."):
+                dw_mgr.compute_ytd_whitelists()
+                st.toast("✅ Dynamic Model Whitelists recomputed!", icon="🌟")
+                st.rerun()
+    with ctrl_col3:
+        if st.button("⚡ Scan All Pairs", key="btn_cockpit_scan_all", use_container_width=True):
+            with st.spinner("Scanning all pairs for winning setups..."):
+                from core.confluence_model import scan_and_execute_all_pairs
+                res = scan_and_execute_all_pairs()
+                n_setups = len(res.get("setups", []))
+                n_exec = len(res.get("executed", []))
+                st.toast(f"Scan complete: {n_setups} setups detected, {n_exec} orders placed!", icon="🎯")
+                st.rerun()
+
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Asset Status Card for the Selected Symbol
+    with st.container(border=True):
+        st.markdown(f"#### 🔍 Status for `{symbol}` Across All Activated Models")
+        cols = st.columns(len(models_data) if models_data else 1)
+        for i, (m_key, m_info) in enumerate(models_data.items()):
+            w_pairs = m_info.get("winning_pairs", [])
+            p_stats = m_info.get("pair_stats", {}).get(symbol, {})
+            is_win = symbol in w_pairs
+            net_r = p_stats.get("net_r", 0.0)
+            wr = p_stats.get("win_rate", 0.0)
+            trades = p_stats.get("trades", 0)
+            short_name = m_info.get("name", m_key).split("(")[0].strip()
+
+            with cols[i]:
+                if is_win:
+                    st.markdown(
+                        f"<div style='padding:12px;border-radius:10px;background:rgba(0,230,118,0.08);border:1px solid #00e67644;text-align:center;'>"
+                        f"<div style='font-weight:700;color:var(--text-primary);font-size:0.85rem;'>{short_name}</div>"
+                        f"<div style='color:#00e676;font-size:1.1rem;font-weight:800;margin:4px 0;'>✅ APPROVED</div>"
+                        f"<div style='font-size:0.75rem;color:var(--text-secondary);'>+{net_r:.2f}R · {wr:.0f}% WR</div>"
+                        f"<div style='font-size:0.7rem;color:var(--text-secondary);'>{trades} closed trades</div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f"<div style='padding:12px;border-radius:10px;background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.25);text-align:center;'>"
+                        f"<div style='font-weight:700;color:var(--text-primary);font-size:0.85rem;'>{short_name}</div>"
+                        f"<div style='color:#ff5252;font-size:1.1rem;font-weight:800;margin:4px 0;'>🚫 BENCHED</div>"
+                        f"<div style='font-size:0.75rem;color:var(--text-secondary);'>{net_r:+.2f}R · {wr:.0f}% WR</div>"
+                        f"<div style='font-size:0.7rem;color:var(--text-secondary);'>{trades} closed trades</div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Model-by-Model Winning Assets Matrix
+    st.markdown("#### 📋 Winning Assets per Activated Strategy Engine")
+    for m_key, m_info in models_data.items():
+        w_pairs = m_info.get("winning_pairs", [])
+        b_pairs = m_info.get("benched_pairs", [])
+        total_trades = m_info.get("total_trades_ytd", 0)
+        m_name = m_info.get("name", m_key)
+        
+        from core.model_gatekeeper import is_model_live_authorized
+        is_live = is_model_live_authorized(m_key)
+        badge_str = "🟢 LIVE ACTIVE" if is_live else "👻 SHADOW MODE"
+        badge_bg = "rgba(0,230,118,0.12);border:1px solid #00e67644;color:#00e676" if is_live else "rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);color:#ffd600"
+
+        with st.container(border=True):
+            mc1, mc2 = st.columns([3.8, 1.2])
+            with mc1:
+                st.markdown(f"**{m_name}** &nbsp; <span style='background:{badge_bg};font-size:0.75rem;padding:2px 8px;border-radius:10px;font-weight:700;'>{badge_str}</span>", unsafe_allow_html=True)
+                st.caption(f"YTD Closed Deals: **{total_trades}** | Approved Winning Assets: **{len(w_pairs)} pairs** | Benched: **{len(b_pairs)} pairs**")
+            with mc2:
+                tot_p = len(w_pairs) + len(b_pairs)
+                pct_app = (len(w_pairs) / tot_p * 100) if tot_p > 0 else 0
+                st.metric("Winning Assets", f"{len(w_pairs)} pairs", f"{pct_app:.0f}% Approved")
+
+            if w_pairs:
+                p_stats = m_info.get("pair_stats", {})
+                badges_html = " ".join([
+                    f'<span style="display:inline-block;margin:3px;padding:3px 10px;background:rgba(0,230,118,0.12);border:1px solid #00e67655;border-radius:12px;font-size:0.8rem;font-weight:700;color:#00e676;">'
+                    f'✅ {p} <span style="font-weight:400;color:var(--text-secondary);font-size:0.75rem;">(+{p_stats.get(p, {}).get("net_r", 0.0):.1f}R · {p_stats.get(p, {}).get("win_rate", 0):.0f}% WR)</span>'
+                    f'</span>'
+                    for p in w_pairs
+                ])
+                st.markdown(f"**Winning Assets (Live Trading Authorized):**<br>{badges_html}", unsafe_allow_html=True)
+            else:
+                st.warning("No winning assets currently meet the hurdle for this model.")
+
+            with st.expander(f"🔍 View Complete Per-Pair Performance Table ({len(w_pairs) + len(b_pairs)} pairs)"):
+                p_stats = m_info.get("pair_stats", {})
+                if p_stats:
+                    rows = []
+                    for p, p_data in p_stats.items():
+                        rows.append({
+                            "Symbol": p,
+                            "Status": "✅ APPROVED" if p_data.get("status") == "APPROVED" else "🚫 BENCHED",
+                            "Net R": p_data.get("net_r", 0.0),
+                            "PnL ($)": p_data.get("pnl_usd", 0.0),
+                            "Win Rate (%)": p_data.get("win_rate", 0.0),
+                            "Trades": p_data.get("trades", 0),
+                            "Record (W-L-BE)": f"{p_data.get('wins', 0)}W - {p_data.get('losses', 0)}L - {p_data.get('be', 0)}BE",
+                        })
+                    df_p = pd.DataFrame(rows).sort_values("Net R", ascending=False)
+                    st.dataframe(
+                        df_p,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Net R": st.column_config.NumberColumn("Realized Net R", format="%+.2f R"),
+                            "PnL ($)": st.column_config.NumberColumn("Realized PnL", format="$%+.2f"),
+                            "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                        }
+                    )
+
+
+def _show_confluence_cockpit(symbol: str, all_pairs: list, is_ml_mode: bool = True, active_model_key: Optional[str] = None):
+    """
+    Automated Confluence Day/Swing Breakout & Reclamation Terminal ("Magic Candle Sniper").
+    Full technical analysis suite with:
+    - 21:00 UTC Previous Day High & Low Lines
+    - Prior M15 Swing High & Low Lines
+    - 3-Candle Institutional Liquidity Sweep & Reclamation state machine
+    - Automatic Pending Stop Order execution on Master MT5 + Fan-out to Copy Trading Followers
+    - Interactive Candlestick Charting with Day/Swing line overlays
+    - Multi-Pair Radar Heatmap
+    """
+    try:
+        import importlib
+        import core.confluence_model
+        try:
+            importlib.reload(core.confluence_model)
+        except Exception:
+            pass
+        from core.confluence_model import (
+            get_day_lines,
+            get_swing_lines,
+            evaluate_confluence_setup,
+            execute_confluence_setup,
+            scan_and_execute_all_pairs,
+            load_confluence_config,
+            save_confluence_config,
+            get_symbol_sl_buffer,
+            get_symbol_be_offset,
+            DEFAULT_SYMBOLS,
+        )
+        from core.manual_model import get_pip_size, get_mt5
+    except ImportError as e:
+        st.error(f"Confluence Model module not available: {e}")
+        return
+
+    engine = load_engine()
+    inf_engine = load_inference_v2()
+    db = get_db()
+    conf_cfg = load_confluence_config()
+
+    if not active_model_key:
+        active_model_key = "confluence_ml_p60" if is_ml_mode else "confluence_std_p25"
+
+    MODEL_INFO_MAP = {
+        "confluence_ml_p60": {
+            "flag": "enable_ml_p60_model",
+            "name": "🧠 Confluence AI Quality Gate (P60 · 60% Partial + BE+2p)",
+            "short_toggle": "🧠 AI Gate (P60) Active",
+            "is_ml": True,
+            "has_partial": True,
+            "default_active": True,
+        },
+        "confluence_std_p25": {
+            "flag": "enable_std_p25_model",
+            "name": "⚡ Confluence Standard (P25 · 25% Partial + BE+2p)",
+            "short_toggle": "⚡ Standard (P25) Active",
+            "is_ml": False,
+            "has_partial": True,
+            "default_active": True,
+        },
+        "confluence_ml_m15": {
+            "flag": "enable_ml_model",
+            "name": "🧠 Confluence AI Gate (Original · Fixed 1.5R)",
+            "short_toggle": "🧠 Original AI Gate Active",
+            "is_ml": True,
+            "has_partial": False,
+            "default_active": False,
+        },
+        "confluence_m15": {
+            "flag": "enable_standard_model",
+            "name": "⚡ Confluence Standard (Original · Fixed 1.5R)",
+            "short_toggle": "⚡ Original Standard Active",
+            "is_ml": False,
+            "has_partial": False,
+            "default_active": False,
+        },
+    }
+    model_meta = MODEL_INFO_MAP.get(active_model_key, MODEL_INFO_MAP["confluence_ml_p60"])
+    model_flag = model_meta["flag"]
+    model_display_name = model_meta["name"]
+    toggle_label = model_meta["short_toggle"]
+
+    # ── Top Bar: Pair Selector + Live Master Quote + Auto-Trade Status ─────────
+    col_sym, col_quote, col_auto, col_scan = st.columns([1.6, 2.8, 1.8, 1.0])
+    with col_sym:
+        confluence_sym = st.selectbox(
+            "Confluence Instrument", all_pairs,
+            index=all_pairs.index(symbol) if symbol in all_pairs else 0,
+            key="confluence_sym_selector",
+            label_visibility="collapsed"
+        )
+
+    with col_quote:
+        try:
+            from core.mt5_connector import MT5Connector
+            _mt5_conn = MT5Connector().get_connection()
+            if _mt5_conn is None:
+                import MetaTrader5 as _mt5_conn
+                _mt5_conn.initialize()
+            _si = _mt5_conn.symbol_info(confluence_sym)
+            _acc = _mt5_conn.account_info()
+            if _si and _acc:
+                _sp_pips = _si.spread * _si.point / get_pip_size(confluence_sym)
+                _login_str = f"#{_acc.login}" if hasattr(_acc, 'login') else ""
+                st.markdown(
+                    f'<div style="padding:6px 14px;background:rgba(255,214,0,0.05);border:1px solid rgba(255,214,0,0.2);border-radius:8px;display:flex;gap:16px;align-items:center">'
+                    f'<span style="font-family:monospace;font-size:0.92rem;font-weight:700;color:#29b6f6">Bid: {_si.bid:.5f}</span>'
+                    f'<span style="font-family:monospace;font-size:0.92rem;font-weight:700;color:#00e676">Ask: {_si.ask:.5f}</span>'
+                    f'<span style="font-size:0.75rem;color:var(--text-secondary)">Spread: {_sp_pips:.1f}p</span>'
+                    f'<span style="font-size:0.75rem;color:var(--text-secondary)">Master {_login_str}: <b>${_acc.balance:,.2f}</b></span>'
+                    f'</div>', unsafe_allow_html=True
+                )
+            else:
+                st.caption("Awaiting MT5 quotes...")
+        except Exception:
+            st.caption("Connect MT5 for live quotes.")
+
+    with col_auto:
+        is_model_active = bool(conf_cfg.get(model_flag, model_meta["default_active"]))
+        if st.toggle(toggle_label, value=is_model_active, key=f"toggle_active_{active_model_key}"):
+            if not is_model_active:
+                conf_cfg[model_flag] = True
+                save_confluence_config(conf_cfg)
+                try:
+                    from core.model_gatekeeper import load_gatekeeper_config, save_gatekeeper_config
+                    g_cfg = load_gatekeeper_config()
+                    g_cfg[active_model_key] = True
+                    save_gatekeeper_config(g_cfg)
+                except Exception:
+                    pass
+                st.toast(f"🟢 {model_display_name} activated!", icon="🟢")
+                st.rerun()
+        else:
+            if is_model_active:
+                conf_cfg[model_flag] = False
+                save_confluence_config(conf_cfg)
+                try:
+                    from core.model_gatekeeper import load_gatekeeper_config, save_gatekeeper_config
+                    g_cfg = load_gatekeeper_config()
+                    g_cfg[active_model_key] = False
+                    save_gatekeeper_config(g_cfg)
+                except Exception:
+                    pass
+                st.toast(f"⏸️ {model_display_name} deactivated!", icon="🔴")
+                st.rerun()
+
+    with col_scan:
+        if st.button("⚡ Scan All", key="btn_scan_all_confluence", use_container_width=True, help="Scan all watchlist pairs immediately for confluence setups"):
+            with st.spinner("Scanning pairs for Confluence setups..."):
+                scan_res = scan_and_execute_all_pairs()
+                n_setups = len(scan_res.get("setups", []))
+                n_exec = len(scan_res.get("executed", []))
+                st.toast(f"Scan complete: {n_setups} setups detected, {n_exec} orders placed!", icon="🎯")
+                time.sleep(0.5)
+                st.rerun()
+
+    # If currently viewed model is deactivated, display clear status alert
+    if not is_model_active:
+        st.warning(
+            f"⏸️ **{model_display_name} is currently DEACTIVATED.** "
+            f"The background daemon will NOT execute trades for this engine. Flip the toggle above to activate.",
+            icon="🔴"
+        )
+
+    # ── Configuration Parameters ─────────────────────────────────────────────
+    sl_buffer = get_symbol_sl_buffer(confluence_sym, conf_cfg)
+    rrr = float(conf_cfg.get("rrr", 1.5))
+    risk_type = conf_cfg.get("risk_type", "percent")
+    risk_value = float(conf_cfg.get("risk_value", 0.5))
+
+    # ── Evaluate Confluence Setup for Selected Symbol ────────────────────────
+    try:
+        setup_info = evaluate_confluence_setup(
+            symbol=confluence_sym,
+            rrr=rrr,
+            sl_buffer_pips=sl_buffer,
+            risk_type=risk_type,
+            risk_value=risk_value,
+            active_model=active_model_key,
+        )
+    except TypeError:
+        setup_info = evaluate_confluence_setup(
+            symbol=confluence_sym,
+            rrr=rrr,
+            sl_buffer_pips=sl_buffer,
+            risk_type=risk_type,
+            risk_value=risk_value,
+        )
+        if isinstance(setup_info, dict):
+            setup_info["model_version"] = active_model_key
+
+    pip_sz = get_pip_size(confluence_sym)
+    day_lines = setup_info.get("day_lines") or {}
+    swing_lines = setup_info.get("swing_lines") or {}
+    upper_day = day_lines.get("upper_day_line")
+    lower_day = day_lines.get("lower_day_line")
+    upper_swing = swing_lines.get("upper_swing_line")
+    lower_swing = swing_lines.get("lower_swing_line")
+
+    # Fetch live price for distance calculations
+    last_price = 0.0
+    mt5_inst = get_mt5()
+    if mt5_inst:
+        try:
+            t = mt5_inst.symbol_info_tick(confluence_sym)
+            if t:
+                last_price = float(t.bid)
+        except Exception:
+            pass
+
+    # ── High-Visibility Status Banner ─────────────────────────────────────────
+    if setup_info.get("setup_detected"):
+        dir_str = setup_info["direction"]
+        dir_color = "#00FF88" if dir_str == "BUY" else "#FF4466"
+        entry_val = setup_info["entry"]
+        sl_val = setup_info["sl"]
+        tp_val = setup_info["tp"]
+        line_lbl = setup_info.get("line_type", "Reference Line")
+        reclaimed_lvl = setup_info.get("reclaimed_line", 0.0)
+        lots_val = setup_info.get("lots", 0.01)
+        sl_p = setup_info.get("sl_pips", 0.0)
+        tp_p = setup_info.get("tp_pips", 0.0)
+
+        part_p = setup_info.get("partial_target_price")
+        part_r = setup_info.get("partial_target_ratio")
+        if part_p and part_r:
+            part_badge = f"<span style='font-size:0.8rem;color:#FFD600'>🎯 Part TP: {part_p:.5f} ({int(round(part_r * 100))}% · BE+2p)</span>"
+        else:
+            part_badge = f"<span style='font-size:0.8rem;color:#29b6f6'>🏁 Fixed 1:{rrr} R:R (Full TP/SL · Single-Asset)</span>"
+
+        st.markdown(f"""
+        <div style="background:rgba(255,214,0,0.08);border:1px solid #ffd600;padding:12px 18px;border-radius:10px;margin:10px 0 14px 0;box-shadow:0 0 16px rgba(255,214,0,0.15)">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <span style="background:#FFD600;color:#000;padding:4px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:900;letter-spacing:0.05em">SETUP CONFIRMED</span>
+                    <span style="font-weight:800;color:#ffffff;font-size:1.0rem">🎯 {dir_str}_STOP ARMED · {confluence_sym}</span>
+                    <span style="color:{dir_color};font-weight:700;font-size:0.95rem">{dir_str} {lots_val} Lots @ {entry_val:.5f}</span>
+                    <span style="font-size:0.78rem;color:var(--text-secondary)">Reclaimed {line_lbl} ({reclaimed_lvl:.5f})</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center">
+                    {part_badge}
+                    <span style="font-size:0.8rem;color:#00FF88">TP: {tp_val:.5f} (+{tp_p:.1f}p) [1:{rrr}]</span>
+                    <span style="font-size:0.8rem;color:#FF4466">SL: {sl_val:.5f} (-{sl_p:.1f}p · {sl_buffer:.1f}p buf)</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background:rgba(0,230,118,0.04);border:1px solid rgba(0,230,118,0.2);padding:10px 16px;border-radius:8px;margin:8px 0 12px 0;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:0.82rem;color:var(--text-secondary)">
+                🟢 <b>Confluence Engine Active</b>: Monitoring {confluence_sym} for 21:00 UTC Day Lines & M15 Swing Breakout/Reclamation.
+            </span>
+            <span style="font-size:0.75rem;color:var(--text-muted);font-family:monospace">
+                Roll: 21:00 UTC &middot; Buffer: {sl_buffer:.1f}p &middot; R:R: 1:{rrr}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Reference Lines Radar (4 Metric Cards) ────────────────────────────────
+    c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+    with c_m1:
+        if upper_day:
+            dist_pips = (upper_day - last_price) / pip_sz if last_price > 0 else 0.0
+            st.metric("Upper Day Line (21:00 UTC)", f"{upper_day:.5f}", f"{dist_pips:+.1f} pips away")
+        else:
+            st.metric("Upper Day Line", "—", "Awaiting Data")
+    with c_m2:
+        if lower_day:
+            dist_pips = (lower_day - last_price) / pip_sz if last_price > 0 else 0.0
+            st.metric("Lower Day Line (21:00 UTC)", f"{lower_day:.5f}", f"{dist_pips:+.1f} pips away")
+        else:
+            st.metric("Lower Day Line", "—", "Awaiting Data")
+    with c_m3:
+        if upper_swing:
+            dist_pips = (upper_swing - last_price) / pip_sz if last_price > 0 else 0.0
+            st.metric("Upper Swing Line (Prior High)", f"{upper_swing:.5f}", f"{dist_pips:+.1f} pips away")
+        else:
+            st.metric("Upper Swing Line", "None Found", "Market at Highs")
+    with c_m4:
+        if lower_swing:
+            dist_pips = (lower_swing - last_price) / pip_sz if last_price > 0 else 0.0
+            st.metric("Lower Swing Line (Prior Low)", f"{lower_swing:.5f}", f"{dist_pips:+.1f} pips away")
+        else:
+            st.metric("Lower Swing Line", "None Found", "Market at Lows")
+
+    # ── Main Two-Column Layout (Chart & State Machine) ────────────────────────
+    col_chart, col_state = st.columns([3.2, 1.8])
+
+    with col_chart:
+        # Fetch Candlestick Chart Data
+        df_chart = pd.DataFrame()
+        try:
+            df_chart = inf_engine.data_engine.fetch(confluence_sym, interval="15m", days=4, use_cache=False)
+        except Exception as e:
+            logger.warning(f"Could not fetch {confluence_sym} data for confluence chart: {e}")
+
+        # Construct Chart Levels
+        chart_lvls = {
+            "upper_day": upper_day,
+            "lower_day": lower_day,
+            "upper_swing": upper_swing,
+            "lower_swing": lower_swing,
+        }
+        if setup_info.get("setup_detected"):
+            chart_lvls["entry"] = setup_info.get("entry")
+            chart_lvls["sl"] = setup_info.get("sl")
+            chart_lvls["tp"] = setup_info.get("tp")
+
+        # Render Lightweight Candlestick Chart
+        render_chart(df_chart, confluence_sym, key=f"conf_m15_{confluence_sym.lower()}", levels=chart_lvls)
+
+    with col_state:
+        st.markdown("#### 🎯 3-Candle Confluence Tracker")
+        st.caption("Institutional Liquidity Sweep & Reclamation Sequence")
+
+        c1 = setup_info.get("candle_1")
+        c2 = setup_info.get("magic_candle")
+        c3 = setup_info.get("entry_candle")
+
+        # Candle 1 Card
+        with st.container(border=True):
+            st.markdown("**1️⃣ Candle 1: Breakout Candle**")
+            if c1:
+                c1_t = c1["time"].strftime("%H:%M UTC") if hasattr(c1["time"], "strftime") else str(c1["time"])[:16]
+                c1_color = "🟢 BULLISH" if c1["is_bullish"] else "🔴 BEARISH"
+                st.caption(f"Time: `{c1_t}` &middot; Type: **{c1_color}**")
+                st.markdown(f"`O: {c1['open']:.5f} | H: {c1['high']:.5f} | L: {c1['low']:.5f} | C: {c1['close']:.5f}`")
+            else:
+                st.caption("Awaiting M15 candle data...")
+
+        # Candle 2 Card (Magic Candle)
+        with st.container(border=True):
+            st.markdown("**2️⃣ Candle 2: Magic Candle (Reclamation)**")
+            if c2:
+                c2_t = c2["time"].strftime("%H:%M UTC") if hasattr(c2["time"], "strftime") else str(c2["time"])[:16]
+                c2_color = "🟢 BULLISH" if c2["is_bullish"] else "🔴 BEARISH"
+                st.caption(f"Time: `{c2_t}` &middot; Type: **{c2_color}**")
+                st.markdown(f"`O: {c2['open']:.5f} | H: {c2['high']:.5f} | L: {c2['low']:.5f} | C: {c2['close']:.5f}`")
+                if setup_info.get("setup_detected"):
+                    st.success(f"✨ Reclaimed **{setup_info['line_type']}** (`{setup_info['reclaimed_line']:.5f}`)!")
+                else:
+                    st.caption("No reclamation cross of Day/Swing line.")
+            else:
+                st.caption("Awaiting M15 candle data...")
+
+        # Candle 3 Card (Entry Candle)
+        with st.container(border=True):
+            st.markdown("**3️⃣ Candle 3: Entry Candle (Wick Touch)**")
+            if c3:
+                c3_t = c3["time"].strftime("%H:%M UTC") if hasattr(c3["time"], "strftime") else str(c3["time"])[:16]
+                c3_exp = c3["close_time"].strftime("%H:%M UTC") if hasattr(c3["close_time"], "strftime") else str(c3["close_time"])[:16]
+                st.caption(f"Current Forming: `{c3_t}` &middot; Window Closes: `{c3_exp}`")
+                if setup_info.get("setup_detected"):
+                    ml_data = setup_info.get("ml_filter", {})
+                    if ml_data.get("evaluated"):
+                        p_score = ml_data.get("confidence_score_pct", 50.0)
+                        passed_gate = ml_data.get("passed", True)
+                        badge_color = "#10b981" if passed_gate else "#ef4444"
+                        status_txt = "PASSED QUALITY GATE" if passed_gate else "SUPPRESSED (BELOW GATE)"
+                        st.markdown(
+                            f"<div style='background-color:rgba(255,255,255,0.05);padding:8px 12px;border-radius:6px;border-left:4px solid {badge_color};margin-bottom:8px;'>"
+                            f"<span style='color:{badge_color};font-weight:700;'>🤖 ML Win Probability: {p_score}%</span> &middot; <span style='font-size:0.85rem;color:#ccc;'>{status_txt}</span>"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    actual_buf = setup_info.get("sl_buffer_pips", sl_buffer)
+                    be_p = setup_info.get("be_offset_pips", 2.0)
+                    st.markdown(f"**Target Wick Entry**: `{setup_info['entry']:.5f}`")
+                    st.markdown(f"**Stop Loss**: `{setup_info['sl']:.5f}` (`{actual_buf:.1f}p` buffer)")
+                    st.markdown(f"**Take Profit**: `{setup_info['tp']:.5f}` (`1:{rrr}` R:R)")
+                    if setup_info.get("partial_target_price"):
+                        p_ratio_pct = int(round(setup_info.get("partial_target_ratio", 0.5) * 100))
+                        st.markdown(f"**Partial Profit**: `{setup_info['partial_target_price']:.5f}` ({p_ratio_pct}% of TP · moves SL to BE+{be_p:.1f}p)")
+                    else:
+                        st.markdown(f"**Profit Target**: Full Target (Fixed 1:{rrr} R:R · No Partial)")
+
+                    if st.button("⚡ Execute Pending Order Now", key="btn_exec_conf_now", type="primary", use_container_width=True):
+                        with st.spinner("Submitting Pending Stop Order to MT5 Master & Followers..."):
+                            exec_res = execute_confluence_setup(setup_info)
+                            if exec_res.get("success"):
+                                st.success(f"✅ Order Placed! Ticket #{exec_res.get('ticket')}")
+                                time.sleep(0.5)
+                                st.rerun()
+                            else:
+                                st.error(f"Execution Error: {exec_res.get('error')}")
+                else:
+                    st.caption("Waiting for active confluence setup...")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Watchlist Radar Heatmap Table ─────────────────────────────────────────
+    section_header("📡", "Confluence Multi-Pair Watchlist Radar")
+    st.caption("Real-time surveillance across major pairs for 21:00 UTC Day Lines and Swing reclamations.")
+
+    watch_symbols = conf_cfg.get("symbols", DEFAULT_SYMBOLS)
+    radar_rows = []
+
+    for s in watch_symbols:
+        try:
+            try:
+                s_setup = evaluate_confluence_setup(s, rrr=rrr, sl_buffer_pips=None, risk_value=risk_value, active_model=active_model_key)
+            except TypeError:
+                s_setup = evaluate_confluence_setup(s, rrr=rrr, sl_buffer_pips=None, risk_value=risk_value)
+                if isinstance(s_setup, dict):
+                    s_setup["model_version"] = active_model_key
+            s_day = s_setup.get("day_lines") or {}
+            s_swing = s_setup.get("swing_lines") or {}
+
+            s_up_d = s_day.get("upper_day_line")
+            s_lo_d = s_day.get("lower_day_line")
+            s_up_s = s_swing.get("upper_swing_line")
+            s_lo_s = s_swing.get("lower_swing_line")
+
+            # Status label
+            if s_setup.get("setup_detected"):
+                s_dir = s_setup.get("direction")
+                status_lbl = f"🟢 BUY SETUP CONFIRMED" if s_dir == "BUY" else f"🔴 SELL SETUP CONFIRMED"
+                ml_s = s_setup.get("ml_filter", {})
+                ml_col_val = f"{ml_s.get('confidence_score_pct')}%" if ml_s.get("evaluated") else "—"
+            else:
+                status_lbl = "⚪ MONITORING"
+                ml_col_val = "—"
+
+            s_buf_val = s_setup.get("sl_buffer_pips", get_symbol_sl_buffer(s, conf_cfg))
+            radar_rows.append({
+                "Symbol": s,
+                "SL Buffer": f"{s_buf_val:.1f}p",
+                "Upper Day Line": f"{s_up_d:.5f}" if s_up_d else "—",
+                "Lower Day Line": f"{s_lo_d:.5f}" if s_lo_d else "—",
+                "Upper Swing Line": f"{s_up_s:.5f}" if s_up_s else "—",
+                "Lower Swing Line": f"{s_lo_s:.5f}" if s_lo_s else "—",
+                "Signal State": status_lbl,
+                "ML Quality": ml_col_val,
+                "Action": "Ready to Trade" if s_setup.get("setup_detected") else "Watching"
+            })
+        except Exception:
+            pass
+
+    if radar_rows:
+        st.dataframe(pd.DataFrame(radar_rows), use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Historical Confluence Trades Table ────────────────────────────────────
+    section_header("📜", "Automated Confluence Trade History & Signals")
+    recent_signals = db.get_recent_signals(limit=50, include_hidden=True)
+    conf_trades = [s for s in recent_signals if str(s.get("model_version", "")).startswith("confluence_")]
+
+    if conf_trades:
+        trade_rows = []
+        for t in conf_trades:
+            ts_str = str(t.get("timestamp", ""))[:16].replace("T", " ")
+            trade_rows.append({
+                "Time (UTC)": ts_str,
+                "Symbol": t.get("symbol"),
+                "Signal": t.get("signal"),
+                "Entry": f"{float(t.get('price_at_signal', 0)):.5f}",
+                "SL": f"{float(t.get('sl_price', 0)):.5f}",
+                "TP": f"{float(t.get('tp_price', 0)):.5f}",
+                "Lots": t.get("suggested_lots"),
+                "Ticket": f"#{t.get('mt5_ticket')}" if t.get('mt5_ticket') else "—",
+                "Outcome": t.get("outcome", "ACTIVE"),
+            })
+        st.dataframe(pd.DataFrame(trade_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No Confluence trades executed yet. Automated trades will appear here as soon as setups confirm.")
+
+    # ── Strategy Parameters Expander ──────────────────────────────────────────
+    with st.expander("⚙️ Confluence Engine Settings & Tuning", expanded=False):
+        c_set1, c_set2, c_set3 = st.columns(3)
+        with c_set1:
+            new_buffer = st.number_input(
+                "Default SL Buffer (pips beyond magic wick)",
+                min_value=0.5, max_value=25.0, value=float(sl_buffer), step=0.5,
+                key="conf_set_buffer"
+            )
+        with c_set2:
+            new_rrr = st.number_input(
+                "Default Take-Profit R:R Ratio",
+                min_value=1.0, max_value=5.0, value=float(rrr), step=0.25,
+                key="conf_set_rrr"
+            )
+        with c_set3:
+            new_risk = st.number_input(
+                "Risk % per Trade",
+                min_value=0.1, max_value=5.0, value=float(risk_value), step=0.1,
+                key="conf_set_risk"
+            )
+
+        inc_wicks = st.toggle(
+            "Include Candle Wicks for Line Interaction",
+            value=bool(conf_cfg.get("include_wicks", True)),
+            help="When enabled, candle wicks touching or piercing Day/Swing lines count as valid line interactions alongside candle bodies.",
+            key="conf_set_include_wicks"
+        )
+
+        new_syms = st.multiselect(
+            "Monitored Watchlist Pairs",
+            options=all_pairs,
+            default=[s for s in watch_symbols if s in all_pairs],
+            key="conf_set_syms"
+        )
+
+        if st.button("💾 Save Confluence Settings", key="btn_save_conf_settings"):
+            conf_cfg["sl_buffer_pips"] = float(new_buffer)
+            conf_cfg["rrr"] = float(new_rrr)
+            conf_cfg["risk_value"] = float(new_risk)
+            conf_cfg["include_wicks"] = bool(inc_wicks)
+            conf_cfg["symbols"] = new_syms
+            save_confluence_config(conf_cfg)
+            st.toast("✅ Confluence Model settings saved successfully!", icon="💾")
+            time.sleep(0.5)
+            st.rerun()
+
+
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_cached_model_comparison(risk_val: float, start_date_val: Optional[str], end_date_val: Optional[str]) -> pd.DataFrame:
+    from core.performance_report import PerformanceReporter
+    return PerformanceReporter().get_model_comparison_breakdown(
+        risk_per_trade=risk_val,
+        start_date=start_date_val,
+        end_date=end_date_val
+    )
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_cached_performance_matrix(period: str, mode_key: str, risk_val: float, start_date_val: Optional[str], end_date_val: Optional[str], account_size: float) -> pd.DataFrame:
+    from core.performance_report import PerformanceReporter
+    return PerformanceReporter().get_performance_matrix(
+        period=period,
+        mode=mode_key,
+        risk_per_trade=risk_val,
+        start_date=start_date_val,
+        end_date=end_date_val,
+        account_size=account_size,
+        use_close_time=True
+    )
+
+
 def render_periodic_performance_matrix():
     section_header("📈", "Performance & Return Matrix (Weekly & Monthly)")
     
     try:
-        import sys
-        import importlib
-        import core.performance_report
-        import core.notifications
-        importlib.reload(core.performance_report)
-        importlib.reload(core.notifications)
         from core.performance_report import PerformanceReporter
         reporter = PerformanceReporter()
     except Exception as e:
@@ -1265,8 +2925,24 @@ def render_periodic_performance_matrix():
         mode_opt = st.selectbox(
             "Evaluation Policy",
             [
+                "🌟 Dynamic YTD Model (Daily Winning Assets · Live MT5 Fills)",
+                "🌟 Dynamic YTD Model (Daily Winning Assets · All: Live + Shadow)",
+                "🧠 Confluence ML P60 (Live Fills Only · 60% TP + 2p BE)",
+                "⚡ Confluence Standard P25 (Live Fills Only · 25% TP + 2p BE)",
+                "🧠 Confluence ML P60 (All: Live + Shadow · 60% TP + 2p BE)",
+                "⚡ Confluence Standard P25 (All: Live + Shadow · 25% TP + 2p BE)",
+                "🧠 Confluence M15 AI Quality Gate (Live Fills Only · Fixed 1.5R)",
+                "⚡ Confluence M15 Standard (Live Fills Only · Fixed 1.5R)",
+                "🎯 Combined Confluence Live (All Live Wick Models)",
+                "🏦 Master MT5 Executed Trades (All Live Broker Fills)",
+                "🏆 Aggregate: Selected Live Models Only",
+                "🌟 Aggregate: All Strategy Models (Live + Shadow)",
+                "🧠 Confluence AI Quality Gate (All: Live + Shadow · Fixed 1.5R)",
+                "⚡ Confluence Standard Rule-Based (All: Live + Shadow · Fixed 1.5R)",
+                "🛡️ Confluence Suppressed Trades (ML Filter Blocked)",
+                "🌐 Foundation V1 Macro AI (All: Live + Shadow)",
+                "🎯 Manual M15 Wick Sniper Trades (Executed Fills)",
                 "🎯 Live Production Policy (61%+ Forex / 55%+ Commodities)",
-                "🏦 Master MT5 Executed Trades (Live Broker Fills)",
                 "📲 Live Telegram Alerts",
                 "📊 All 50.0%+ Baseline Signals"
             ],
@@ -1313,8 +2989,42 @@ def render_periodic_performance_matrix():
     account_size = 100000.0 if "100k" in risk_opt else 10000.0
 
     # Policy Key Mapping
-    if "MT5" in mode_opt:
+    if "Dynamic YTD Model" in mode_opt and "Live MT5" in mode_opt:
+        mode_key = "dynamic_ytd_live"
+    elif "Dynamic YTD Model" in mode_opt:
+        mode_key = "dynamic_ytd_all"
+    elif "Confluence ML P60" in mode_opt and "Live Fills" in mode_opt:
+        mode_key = "confluence_ml_p60_live"
+    elif "Confluence ML P60" in mode_opt:
+        mode_key = "confluence_ml_p60"
+    elif "Confluence Standard P25" in mode_opt and "Live Fills" in mode_opt:
+        mode_key = "confluence_std_p25_live"
+    elif "Confluence Standard P25" in mode_opt:
+        mode_key = "confluence_std_p25"
+    elif "Confluence M15 AI Quality Gate (Live" in mode_opt:
+        mode_key = "confluence_ml"
+    elif "Confluence M15 Standard (Live" in mode_opt:
+        mode_key = "confluence_standard"
+    elif "Combined Confluence Live" in mode_opt or "Automated Confluence (Live" in mode_opt:
+        mode_key = "confluence"
+    elif "Master MT5" in mode_opt:
         mode_key = "mt5_live"
+    elif "Aggregate: Selected Live" in mode_opt:
+        mode_key = "aggregate_live"
+    elif "Aggregate: All Strategy Models" in mode_opt:
+        mode_key = "aggregate_all"
+    elif "Confluence AI Quality Gate (All" in mode_opt:
+        mode_key = "confluence_ml_all"
+    elif "Confluence Standard Rule-Based (All" in mode_opt:
+        mode_key = "confluence_standard_all"
+    elif "Suppressed" in mode_opt:
+        mode_key = "confluence_ml_suppressed"
+    elif "Foundation V1" in mode_opt:
+        mode_key = "foundation_all"
+    elif "All Traded Models" in mode_opt:
+        mode_key = "all_models"
+    elif "Manual" in mode_opt:
+        mode_key = "manual"
     elif "Telegram" in mode_opt:
         mode_key = "telegram_live"
     elif "Production" in mode_opt:
@@ -1355,120 +3065,159 @@ def render_periodic_performance_matrix():
         except Exception as ex:
             st.error(f"Telegram error: {ex}")
 
-    t_month, t_week = st.tabs(["🗓️ Monthly Performance", "📅 Weekly Performance"])
+    t_comp, t_month, t_week = st.tabs(["⚖️ Model Comparison (Active vs Shadow)", "🗓️ Monthly Performance", "📅 Weekly Performance"])
+
+    with t_comp:
+        st.markdown("##### ⚖️ Multi-Model Performance Matrix (Active vs Background Shadow)")
+        st.caption("Compare live broker executions against non-active models and ML quality-gated suppressed trades running continuously in shadow mode.")
+        try:
+            df_comp = _get_cached_model_comparison(risk_val, start_date_val, end_date_val)
+            if not df_comp.empty:
+                st.dataframe(
+                    df_comp,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Model Engine": st.column_config.TextColumn("Model Engine", width="large"),
+                        "Execution Mode": "Mode",
+                        "Active Setups": st.column_config.NumberColumn("Active Armed", format="%d"),
+                        "Total Trades": st.column_config.NumberColumn("Closed Deals", format="%d"),
+                        "Record (W-L)": "Record",
+                        "Win Rate (%)": "Win Rate",
+                        "Net Edge (R)": "Net Edge",
+                        "Net PnL ($)": "Net PnL",
+                        "Profit Factor": "Profit Factor",
+                    }
+                )
+            else:
+                st.info("No comparative model data available for this timeframe scope.")
+        except Exception as ex:
+            st.warning(f"Could not load model comparison: {ex}")
 
     with t_month:
-        df_m = reporter.get_performance_matrix(
-            period="monthly",
-            mode=mode_key,
-            risk_per_trade=risk_val,
-            start_date=start_date_val,
-            end_date=end_date_val,
-            account_size=account_size,
-            use_close_time=True
-        )
-        if not df_m.empty:
-            # Highlight Current / Active Month
-            curr = df_m.iloc[0]
-            curr_period = str(curr['Period'])
-            curr_t = int(curr['Trades'])
-            curr_w = int(curr['Wins'])
-            curr_l = int(curr['Losses'])
-            curr_wr = float(curr['Win Rate (%)'])
-            curr_r = float(curr['Net R'])
-            curr_pnl = float(curr['Net PnL ($)'])
-            curr_ret = float(curr['Return (%)'])
-
-            st.markdown(f"##### 🗓️ Active Month Performance: **{curr_period}**")
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Month Closed Setups", f"{curr_t}", f"{curr_w}W – {curr_l}L")
-            m2.metric("Month Win Rate", f"{curr_wr:.1f}%", f"{curr_wr-40.0:+.1f}% vs BE")
-            m3.metric("Month Realized Edge", f"{curr_r:+.2f}R", "1:1.5 RRR Target")
-            m4.metric("Month Net Realized PnL", f"${curr_pnl:+,.2f}", f"{curr_ret:+.2f}% on ${account_size:,.0f}")
-
-            # If viewing multi-month scope, show period aggregate toggle
-            if len(df_m) > 1:
-                with st.expander("📊 View Cumulative Scope Totals", expanded=False):
-                    tot_trades = int(df_m['Trades'].sum())
-                    tot_wins = int(df_m['Wins'].sum())
-                    tot_losses = int(df_m['Losses'].sum())
-                    tot_pnl = float(df_m['Net PnL ($)'].sum())
-                    tot_r = float(df_m['Net R'].sum())
-                    tot_wr = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
-                    tot_ret = (tot_pnl / account_size) * 100.0
-
-                    c1, c2, c3, c4 = st.columns(4)
-                    c1.metric("Total Scope Trades", f"{tot_trades}", f"{tot_wins}W – {tot_losses}L")
-                    c2.metric("Overall Win Rate", f"{tot_wr:.1f}%", f"{tot_wr-40.0:+.1f}% vs BE")
-                    c3.metric("Cumulative Edge", f"{tot_r:+.2f}R", "All Months")
-                    c4.metric("Total Realized Profit", f"${tot_pnl:+,.2f}", f"{tot_ret:+.2f}% on ${account_size:,.0f}")
-
-            st.dataframe(
-                df_m,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Period": "Month",
-                    "Trades": st.column_config.NumberColumn("Setups", format="%d"),
-                    "Wins": st.column_config.NumberColumn("Wins", format="%d"),
-                    "Losses": st.column_config.NumberColumn("Losses", format="%d"),
-                    "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
-                    "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
-                    "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
-                    "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
-                    "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
-                }
+        try:
+            df_m = _get_cached_performance_matrix(
+                period="monthly",
+                mode_key=mode_key,
+                risk_val=risk_val,
+                start_date_val=start_date_val,
+                end_date_val=end_date_val,
+                account_size=account_size
             )
-        else:
-            st.info("No data available for selected monthly policy and timeframe.")
+            if not df_m.empty:
+                # Highlight Current / Active Month
+                curr = df_m.iloc[0]
+                curr_period = str(curr['Period'])
+                curr_t = int(curr['Trades'])
+                curr_w = int(curr['Wins'])
+                curr_l = int(curr['Losses'])
+                curr_be = int(curr.get('Breakeven', 0))
+                curr_wr = float(curr['Win Rate (%)'])
+                curr_r = float(curr['Net R'])
+                curr_pnl = float(curr['Net PnL ($)'])
+                curr_ret = float(curr['Return (%)'])
+
+                st.markdown(f"##### 🗓️ Active Month Performance: **{curr_period}**")
+                m1, m2, m3, m4 = st.columns(4)
+                record_str = f"{curr_w}W – {curr_l}L" + (f" – {curr_be}BE" if curr_be > 0 else "")
+                m1.metric("Month Closed Setups", f"{curr_t}", record_str)
+                m2.metric("Month Win Rate", f"{curr_wr:.1f}%", f"{curr_wr-40.0:+.1f}% vs BE")
+                m3.metric("Month Realized Edge", f"{curr_r:+.2f}R", "1:1.5 RRR Target")
+                m4.metric("Month Net Realized PnL", f"${curr_pnl:+,.2f}", f"{curr_ret:+.2f}% on ${account_size:,.0f}")
+
+                # If viewing multi-month scope, show period aggregate toggle
+                if len(df_m) > 1:
+                    with st.expander("📊 View Cumulative Scope Totals", expanded=False):
+                        tot_trades = int(df_m['Trades'].sum())
+                        tot_wins = int(df_m['Wins'].sum())
+                        tot_losses = int(df_m['Losses'].sum())
+                        tot_be = int(df_m['Breakeven'].sum()) if 'Breakeven' in df_m.columns else 0
+                        tot_pnl = float(df_m['Net PnL ($)'].sum())
+                        tot_r = float(df_m['Net R'].sum())
+                        tot_wr = (tot_wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+                        tot_ret = (tot_pnl / account_size) * 100.0
+
+                        c1, c2, c3, c4 = st.columns(4)
+                        tot_rec = f"{tot_wins}W – {tot_losses}L" + (f" – {tot_be}BE" if tot_be > 0 else "")
+                        c1.metric("Total Scope Trades", f"{tot_trades}", tot_rec)
+                        c2.metric("Overall Win Rate", f"{tot_wr:.1f}%", f"{tot_wr-40.0:+.1f}% vs BE")
+                        c3.metric("Cumulative Edge", f"{tot_r:+.2f}R", "All Months")
+                        c4.metric("Total Realized Profit", f"${tot_pnl:+,.2f}", f"{tot_ret:+.2f}% on ${account_size:,.0f}")
+
+                st.dataframe(
+                    df_m,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Period": "Month",
+                        "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                        "Wins": st.column_config.NumberColumn("Wins", format="%d"),
+                        "Losses": st.column_config.NumberColumn("Losses", format="%d"),
+                        "Breakeven": st.column_config.NumberColumn("BE", format="%d"),
+                        "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                        "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                        "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                        "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                        "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+                    }
+                )
+            else:
+                st.info("No data available for selected monthly policy and timeframe.")
+        except Exception as ex:
+            st.warning(f"Could not load monthly performance: {ex}")
 
     with t_week:
-        df_w = reporter.get_performance_matrix(
-            period="weekly",
-            mode=mode_key,
-            risk_per_trade=risk_val,
-            start_date=start_date_val,
-            end_date=end_date_val,
-            account_size=account_size,
-            use_close_time=True
-        )
-        if not df_w.empty:
-            # Highlight Current / Active Week
-            curr_w = df_w.iloc[0]
-            curr_w_period = str(curr_w['Period'])
-            w_trades = int(curr_w['Trades'])
-            w_wins = int(curr_w['Wins'])
-            w_losses = int(curr_w['Losses'])
-            w_wr = float(curr_w['Win Rate (%)'])
-            w_r = float(curr_w['Net R'])
-            w_pnl = float(curr_w['Net PnL ($)'])
-            w_ret = float(curr_w['Return (%)'])
-
-            st.markdown(f"##### 📅 Active Week Performance: **{curr_w_period}**")
-            wm1, wm2, wm3, wm4 = st.columns(4)
-            wm1.metric("Week Closed Setups", f"{w_trades}", f"{w_wins}W – {w_losses}L")
-            wm2.metric("Week Win Rate", f"{w_wr:.1f}%", f"{w_wr-40.0:+.1f}% vs BE")
-            wm3.metric("Week Realized Edge", f"{w_r:+.2f}R", "1:1.5 RRR Target")
-            wm4.metric("Week Net Realized PnL", f"${w_pnl:+,.2f}", f"{w_ret:+.2f}% on ${account_size:,.0f}")
-
-            st.dataframe(
-                df_w,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Period": "Week (UTC)",
-                    "Trades": st.column_config.NumberColumn("Setups", format="%d"),
-                    "Wins": st.column_config.NumberColumn("Wins", format="%d"),
-                    "Losses": st.column_config.NumberColumn("Losses", format="%d"),
-                    "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
-                    "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
-                    "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
-                    "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
-                    "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
-                }
+        try:
+            df_w = _get_cached_performance_matrix(
+                period="weekly",
+                mode_key=mode_key,
+                risk_val=risk_val,
+                start_date_val=start_date_val,
+                end_date_val=end_date_val,
+                account_size=account_size
             )
-        else:
-            st.info("No data available for selected weekly policy and timeframe.")
+            if not df_w.empty:
+                # Highlight Current / Active Week
+                curr_w = df_w.iloc[0]
+                curr_w_period = str(curr_w['Period'])
+                w_trades = int(curr_w['Trades'])
+                w_wins = int(curr_w['Wins'])
+                w_losses = int(curr_w['Losses'])
+                w_be = int(curr_w.get('Breakeven', 0))
+                w_wr = float(curr_w['Win Rate (%)'])
+                w_r = float(curr_w['Net R'])
+                w_pnl = float(curr_w['Net PnL ($)'])
+                w_ret = float(curr_w['Return (%)'])
+
+                st.markdown(f"##### 📅 Active Week Performance: **{curr_w_period}**")
+                wm1, wm2, wm3, wm4 = st.columns(4)
+                w_rec_str = f"{w_wins}W – {w_losses}L" + (f" – {w_be}BE" if w_be > 0 else "")
+                wm1.metric("Week Closed Setups", f"{w_trades}", w_rec_str)
+                wm2.metric("Week Win Rate", f"{w_wr:.1f}%", f"{w_wr-40.0:+.1f}% vs BE")
+                wm3.metric("Week Realized Edge", f"{w_r:+.2f}R", "1:1.5 RRR Target")
+                wm4.metric("Week Net Realized PnL", f"${w_pnl:+,.2f}", f"{w_ret:+.2f}% on ${account_size:,.0f}")
+
+                st.dataframe(
+                    df_w,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Period": "Week (UTC)",
+                        "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                        "Wins": st.column_config.NumberColumn("Wins", format="%d"),
+                        "Losses": st.column_config.NumberColumn("Losses", format="%d"),
+                        "Breakeven": st.column_config.NumberColumn("BE", format="%d"),
+                        "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                        "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                        "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                        "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                        "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+                    }
+                )
+            else:
+                st.info("No data available for selected weekly policy and timeframe.")
+        except Exception as ex:
+            st.warning(f"Could not load weekly performance: {ex}")
 
 
 # =============================================================================
@@ -1588,7 +3337,7 @@ def show_analytics():
 
     display_cols = [
         'timestamp', 'symbol', 'signal', 'confidence', 'price_at_signal', 
-        'tp_price', 'sl_price', 'exit_price', 'exit_time', 'duration_seconds', 
+        'tp_price', 'sl_price', 'exit_price', 'exit_reason', 'mt5_ticket', 'exit_time', 'duration_seconds', 
         'outcome', 'regime', 'rsi', 'adx', 'atr', 'vix_proxy', 'yield_slope',
         'macd', 'stoch_k', 'stoch_d', 'cci', 'bb_position'
     ]
@@ -1601,6 +3350,8 @@ def show_analytics():
                      "tp_price": st.column_config.NumberColumn("TP", format="%.5f"),
                      "sl_price": st.column_config.NumberColumn("SL", format="%.5f"),
                      "exit_price": st.column_config.NumberColumn("Exit Price", format="%.5f"),
+                     "exit_reason": "Exit Reason / Profit",
+                     "mt5_ticket": "MT5 Ticket",
                      "exit_time": "Exit Time",
                      "duration_seconds": st.column_config.NumberColumn("Duration (s)", format="%d"),
                      "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100),
@@ -1641,7 +3392,10 @@ def show_performance_matrix():
     st.caption(f"🔄 Auto-refreshes in {seconds_remaining}s — or click a control to refresh now.")
 
     # Render Weekly and Monthly Return Performance Matrix
-    render_periodic_performance_matrix()
+    try:
+        render_periodic_performance_matrix()
+    except Exception as ex:
+        st.error(f"Error displaying performance scorecard: {ex}")
     st.markdown("<br><hr style='opacity:0.15;'><br>", unsafe_allow_html=True)
 
 
@@ -1671,13 +3425,30 @@ def show_performance_matrix():
                 return r or '—'
             df_active['Regime'] = df_active.apply(_regime_label, axis=1)
             
-            show_cols = ['symbol', 'signal', 'Regime', 'Type', 'Conviction', 'confidence_tier', 'timestamp']
+            def _model_badge(row):
+                mv = str(row.get('model_version') or '')
+                if mv == 'confluence_ml_p60':
+                    return '🧠 Confluence ML P60'
+                elif mv == 'confluence_std_p25':
+                    return '⚡ Confluence Std P25'
+                elif mv == 'confluence_ml_m15':
+                    return '🧠 Confluence ML M15'
+                elif mv == 'confluence_m15':
+                    return '⚡ Confluence Std M15'
+                elif mv == 'manual_m15' or row.get('is_manual') == 1:
+                    return '🎯 Manual Sniper'
+                elif mv in ('v1', 'foundation_tft', 'foundation'):
+                    return '🌐 Foundation V1'
+                return mv or '—'
+            df_active['Model Engine'] = df_active.apply(_model_badge, axis=1)
+
+            show_cols = ['symbol', 'signal', 'Model Engine', 'Regime', 'Type', 'Conviction', 'confidence_tier', 'timestamp']
             st.dataframe(
                 df_active[show_cols],
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    "symbol": "Pair", "signal": "Signal", "Regime": "Market Regime",
+                    "symbol": "Pair", "signal": "Signal", "Model Engine": "Strategy Engine", "Regime": "Market Regime",
                     "confidence_tier": "Tier %", "timestamp": "Detected"
                 }
             )
@@ -1688,7 +3459,51 @@ def show_performance_matrix():
         
         # 2. Performance Thresholds (14-Day Window)
         section_header("📊", "14-Day Performance Matrix")
-        stats_14 = db.get_performance_matrix_stats(14)
+
+        col_m1, col_m2 = st.columns([2, 2])
+        with col_m1:
+            m_filter = st.selectbox(
+                "Filter by Strategy Model",
+                [
+                    "🌟 All Traded Models",
+                    "🌟 Dynamic YTD Model (Daily Winning Assets)",
+                    "🧠 Confluence ML P60 (Partial 60% + BE+2p)",
+                    "⚡ Confluence Standard P25 (Partial 25% + BE+2p)",
+                    "🧠 Confluence ML M15 (Original Fixed 1.5R)",
+                    "⚡ Confluence M15 Standard (Original Fixed 1.5R)",
+                    "🎯 Manual M15 Wick Sniper",
+                    "🤖 Foundation v1 Macro AI"
+                ],
+                key="perf_matrix_14d_model_filter"
+            )
+        with col_m2:
+            scope_filter = st.selectbox(
+                "Execution Scope",
+                [
+                    "🏦 Live Executed Trades (Broker Fills)",
+                    "👁️ All Models (Live + Shadow Paper)"
+                ],
+                key="perf_matrix_14d_scope_filter"
+            )
+        live_only_choice = "Live" in scope_filter
+
+        model_param = None
+        if "Dynamic YTD" in m_filter:
+            model_param = "dynamic_ytd_model"
+        elif "P60" in m_filter:
+            model_param = "confluence_ml_p60"
+        elif "P25" in m_filter:
+            model_param = "confluence_std_p25"
+        elif "Confluence ML M15" in m_filter:
+            model_param = "confluence_ml_m15"
+        elif "Confluence M15 Standard" in m_filter or "Confluence" in m_filter:
+            model_param = "confluence_m15"
+        elif "Manual" in m_filter:
+            model_param = "manual_m15"
+        elif "Foundation" in m_filter:
+            model_param = "v1"
+
+        stats_14 = db.get_performance_matrix_stats(14, model_version=model_param, live_only=live_only_choice)
         if stats_14:
             df_14 = pd.DataFrame(stats_14)
             df_14['Win Rate'] = df_14.apply(lambda row: (row['wins'] / row['total_trades']) if row['total_trades'] > 0 else 0, axis=1)
@@ -1700,23 +3515,33 @@ def show_performance_matrix():
             if _db_path:
                 try:
                     with sqlite3.connect(_db_path) as _conn:
-                        _cur = _conn.execute("""
+                        ticket_filter = "AND mt5_ticket IS NOT NULL" if live_only_choice else ""
+                        _cur = _conn.execute(f"""
                             SELECT symbol,
                                    SUM(CASE WHEN regime LIKE '%RANGING%' THEN 1 ELSE 0 END) AS ranging_cnt,
-                                   SUM(CASE WHEN regime LIKE '%TRENDING%' THEN 1 ELSE 0 END) AS trending_cnt
+                                   SUM(CASE WHEN regime LIKE '%TRENDING%' THEN 1 ELSE 0 END) AS trending_cnt,
+                                   SUM(CASE WHEN model_version = 'confluence_ml_p60' THEN 1 ELSE 0 END) AS p60_cnt,
+                                   SUM(CASE WHEN model_version = 'confluence_std_p25' THEN 1 ELSE 0 END) AS p25_cnt,
+                                   SUM(CASE WHEN model_version = 'confluence_ml_m15' THEN 1 ELSE 0 END) AS ml_cnt,
+                                   SUM(CASE WHEN model_version = 'confluence_m15' THEN 1 ELSE 0 END) AS conf_cnt,
+                                   SUM(CASE WHEN regime LIKE '%MANUAL%' OR is_manual = 1 THEN 1 ELSE 0 END) AS manual_cnt
                             FROM signals
                             WHERE outcome IN ('SUCCESS','FAIL')
                               AND timestamp >= datetime('now','-14 days')
+                              {ticket_filter}
                             GROUP BY symbol
                         """)
                         for _row in _cur.fetchall():
-                            _sym, _r, _t = _row
-                            if _r > 0 and _t == 0:
-                                regime_map[_sym] = '↔️ Ranging'
-                            elif _t > 0 and _r == 0:
-                                regime_map[_sym] = '📈 Trending'
-                            elif _r > 0 and _t > 0:
-                                regime_map[_sym] = f'📈 {_t}T / ↔️ {_r}R'
+                            _sym, _r, _t, _p60, _p25, _ml, _c, _m = _row
+                            parts = []
+                            if _p60 > 0: parts.append(f"🧠 {_p60} P60")
+                            if _p25 > 0: parts.append(f"⚡ {_p25} P25")
+                            if _ml > 0: parts.append(f"🧠 {_ml} ML")
+                            if _c > 0: parts.append(f"⚡ {_c} Std")
+                            if _m > 0: parts.append(f"🎯 {_m} M")
+                            if _t > 0: parts.append(f"📈 {_t} T")
+                            if _r > 0: parts.append(f"↔️ {_r} R")
+                            regime_map[_sym] = " / ".join(parts) if parts else '—'
                 except Exception:
                     pass
 
@@ -1827,19 +3652,157 @@ def show_performance_matrix():
         st.markdown("<br>", unsafe_allow_html=True)
 
         # 4. Model Registry (All-Time Models)
-        section_header("📋", "Historical Model Registry")
-        registry = db.get_model_registry_stats()
-        if registry:
-            df_reg = pd.DataFrame(registry)
-            df_reg['All-Time WR'] = df_reg.apply(lambda row: (row['all_time_wins'] / row['all_time_trades'] * 100) if row['all_time_trades'] > 0 else 0, axis=1)
-            st.dataframe(
-                df_reg, use_container_width=True, hide_index=True,
-                column_config={
-                    "All-Time WR": st.column_config.ProgressColumn("All-Time WR", format="%.1f%%", min_value=0, max_value=100),
-                    "all_time_confidence": st.column_config.NumberColumn("Avg Conf", format="%.1%"),
-                    "last_seen": "Last Active"
+        section_header("📋", "Historical Model Registry & Dynamic Whitelists")
+        t_dyn, t_reg_model, t_reg_sym = st.tabs(["🌟 Dynamic YTD Model Whitelists", "🤖 Strategy Model Engines", "🌐 By Pair Symbol"])
+
+        with t_dyn:
+            from core.dynamic_model_whitelist import get_dynamic_whitelist_manager
+            dw_mgr = get_dynamic_whitelist_manager()
+            summary = dw_mgr.get_all_models_summary()
+            as_of_date = summary.get("as_of_date", "Today")
+            models_data = summary.get("models", {})
+
+            col_dyn_desc, col_dyn_btn = st.columns([3.5, 1.5])
+            with col_dyn_desc:
+                st.markdown(
+                    f"##### 🌟 Autonomous Dynamic Winning Asset Selector\n"
+                    f"Every day at **00:00 UTC rollover**, each activated model recalculates its YTD profitable pairs "
+                    f"($\\text{{Net }} R \\ge 0.0$, at least breakeven). "
+                    f"**Only approved winning assets are traded live in MT5.** "
+                    f"Chronic underperforming pairs are safely diverted to background shadow mode."
+                )
+                st.caption(f"📅 Active Whitelist Baseline: As of **{as_of_date}** · Auto-Refresh: **Daily at 00:01 UTC**")
+            with col_dyn_btn:
+                if st.button("🔄 Recompute Whitelists Now", key="btn_recompute_dyn_whitelists", use_container_width=True, help="Force recalculate YTD Net R across all closed trades right now"):
+                    with st.spinner("Recomputing YTD winning assets for all models..."):
+                        dw_mgr.compute_ytd_whitelists()
+                        _get_cached_model_comparison.clear()
+                        _get_cached_performance_matrix.clear()
+                        st.toast("✅ Dynamic Model Whitelists recalculated successfully!", icon="🌟")
+                        st.rerun()
+
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+            # Render model cards
+            for m_key, m_info in models_data.items():
+                w_pairs = m_info.get("winning_pairs", [])
+                b_pairs = m_info.get("benched_pairs", [])
+                total_trades = m_info.get("total_trades_ytd", 0)
+                m_name = m_info.get("name", m_key)
+                
+                # Check live authorization status from gatekeeper and YTD activation
+                from core.model_gatekeeper import is_model_live_authorized
+                is_live = is_model_live_authorized(m_key)
+                is_active_ytd = dw_mgr.is_model_active_under_ytd(m_key)
+
+                badge_str = "🟢 LIVE ACTIVE" if is_live else "👻 SHADOW MODE"
+                badge_bg = "rgba(0,230,118,0.12);border:1px solid #00e67644;color:#00e676" if is_live else "rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);color:#ffd600"
+                ytd_badge_html = "<span style='background:rgba(0,230,118,0.15);border:1px solid #00e67655;color:#00e676;font-size:0.75rem;padding:2px 8px;border-radius:10px;font-weight:700;'>🟢 ACTIVE UNDER YTD</span>" if is_active_ytd else "<span style='background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-secondary);font-size:0.75rem;padding:2px 8px;border-radius:10px;font-weight:600;'>⚪ DEACTIVATED UNDER YTD</span>"
+
+                with st.container(border=True):
+                    mc1, mc2 = st.columns([3.6, 1.4])
+                    with mc1:
+                        st.markdown(f"**{m_name}** &nbsp; <span style='background:{badge_bg};font-size:0.75rem;padding:2px 8px;border-radius:10px;font-weight:700;'>{badge_str}</span> &nbsp; {ytd_badge_html}", unsafe_allow_html=True)
+                        st.caption(f"YTD Closed Trades: **{total_trades}** | Approved Winning Assets: **{len(w_pairs)} pairs** | Benched: **{len(b_pairs)} pairs**")
+                    with mc2:
+                        t_sm = st.toggle("Active under YTD", value=is_active_ytd, key=f"dyn_reg_toggle_{m_key}")
+                        if t_sm != is_active_ytd:
+                            dw_mgr.set_sub_model_status(m_key, t_sm)
+                            _get_cached_model_comparison.clear()
+                            _get_cached_performance_matrix.clear()
+                            act_txt = "Activated" if t_sm else "Deactivated"
+                            st.toast(f"{m_name} {act_txt} under Dynamic YTD Model!", icon="🌟" if t_sm else "⚪")
+                            st.rerun()
+
+                    # Display badges for winning pairs
+                    if w_pairs:
+                        p_stats = m_info.get("pair_stats", {})
+                        badges_html = " ".join([
+                            f'<span style="display:inline-block;margin:3px;padding:3px 10px;background:rgba(0,230,118,0.12);border:1px solid #00e67655;border-radius:12px;font-size:0.8rem;font-weight:700;color:#00e676;">'
+                            f'✅ {p} <span style="font-weight:400;color:var(--text-secondary);font-size:0.75rem;">(+{p_stats.get(p, {}).get("net_r", 0.0):.1f}R · {p_stats.get(p, {}).get("win_rate", 0):.0f}% WR)</span>'
+                            f'</span>'
+                            for p in w_pairs
+                        ])
+                        st.markdown(f"**Winning Assets (Live Trading Authorized):**<br>{badges_html}", unsafe_allow_html=True)
+                    else:
+                        st.warning("No winning assets currently meet the hurdle for this model.")
+
+                    # Collapsible complete table
+                    with st.expander(f"🔍 View Full Per-Pair Performance Table ({len(w_pairs) + len(b_pairs)} pairs)"):
+                        p_stats = m_info.get("pair_stats", {})
+                        if p_stats:
+                            rows = []
+                            for p, p_data in p_stats.items():
+                                rows.append({
+                                    "Symbol": p,
+                                    "Status": "✅ APPROVED" if p_data.get("status") == "APPROVED" else "🚫 BENCHED",
+                                    "Net R": p_data.get("net_r", 0.0),
+                                    "PnL ($)": p_data.get("pnl_usd", 0.0),
+                                    "Win Rate (%)": p_data.get("win_rate", 0.0),
+                                    "Trades": p_data.get("trades", 0),
+                                    "Record (W-L-BE)": f"{p_data.get('wins', 0)}W - {p_data.get('losses', 0)}L - {p_data.get('be', 0)}BE",
+                                })
+                            df_p = pd.DataFrame(rows).sort_values("Net R", ascending=False)
+                            st.dataframe(
+                                df_p,
+                                use_container_width=True,
+                                hide_index=True,
+                                column_config={
+                                    "Net R": st.column_config.NumberColumn("Realized Net R", format="%+.2f R"),
+                                    "PnL ($)": st.column_config.NumberColumn("Realized PnL", format="$%+.2f"),
+                                    "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                                }
+                            )
+
+        with t_reg_model:
+            model_stats = db.get_model_engine_registry_stats()
+            if model_stats:
+                df_mreg = pd.DataFrame(model_stats)
+                MODEL_NAME_MAP = {
+                    "dynamic_ytd_model": "🌟 Dynamic YTD Model (Daily Winning Assets)",
+                    "confluence_ml_p60": "🧠 Confluence ML M15 (60% TP + 2p BE)",
+                    "confluence_std_p25": "⚡ Confluence Standard M15 (25% TP + 2p BE)",
+                    "confluence_ml_m15": "🧠 Confluence AI Quality Gate (Fixed 1.5R)",
+                    "confluence_m15": "⚡ Confluence Standard Rule-Based (Fixed 1.5R)",
+                    "manual_m15": "🎯 Manual M15 Wick Sniper",
+                    "v1": "🌐 Foundation V1 Macro AI",
+                    "foundation_tft": "🌐 Foundation TFT Specialist",
+                    "ensemble_specialist": "🤖 Ensemble Specialist",
                 }
-            )
+                df_mreg["Strategy Engine"] = df_mreg["model_engine"].map(lambda k: MODEL_NAME_MAP.get(k, k))
+                df_mreg["Win Rate (%)"] = df_mreg.apply(lambda r: (r["wins"] / r["closed_trades"] * 100) if r["closed_trades"] > 0 else 0, axis=1)
+                st.dataframe(
+                    df_mreg[["Strategy Engine", "total_setups", "active_setups", "closed_trades", "wins", "losses", "Win Rate (%)", "avg_confidence", "last_seen"]],
+                    use_container_width=True, hide_index=True,
+                    column_config={
+                        "Strategy Engine": st.column_config.TextColumn("Strategy Model Engine", width="large"),
+                        "total_setups": st.column_config.NumberColumn("Total Setups", format="%d"),
+                        "active_setups": st.column_config.NumberColumn("Active Armed", format="%d"),
+                        "closed_trades": st.column_config.NumberColumn("Closed Deals", format="%d"),
+                        "wins": st.column_config.NumberColumn("Wins", format="%d"),
+                        "losses": st.column_config.NumberColumn("Losses", format="%d"),
+                        "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                        "avg_confidence": st.column_config.NumberColumn("Avg Conf", format="%.1%"),
+                        "last_seen": "Last Active"
+                    }
+                )
+            else:
+                st.info("No strategy model registry records available.")
+
+        with t_reg_sym:
+            registry = db.get_model_registry_stats()
+            if registry:
+                df_reg = pd.DataFrame(registry)
+                df_reg['All-Time WR'] = df_reg.apply(lambda row: (row['all_time_wins'] / row['all_time_trades'] * 100) if row['all_time_trades'] > 0 else 0, axis=1)
+                st.dataframe(
+                    df_reg, use_container_width=True, hide_index=True,
+                    column_config={
+                        "symbol": "Pair Symbol",
+                        "All-Time WR": st.column_config.ProgressColumn("All-Time WR", format="%.1f%%", min_value=0, max_value=100),
+                        "all_time_confidence": st.column_config.NumberColumn("Avg Conf", format="%.1%"),
+                        "last_seen": "Last Active"
+                    }
+                )
 
     _matrix_grid()
 
