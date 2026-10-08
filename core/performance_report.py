@@ -408,6 +408,9 @@ class PerformanceReporter:
         if period == "monthly":
             filtered['period_obj'] = t_naive.dt.to_period('M')
             format_fn = lambda p: str(p)
+        elif period == "daily":
+            filtered['period_obj'] = t_naive.dt.to_period('D')
+            format_fn = lambda p: p.start_time.strftime('%Y-%m-%d (%a)')
         else: # "weekly"
             filtered['period_obj'] = t_naive.dt.to_period('W-SUN')
             format_fn = lambda p: f"{p.start_time.strftime('%b %d')} - {p.end_time.strftime('%b %d')} (W{p.week:02d})"
@@ -431,9 +434,11 @@ class PerformanceReporter:
             be = len(sub[sub['trade_status'] == 'BREAKEVEN'])
             wr = (w / tot * 100.0) if tot > 0 else 0.0
 
+            rec_str = f"{w}W – {l}L" + (f" – {be}BE" if be > 0 else "")
             rows.append({
                 'Period': format_fn(p_obj),
                 'Trades': tot,
+                'Record': rec_str,
                 'Wins': w,
                 'Losses': l,
                 'Breakeven': be,
@@ -446,9 +451,94 @@ class PerformanceReporter:
 
         return pd.DataFrame(rows)
 
+    def get_trades_for_day(
+        self,
+        date_str: str,
+        mode: str = "dynamic_ytd_live",
+        risk_per_trade: float = 50.0
+    ) -> pd.DataFrame:
+        """Return all individual trades that closed on a specific calendar day (UTC)."""
+        clean_date = date_str.split(' ')[0].strip()
+        df = self._get_signals_df()
+        if df.empty:
+            return pd.DataFrame()
+        df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
+        df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc'])
+        df['date_key'] = df['time_metric'].dt.strftime('%Y-%m-%d')
+
+        if mode in ("dynamic_ytd", "dynamic_ytd_model", "dynamic_ytd_all", "dynamic_ytd_live"):
+            from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, normalize_model_key, normalize_symbol
+            if "live" in mode:
+                cand = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+            else:
+                cand = df[df['outcome'].isin(['SUCCESS', 'FAIL']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+            if not cand.empty:
+                approved_set = get_dynamic_whitelist_manager().get_approved_set()
+                m_keys = [normalize_model_key(m) for m in cand['model_version']]
+                sym_keys = [normalize_symbol(s) for s in cand['symbol']]
+                cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
+                filtered = cand[cand['is_whitelisted']].copy()
+            else:
+                filtered = cand
+            filtered = self._dedup(filtered)
+        elif mode in ("confluence_ml_p60", "confluence_ml_p60_all"):
+            filtered = df[df['model_version'].isin(['confluence_ml_p60', 'confluence_ml_m15_p60']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+            filtered = self._dedup(filtered)
+        elif mode in ("confluence_ml_p60_live",):
+            filtered = df[df['model_version'].isin(['confluence_ml_p60', 'confluence_ml_m15_p60']) & df['mt5_ticket'].notnull() & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
+            filtered = self._dedup(filtered)
+        elif mode in ("confluence_std_p25", "confluence_std_p25_all"):
+            filtered = df[df['model_version'].isin(['confluence_std_p25', 'confluence_m15_p25'])].copy()
+            filtered = self._dedup(filtered)
+        elif mode in ("confluence_std_p25_live",):
+            filtered = df[df['model_version'].isin(['confluence_std_p25', 'confluence_m15_p25']) & df['mt5_ticket'].notnull()].copy()
+            filtered = self._dedup(filtered)
+        elif mode == "mt5_live":
+            filtered = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+            filtered = self._dedup(filtered)
+        else:
+            filtered = df[df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+            filtered = self._dedup(filtered)
+
+        day_trades = filtered[filtered['date_key'] == clean_date].copy()
+        if day_trades.empty:
+            return pd.DataFrame()
+
+        def calc_row(r):
+            reason = str(r.get('exit_reason') or '')
+            outcome = r.get('outcome')
+            m = PROFIT_REGEX.search(reason)
+            raw_p = float(m.group(1).replace(',', '')) if m else None
+            if "BE hit" in reason or "Breakeven" in reason or (raw_p is not None and abs(raw_p) < 2.0):
+                return pd.Series([0.0, 0.0, 'BREAKEVEN'], index=['realized_r', 'pnl_amount', 'status'])
+            if outcome == 'FAIL':
+                return pd.Series([-1.0, -risk_per_trade, 'LOSS'], index=['realized_r', 'pnl_amount', 'status'])
+            if outcome == 'SUCCESS':
+                r_val = 0.9 if "p60" in str(r.get('model_version')) else 1.5
+                return pd.Series([r_val, r_val * risk_per_trade, 'WIN'], index=['realized_r', 'pnl_amount', 'status'])
+            return pd.Series([0.0, 0.0, 'OTHER'], index=['realized_r', 'pnl_amount', 'status'])
+
+        c = day_trades.apply(calc_row, axis=1)
+        day_trades['realized_r'] = c['realized_r']
+        day_trades['pnl_amount'] = c['pnl_amount']
+        day_trades['status'] = c['status']
+
+        res = pd.DataFrame({
+            'Ticket': day_trades['mt5_ticket'].fillna('-').astype(str).str.replace(r'\.0$', '', regex=True),
+            'Time (UTC)': day_trades['time_metric'].dt.strftime('%H:%M:%S'),
+            'Symbol': day_trades['symbol'],
+            'Direction': day_trades['signal'],
+            'Model': day_trades['model_version'].fillna('v1'),
+            'Status': day_trades['status'],
+            'Edge (R)': day_trades['realized_r'].apply(lambda x: f"{x:+.2f}R"),
+            'PnL ($)': day_trades['pnl_amount'].apply(lambda x: f"${x:+,.2f}"),
+            'Exit Reason': day_trades['exit_reason'].fillna('-')
+        })
+        return res.sort_values('Time (UTC)', ascending=False)
+
     def generate_telegram_scorecard(
         self,
-        period: str = "both", # "weekly", "monthly", or "both"
+        period: str = "all", # "daily", "weekly", "monthly", "both", or "all"
         risk_per_trade: float = 50.0,
         mode: str = "production",
         start_date: Optional[str] = None,
@@ -466,7 +556,23 @@ class PerformanceReporter:
         msg_parts.append(f"🛡️ *Policy:* {policy_label}")
         msg_parts.append(f"💰 *Base Risk:* ${risk_per_trade:,.0f} / trade (Account: ${account_size:,.0f})\n")
 
-        if period in ("monthly", "both"):
+        if period in ("daily", "all"):
+            df_d = self.get_performance_matrix(period="daily", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
+            if not df_d.empty:
+                msg_parts.append("☀️ *RECENT DAILY BREAKDOWN (Last 5 Days)*")
+                msg_parts.append("```")
+                msg_parts.append("Day          W-L   Win%   Net R   PnL($)")
+                msg_parts.append("---------------------------------------")
+                for _, r in df_d.head(5).iterrows():
+                    p_str = str(r['Period']).split(' ')[0]
+                    wl = f"{int(r['Wins'])}-{int(r['Losses'])}"
+                    wr = f"{r['Win Rate (%)']:.0f}%"
+                    nr = f"{r['Net R']:+.1f}R"
+                    pnl = f"${r['Net PnL ($)']:+,.0f}"
+                    msg_parts.append(f"{p_str:<10} {wl:>5}  {wr:>4} {nr:>7} {pnl:>7}")
+                msg_parts.append("```\n")
+
+        if period in ("monthly", "both", "all"):
             df_m = self.get_performance_matrix(period="monthly", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
             msg_parts.append("🗓️ *MONTHLY BREAKDOWN*")
             msg_parts.append("```")
@@ -481,7 +587,7 @@ class PerformanceReporter:
                 msg_parts.append(f"{p:<7} {wl:>5}  {wr:>4} {nr:>7} {pnl:>7}")
             msg_parts.append("```\n")
 
-        if period in ("weekly", "both"):
+        if period in ("weekly", "both", "all"):
             # Sort weeks by start date descending
             df_w = self.get_performance_matrix(period="weekly", mode=mode, risk_per_trade=risk_per_trade, start_date=start_date, end_date=end_date, account_size=account_size, use_close_time=True)
             # Take exactly the last 6 weeks

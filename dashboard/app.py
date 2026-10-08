@@ -2897,8 +2897,10 @@ def _get_cached_model_comparison(risk_val: float, start_date_val: Optional[str],
 
 @st.cache_data(ttl=120, show_spinner=False)
 def _get_cached_performance_matrix(period: str, mode_key: str, risk_val: float, start_date_val: Optional[str], end_date_val: Optional[str], account_size: float) -> pd.DataFrame:
-    from core.performance_report import PerformanceReporter
-    return PerformanceReporter().get_performance_matrix(
+    import importlib
+    import core.performance_report
+    importlib.reload(core.performance_report)
+    return core.performance_report.PerformanceReporter().get_performance_matrix(
         period=period,
         mode=mode_key,
         risk_per_trade=risk_val,
@@ -2910,7 +2912,7 @@ def _get_cached_performance_matrix(period: str, mode_key: str, risk_val: float, 
 
 
 def render_periodic_performance_matrix():
-    section_header("📈", "Performance & Return Matrix (Weekly & Monthly)")
+    section_header("📈", "Performance & Return Matrix (Daily, Weekly & Monthly)")
     
     try:
         from core.performance_report import PerformanceReporter
@@ -2958,7 +2960,7 @@ def render_periodic_performance_matrix():
             ],
             key="perf_matrix_risk_mode"
         )
-    # Dynamic Month Definitions
+    # Dynamic Date Definitions
     now_dt = datetime.now()
     cur_month_name = now_dt.strftime("%B %Y")
     cur_month_start = now_dt.strftime("%Y-%m-01")
@@ -2967,12 +2969,16 @@ def render_periodic_performance_matrix():
     prev_month_name = last_day_prev.strftime("%B %Y")
     prev_month_start = last_day_prev.strftime("%Y-%m-01")
     prev_month_end = last_day_prev.strftime("%Y-%m-%d 23:59:59")
+    last_7d_start = (now_dt - timedelta(days=7)).strftime("%Y-%m-%d")
+    last_14d_start = (now_dt - timedelta(days=14)).strftime("%Y-%m-%d")
 
     with col_ctrl3:
         timeframe_opt = st.selectbox(
             "Timeframe Scope",
             [
                 "📅 All Active (Aug 2026 – Present)",
+                "☀️ Last 7 Days (Recent)",
+                "☀️ Last 14 Days (2 Weeks)",
                 f"🗓️ Current Month ({cur_month_name})",
                 f"📜 Previous Month ({prev_month_name})",
                 "🌐 Full History (All Data)"
@@ -3033,7 +3039,13 @@ def render_periodic_performance_matrix():
         mode_key = "baseline"
 
     # Timeframe Range Mapping
-    if "Current Month" in timeframe_opt:
+    if "Last 7 Days" in timeframe_opt:
+        start_date_val = last_7d_start
+        end_date_val = None
+    elif "Last 14 Days" in timeframe_opt:
+        start_date_val = last_14d_start
+        end_date_val = None
+    elif "Current Month" in timeframe_opt:
         start_date_val = cur_month_start
         end_date_val = None
     elif "Previous Month" in timeframe_opt:
@@ -3051,7 +3063,7 @@ def render_periodic_performance_matrix():
             from core.notifications import NotificationManager
             notif = NotificationManager()
             if notif.send_periodic_performance_report(
-                period="both",
+                period="all",
                 risk_per_trade=risk_val,
                 mode=mode_key,
                 start_date=start_date_val,
@@ -3065,7 +3077,107 @@ def render_periodic_performance_matrix():
         except Exception as ex:
             st.error(f"Telegram error: {ex}")
 
-    t_comp, t_month, t_week = st.tabs(["⚖️ Model Comparison (Active vs Shadow)", "🗓️ Monthly Performance", "📅 Weekly Performance"])
+    # Fetch Daily Performance Matrix Data
+    try:
+        df_d = _get_cached_performance_matrix(
+            period="daily",
+            mode_key=mode_key,
+            risk_val=risk_val,
+            start_date_val=start_date_val,
+            end_date_val=end_date_val,
+            account_size=account_size
+        )
+    except Exception as ex:
+        df_d = pd.DataFrame()
+
+    # ── Day-by-Day Performance Matrix (Directly on top of Weekly & Monthly Matrix) ──
+    if not df_d.empty:
+        st.markdown("##### ☀️ Day-by-Day Performance Matrix (Recent Trading Days)")
+        st.caption("Day-by-day track record of closed deals, win rates, realized edge (R), and realized PnL.")
+
+        st.dataframe(
+            df_d.head(7),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Period": "Day (UTC)",
+                "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                "Record": "Record (W-L)",
+                "Wins": None,
+                "Losses": None,
+                "Breakeven": None,
+                "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+            }
+        )
+
+    t_day, t_week, t_month, t_comp = st.tabs([
+        "☀️ Full Day-by-Day History",
+        "📅 Weekly Performance",
+        "🗓️ Monthly Performance",
+        "⚖️ Model Comparison (Active vs Shadow)"
+    ])
+
+    with t_day:
+        try:
+            if not df_d.empty:
+                # Cumulative totals across selected timeframe
+                if len(df_d) > 1:
+                    with st.expander("📊 View Cumulative Daily Scope Totals", expanded=False):
+                        tot_d_trades = int(df_d['Trades'].sum())
+                        tot_d_wins = int(df_d['Wins'].sum())
+                        tot_d_losses = int(df_d['Losses'].sum())
+                        tot_d_be = int(df_d['Breakeven'].sum()) if 'Breakeven' in df_d.columns else 0
+                        tot_d_pnl = float(df_d['Net PnL ($)'].sum())
+                        tot_d_r = float(df_d['Net R'].sum())
+                        tot_d_wr = (tot_d_wins / tot_d_trades * 100.0) if tot_d_trades > 0 else 0.0
+                        tot_d_ret = (tot_d_pnl / account_size) * 100.0
+
+                        dc1, dc2, dc3, dc4 = st.columns(4)
+                        tot_d_rec = f"{tot_d_wins}W – {tot_d_losses}L" + (f" – {tot_d_be}BE" if tot_d_be > 0 else "")
+                        dc1.metric("Total Scope Days", f"{len(df_d)} Days", f"{tot_d_trades} Total Trades")
+                        dc2.metric("Overall Win Rate", f"{tot_d_wr:.1f}%", tot_d_rec)
+                        dc3.metric("Cumulative Edge", f"{tot_d_r:+.2f}R", "Across Scope")
+                        dc4.metric("Total Realized Profit", f"${tot_d_pnl:+,.2f}", f"{tot_d_ret:+.2f}% on ${account_size:,.0f}")
+
+                st.markdown(f"###### 🗓️ All Trading Days in Scope ({len(df_d)} Days)")
+                st.dataframe(
+                    df_d,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Period": "Day (UTC)",
+                        "Trades": st.column_config.NumberColumn("Setups", format="%d"),
+                        "Record": "Record (W-L)",
+                        "Wins": st.column_config.NumberColumn("Wins", format="%d"),
+                        "Losses": st.column_config.NumberColumn("Losses", format="%d"),
+                        "Breakeven": st.column_config.NumberColumn("BE", format="%d"),
+                        "Win Rate (%)": st.column_config.ProgressColumn("Win Rate", format="%.1f%%", min_value=0, max_value=100),
+                        "Net R": st.column_config.NumberColumn("Realized R", format="%+.2fR"),
+                        "Profit Factor": st.column_config.NumberColumn("Profit Factor", format="%.2f"),
+                        "Net PnL ($)": st.column_config.NumberColumn("Net PnL ($)", format="$%+.2f"),
+                        "Return (%)": st.column_config.NumberColumn("Return (%)", format="%+.2f%%")
+                    }
+                )
+
+                # Day-by-Day Trade Inspection Drilldown
+                with st.expander("🔍 Inspect Closed Trades for a Specific Day", expanded=False):
+                    day_choices = df_d['Period'].tolist()
+                    sel_day = st.selectbox("Select Trading Day to Inspect", day_choices, key="perf_drilldown_day_sel")
+                    if sel_day:
+                        from core.performance_report import PerformanceReporter
+                        drill_df = PerformanceReporter().get_trades_for_day(sel_day, mode=mode_key, risk_per_trade=risk_val)
+                        if not drill_df.empty:
+                            st.dataframe(drill_df, use_container_width=True, hide_index=True)
+                        else:
+                            st.info(f"No individual closed trades recorded for {sel_day}.")
+            else:
+                st.info("No daily data available for selected policy and timeframe.")
+        except Exception as ex:
+            st.warning(f"Could not load daily performance: {ex}")
 
     with t_comp:
         st.markdown("##### ⚖️ Multi-Model Performance Matrix (Active vs Background Shadow)")
