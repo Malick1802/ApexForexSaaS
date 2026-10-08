@@ -3093,14 +3093,14 @@ def render_periodic_performance_matrix():
     # ── Day-by-Day Performance Matrix (Directly on top of Weekly & Monthly Matrix) ──
     if not df_d.empty:
         st.markdown("##### ☀️ Day-by-Day Performance Matrix (Recent Trading Days)")
-        st.caption("Day-by-day track record of closed deals, win rates, realized edge (R), and realized PnL.")
+        st.caption("Day-by-day track record of closed deals evaluated by normal Forex trading time (broker server session / 17:00 NY rollover).")
 
         st.dataframe(
             df_d.head(7),
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Period": "Day (UTC)",
+                "Period": "Trading Day",
                 "Trades": st.column_config.NumberColumn("Setups", format="%d"),
                 "Record": "Record (W-L)",
                 "Wins": None,
@@ -3137,7 +3137,7 @@ def render_periodic_performance_matrix():
                         tot_d_ret = (tot_d_pnl / account_size) * 100.0
 
                         dc1, dc2, dc3, dc4 = st.columns(4)
-                        tot_d_rec = f"{tot_d_wins}W – {tot_d_losses}L" + (f" – {tot_d_be}BE" if tot_d_be > 0 else "")
+                        tot_d_rec = f"{tot_d_wins}W - {tot_d_losses}L" + (f" - {tot_d_be}BE" if tot_d_be > 0 else "")
                         dc1.metric("Total Scope Days", f"{len(df_d)} Days", f"{tot_d_trades} Total Trades")
                         dc2.metric("Overall Win Rate", f"{tot_d_wr:.1f}%", tot_d_rec)
                         dc3.metric("Cumulative Edge", f"{tot_d_r:+.2f}R", "Across Scope")
@@ -3149,7 +3149,7 @@ def render_periodic_performance_matrix():
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        "Period": "Day (UTC)",
+                        "Period": "Trading Day",
                         "Trades": st.column_config.NumberColumn("Setups", format="%d"),
                         "Record": "Record (W-L)",
                         "Wins": st.column_config.NumberColumn("Wins", format="%d"),

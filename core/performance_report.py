@@ -404,7 +404,17 @@ class PerformanceReporter:
             filtered['pnl_amount'] = calc_df['pnl_amount']
             filtered['trade_status'] = calc_df['trade_status']
 
-        t_naive = filtered['time_metric'].dt.tz_localize(None)
+        # Convert to Normal Forex Trading Time (Broker Server Time: GMT+2/GMT+3)
+        # In Forex and Prop Firms (FTMO), the trading day begins and ends at 17:00 NY / 00:00 Broker Server Time.
+        try:
+            import zoneinfo
+            trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+            t_trading = filtered['time_metric'].dt.tz_convert(trading_tz)
+        except Exception:
+            from datetime import timedelta
+            t_trading = filtered['time_metric'] + timedelta(hours=3)
+
+        t_naive = t_trading.dt.tz_localize(None)
         if period == "monthly":
             filtered['period_obj'] = t_naive.dt.to_period('M')
             format_fn = lambda p: str(p)
@@ -434,7 +444,7 @@ class PerformanceReporter:
             be = len(sub[sub['trade_status'] == 'BREAKEVEN'])
             wr = (w / tot * 100.0) if tot > 0 else 0.0
 
-            rec_str = f"{w}W – {l}L" + (f" – {be}BE" if be > 0 else "")
+            rec_str = f"{w}W - {l}L" + (f" - {be}BE" if be > 0 else "")
             rows.append({
                 'Period': format_fn(p_obj),
                 'Trades': tot,
@@ -457,14 +467,22 @@ class PerformanceReporter:
         mode: str = "dynamic_ytd_live",
         risk_per_trade: float = 50.0
     ) -> pd.DataFrame:
-        """Return all individual trades that closed on a specific calendar day (UTC)."""
+        """Return all individual trades that closed on a specific calendar trading day."""
         clean_date = date_str.split(' ')[0].strip()
         df = self._get_signals_df()
         if df.empty:
             return pd.DataFrame()
         df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
         df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc'])
-        df['date_key'] = df['time_metric'].dt.strftime('%Y-%m-%d')
+        try:
+            import zoneinfo
+            trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+            t_trading = df['time_metric'].dt.tz_convert(trading_tz)
+        except Exception:
+            from datetime import timedelta
+            t_trading = df['time_metric'] + timedelta(hours=3)
+        df['date_key'] = t_trading.dt.strftime('%Y-%m-%d')
+        df['time_trading'] = t_trading
 
         if mode in ("dynamic_ytd", "dynamic_ytd_model", "dynamic_ytd_all", "dynamic_ytd_live"):
             from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, normalize_model_key, normalize_symbol
@@ -525,7 +543,7 @@ class PerformanceReporter:
 
         res = pd.DataFrame({
             'Ticket': day_trades['mt5_ticket'].fillna('-').astype(str).str.replace(r'\.0$', '', regex=True),
-            'Time (UTC)': day_trades['time_metric'].dt.strftime('%H:%M:%S'),
+            'Time (Broker)': day_trades['time_trading'].dt.strftime('%H:%M:%S'),
             'Symbol': day_trades['symbol'],
             'Direction': day_trades['signal'],
             'Model': day_trades['model_version'].fillna('v1'),
@@ -534,7 +552,7 @@ class PerformanceReporter:
             'PnL ($)': day_trades['pnl_amount'].apply(lambda x: f"${x:+,.2f}"),
             'Exit Reason': day_trades['exit_reason'].fillna('-')
         })
-        return res.sort_values('Time (UTC)', ascending=False)
+        return res.sort_values('Time (Broker)', ascending=False)
 
     def generate_telegram_scorecard(
         self,
@@ -552,7 +570,7 @@ class PerformanceReporter:
         msg_parts = []
         msg_parts.append("📊 *ForexAlert AI · PERFORMANCE SCORECARD*")
         msg_parts.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        msg_parts.append(f"⏱️ *Basis:* Trade Close Date (UTC)")
+        msg_parts.append(f"⏱️ *Basis:* Forex Trading Day (Broker Server Time)")
         msg_parts.append(f"🛡️ *Policy:* {policy_label}")
         msg_parts.append(f"💰 *Base Risk:* ${risk_per_trade:,.0f} / trade (Account: ${account_size:,.0f})\n")
 
