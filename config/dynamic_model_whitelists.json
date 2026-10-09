@@ -1,6 +1,6 @@
 {
-  "last_updated_utc": "2026-10-08T08:35:28.897138+00:00",
-  "as_of_date": "2026-10-08",
+  "last_updated_utc": "2026-10-09T05:02:28.169001+00:00",
+  "as_of_date": "2026-10-09",
   "min_r_hurdle": 0.0,
   "sub_models_config": {
     "confluence_ml_p60": true,
@@ -13,52 +13,53 @@
   "models": {
     "confluence_ml_p60": {
       "name": "\ud83e\udde0 Confluence ML M15 (60% TP + 2p BE)",
-      "total_trades_ytd": 88,
+      "total_trades_ytd": 111,
       "winning_pairs": [
         "AUDCHF",
         "AUDNZD",
+        "AUDUSD",
         "CADJPY",
         "CHFJPY",
+        "EURCHF",
         "EURNZD",
         "GBPJPY",
+        "GBPNZD",
+        "GBPUSD",
+        "NZDCAD",
+        "NZDJPY",
         "NZDUSD",
         "USDCAD",
+        "USDCHF",
         "USDJPY",
         "XAUUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
         "AUDJPY",
-        "AUDUSD",
         "CADCHF",
         "EURAUD",
         "EURCAD",
-        "EURCHF",
         "EURGBP",
         "EURJPY",
         "EURUSD",
         "GBPAUD",
         "GBPCAD",
         "GBPCHF",
-        "GBPNZD",
-        "NZDCAD",
         "NZDCHF",
-        "NZDJPY",
         "SOLUSD",
-        "USDCHF",
         "USDSGD",
         "USOIL.CASH",
         "XAGUSD"
       ],
       "pair_stats": {
         "AUDCAD": {
-          "trades": 4,
-          "wins": 1,
-          "losses": 3,
+          "trades": 6,
+          "wins": 2,
+          "losses": 4,
           "be": 0,
-          "net_r": -1.85,
-          "pnl_usd": -92.5,
-          "win_rate": 25.0,
+          "net_r": -1.7,
+          "pnl_usd": -85.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "AUDCHF": {
@@ -72,13 +73,13 @@
           "status": "APPROVED"
         },
         "AUDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
+          "trades": 5,
+          "wins": 2,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 33.3,
+          "net_r": -0.7,
+          "pnl_usd": -35.0,
+          "win_rate": 40.0,
           "status": "BENCHED"
         },
         "AUDNZD": {
@@ -92,14 +93,14 @@
           "status": "APPROVED"
         },
         "AUDUSD": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 5,
+          "wins": 2,
           "losses": 2,
           "be": 1,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 25.0,
-          "status": "BENCHED"
+          "net_r": 0.3,
+          "pnl_usd": 15.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
         },
         "CADCHF": {
           "trades": 2,
@@ -122,13 +123,13 @@
           "status": "APPROVED"
         },
         "CHFJPY": {
-          "trades": 4,
-          "wins": 3,
+          "trades": 5,
+          "wins": 4,
           "losses": 1,
           "be": 0,
-          "net_r": 2.45,
-          "pnl_usd": 122.5,
-          "win_rate": 75.0,
+          "net_r": 3.6,
+          "pnl_usd": 180.0,
+          "win_rate": 80.0,
           "status": "APPROVED"
         },
         "EURAUD": {
@@ -153,32 +154,32 @@
         },
         "EURCHF": {
           "trades": 2,
-          "wins": 0,
-          "losses": 2,
+          "wins": 1,
+          "losses": 1,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
-          "status": "BENCHED"
+          "net_r": 0.15,
+          "pnl_usd": 7.5,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "EURGBP": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.85,
+          "pnl_usd": -42.5,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "EURJPY": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 3,
+          "wins": 0,
           "losses": 3,
           "be": 0,
-          "net_r": -1.85,
-          "pnl_usd": -92.5,
-          "win_rate": 25.0,
+          "net_r": -3.0,
+          "pnl_usd": -150.0,
+          "win_rate": 0.0,
           "status": "BENCHED"
         },
         "EURNZD": {
@@ -202,13 +203,13 @@
           "status": "BENCHED"
         },
         "GBPAUD": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.85,
+          "pnl_usd": -42.5,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "GBPCAD": {
@@ -232,6 +233,16 @@
           "status": "BENCHED"
         },
         "GBPJPY": {
+          "trades": 5,
+          "wins": 3,
+          "losses": 2,
+          "be": 0,
+          "net_r": 1.45,
+          "pnl_usd": 72.5,
+          "win_rate": 60.0,
+          "status": "APPROVED"
+        },
+        "GBPNZD": {
           "trades": 4,
           "wins": 2,
           "losses": 2,
@@ -241,25 +252,25 @@
           "win_rate": 50.0,
           "status": "APPROVED"
         },
-        "GBPNZD": {
-          "trades": 3,
+        "GBPUSD": {
+          "trades": 2,
           "wins": 1,
-          "losses": 2,
+          "losses": 1,
           "be": 0,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 33.3,
-          "status": "BENCHED"
+          "net_r": 0.15,
+          "pnl_usd": 7.5,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "NZDCAD": {
-          "trades": 2,
-          "wins": 0,
-          "losses": 2,
+          "trades": 3,
+          "wins": 2,
+          "losses": 1,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
-          "status": "BENCHED"
+          "net_r": 1.3,
+          "pnl_usd": 65.0,
+          "win_rate": 66.7,
+          "status": "APPROVED"
         },
         "NZDCHF": {
           "trades": 2,
@@ -272,22 +283,22 @@
           "status": "BENCHED"
         },
         "NZDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 33.3,
-          "status": "BENCHED"
+          "net_r": 0.45,
+          "pnl_usd": 22.5,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "NZDUSD": {
-          "trades": 2,
-          "wins": 2,
+          "trades": 3,
+          "wins": 3,
           "losses": 0,
           "be": 0,
-          "net_r": 2.3,
-          "pnl_usd": 115.0,
+          "net_r": 3.45,
+          "pnl_usd": 172.5,
           "win_rate": 100.0,
           "status": "APPROVED"
         },
@@ -312,33 +323,33 @@
           "status": "APPROVED"
         },
         "USDCHF": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 5,
+          "wins": 2,
           "losses": 2,
           "be": 1,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 25.0,
-          "status": "BENCHED"
+          "net_r": 0.3,
+          "pnl_usd": 15.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
         },
         "USDJPY": {
-          "trades": 3,
-          "wins": 2,
-          "losses": 1,
+          "trades": 5,
+          "wins": 3,
+          "losses": 2,
           "be": 0,
-          "net_r": 1.3,
-          "pnl_usd": 65.0,
-          "win_rate": 66.7,
+          "net_r": 1.45,
+          "pnl_usd": 72.5,
+          "win_rate": 60.0,
           "status": "APPROVED"
         },
         "USDSGD": {
-          "trades": 3,
+          "trades": 4,
           "wins": 1,
-          "losses": 2,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.85,
-          "pnl_usd": -42.5,
-          "win_rate": 33.3,
+          "net_r": -1.85,
+          "pnl_usd": -92.5,
+          "win_rate": 25.0,
           "status": "BENCHED"
         },
         "USOIL.CASH": {
@@ -352,23 +363,23 @@
           "status": "BENCHED"
         },
         "XAGUSD": {
-          "trades": 1,
+          "trades": 3,
           "wins": 0,
-          "losses": 1,
+          "losses": 3,
           "be": 0,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
+          "net_r": -3.0,
+          "pnl_usd": -150.0,
           "win_rate": 0.0,
           "status": "BENCHED"
         },
         "XAUUSD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.15,
-          "pnl_usd": 7.5,
-          "win_rate": 50.0,
+          "net_r": 1.3,
+          "pnl_usd": 65.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         }
       },
@@ -376,22 +387,24 @@
     },
     "confluence_std_p25": {
       "name": "\u26a1 Confluence Standard M15 (25% TP + 2p BE)",
-      "total_trades_ytd": 88,
+      "total_trades_ytd": 110,
       "winning_pairs": [
         "AUDCHF",
+        "AUDUSD",
+        "CHFJPY",
+        "GBPJPY",
         "GBPNZD",
+        "GBPUSD",
         "NZDUSD",
         "USDCAD",
         "USDJPY",
         "USDSGD",
-        "XAGUSD"
+        "XAUUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
         "AUDJPY",
-        "AUDUSD",
         "CADCHF",
-        "CHFJPY",
         "EURAUD",
         "EURCAD",
         "EURCHF",
@@ -402,22 +415,21 @@
         "GBPAUD",
         "GBPCAD",
         "GBPCHF",
-        "GBPJPY",
-        "GBPUSD",
         "NZDCAD",
         "NZDCHF",
         "NZDJPY",
         "USDCHF",
-        "USOIL.CASH"
+        "USOIL.CASH",
+        "XAGUSD"
       ],
       "pair_stats": {
         "AUDCAD": {
-          "trades": 4,
-          "wins": 2,
-          "losses": 2,
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.12,
-          "pnl_usd": -6.0,
+          "net_r": -0.18,
+          "pnl_usd": -9.0,
           "win_rate": 50.0,
           "status": "BENCHED"
         },
@@ -432,24 +444,24 @@
           "status": "APPROVED"
         },
         "AUDJPY": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 5,
+          "wins": 2,
           "losses": 2,
           "be": 1,
-          "net_r": -1.06,
-          "pnl_usd": -53.0,
-          "win_rate": 25.0,
+          "net_r": -0.12,
+          "pnl_usd": -6.0,
+          "win_rate": 40.0,
           "status": "BENCHED"
         },
         "AUDUSD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": -0.06,
-          "pnl_usd": -3.0,
-          "win_rate": 50.0,
-          "status": "BENCHED"
+          "net_r": 0.88,
+          "pnl_usd": 44.0,
+          "win_rate": 66.7,
+          "status": "APPROVED"
         },
         "CADCHF": {
           "trades": 2,
@@ -462,14 +474,14 @@
           "status": "BENCHED"
         },
         "CHFJPY": {
-          "trades": 6,
-          "wins": 3,
+          "trades": 7,
+          "wins": 4,
           "losses": 3,
           "be": 0,
-          "net_r": -0.18,
-          "pnl_usd": -9.0,
-          "win_rate": 50.0,
-          "status": "BENCHED"
+          "net_r": 0.76,
+          "pnl_usd": 38.0,
+          "win_rate": 57.1,
+          "status": "APPROVED"
         },
         "EURAUD": {
           "trades": 3,
@@ -502,23 +514,23 @@
           "status": "BENCHED"
         },
         "EURGBP": {
-          "trades": 3,
-          "wins": 0,
+          "trades": 4,
+          "wins": 1,
           "losses": 3,
           "be": 0,
-          "net_r": -3.0,
-          "pnl_usd": -150.0,
-          "win_rate": 0.0,
+          "net_r": -2.06,
+          "pnl_usd": -103.0,
+          "win_rate": 25.0,
           "status": "BENCHED"
         },
         "EURJPY": {
-          "trades": 5,
-          "wins": 2,
+          "trades": 4,
+          "wins": 1,
           "losses": 3,
           "be": 0,
-          "net_r": -1.12,
-          "pnl_usd": -56.0,
-          "win_rate": 40.0,
+          "net_r": -2.06,
+          "pnl_usd": -103.0,
+          "win_rate": 25.0,
           "status": "BENCHED"
         },
         "EURNZD": {
@@ -542,13 +554,13 @@
           "status": "BENCHED"
         },
         "GBPAUD": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 1,
           "be": 1,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
-          "win_rate": 0.0,
+          "net_r": -0.06,
+          "pnl_usd": -3.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "GBPCAD": {
@@ -572,43 +584,43 @@
           "status": "BENCHED"
         },
         "GBPJPY": {
-          "trades": 2,
-          "wins": 1,
-          "losses": 1,
-          "be": 0,
-          "net_r": -0.06,
-          "pnl_usd": -3.0,
-          "win_rate": 50.0,
-          "status": "BENCHED"
-        },
-        "GBPNZD": {
           "trades": 3,
           "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.32,
-          "pnl_usd": 16.0,
+          "net_r": 0.88,
+          "pnl_usd": 44.0,
           "win_rate": 66.7,
           "status": "APPROVED"
         },
-        "GBPUSD": {
-          "trades": 2,
-          "wins": 1,
+        "GBPNZD": {
+          "trades": 4,
+          "wins": 3,
           "losses": 1,
           "be": 0,
-          "net_r": -0.06,
-          "pnl_usd": -3.0,
-          "win_rate": 50.0,
-          "status": "BENCHED"
+          "net_r": 1.26,
+          "pnl_usd": 63.0,
+          "win_rate": 75.0,
+          "status": "APPROVED"
+        },
+        "GBPUSD": {
+          "trades": 3,
+          "wins": 2,
+          "losses": 1,
+          "be": 0,
+          "net_r": 0.88,
+          "pnl_usd": 44.0,
+          "win_rate": 66.7,
+          "status": "APPROVED"
         },
         "NZDCAD": {
-          "trades": 3,
-          "wins": 0,
+          "trades": 4,
+          "wins": 1,
           "losses": 3,
           "be": 0,
-          "net_r": -3.0,
-          "pnl_usd": -150.0,
-          "win_rate": 0.0,
+          "net_r": -2.06,
+          "pnl_usd": -103.0,
+          "win_rate": 25.0,
           "status": "BENCHED"
         },
         "NZDCHF": {
@@ -622,22 +634,22 @@
           "status": "BENCHED"
         },
         "NZDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
           "be": 0,
-          "net_r": -1.06,
-          "pnl_usd": -53.0,
-          "win_rate": 33.3,
+          "net_r": -0.18,
+          "pnl_usd": -9.0,
+          "win_rate": 50.0,
           "status": "BENCHED"
         },
         "NZDUSD": {
-          "trades": 2,
-          "wins": 2,
+          "trades": 3,
+          "wins": 3,
           "losses": 0,
           "be": 0,
-          "net_r": 1.88,
-          "pnl_usd": 94.0,
+          "net_r": 2.82,
+          "pnl_usd": 141.0,
           "win_rate": 100.0,
           "status": "APPROVED"
         },
@@ -652,33 +664,33 @@
           "status": "APPROVED"
         },
         "USDCHF": {
-          "trades": 4,
-          "wins": 0,
+          "trades": 5,
+          "wins": 1,
           "losses": 2,
           "be": 2,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -1.06,
+          "pnl_usd": -53.0,
+          "win_rate": 20.0,
           "status": "BENCHED"
         },
         "USDJPY": {
-          "trades": 5,
-          "wins": 3,
+          "trades": 7,
+          "wins": 5,
           "losses": 2,
           "be": 0,
-          "net_r": 0.82,
-          "pnl_usd": 41.0,
-          "win_rate": 60.0,
+          "net_r": 2.7,
+          "pnl_usd": 135.0,
+          "win_rate": 71.4,
           "status": "APPROVED"
         },
         "USDSGD": {
-          "trades": 3,
+          "trades": 4,
           "wins": 3,
-          "losses": 0,
+          "losses": 1,
           "be": 0,
-          "net_r": 2.26,
-          "pnl_usd": 113.0,
-          "win_rate": 100.0,
+          "net_r": 1.26,
+          "pnl_usd": 63.0,
+          "win_rate": 75.0,
           "status": "APPROVED"
         },
         "USOIL.CASH": {
@@ -692,12 +704,22 @@
           "status": "BENCHED"
         },
         "XAGUSD": {
+          "trades": 4,
+          "wins": 2,
+          "losses": 2,
+          "be": 0,
+          "net_r": -0.68,
+          "pnl_usd": -34.0,
+          "win_rate": 50.0,
+          "status": "BENCHED"
+        },
+        "XAUUSD": {
           "trades": 1,
           "wins": 1,
           "losses": 0,
           "be": 0,
-          "net_r": 0.38,
-          "pnl_usd": 19.0,
+          "net_r": 0.94,
+          "pnl_usd": 47.0,
           "win_rate": 100.0,
           "status": "APPROVED"
         }
@@ -706,52 +728,53 @@
     },
     "confluence_ml_m15": {
       "name": "\ud83e\udde0 Confluence ML M15 (AI Gate Fixed 1.5R)",
-      "total_trades_ytd": 85,
+      "total_trades_ytd": 108,
       "winning_pairs": [
         "AUDCHF",
+        "AUDJPY",
         "AUDNZD",
+        "AUDUSD",
         "CADJPY",
         "CHFJPY",
+        "EURCHF",
         "EURNZD",
         "GBPJPY",
+        "GBPNZD",
+        "GBPUSD",
+        "NZDCAD",
+        "NZDJPY",
         "NZDUSD",
         "USDCAD",
+        "USDCHF",
         "USDJPY",
         "XAUUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
-        "AUDJPY",
-        "AUDUSD",
         "CADCHF",
         "EURAUD",
         "EURCAD",
-        "EURCHF",
         "EURGBP",
         "EURJPY",
         "EURUSD",
         "GBPAUD",
         "GBPCAD",
         "GBPCHF",
-        "GBPNZD",
-        "NZDCAD",
         "NZDCHF",
-        "NZDJPY",
         "SOLUSD",
-        "USDCHF",
         "USDSGD",
         "USOIL.CASH",
         "XAGUSD"
       ],
       "pair_stats": {
         "AUDCAD": {
-          "trades": 4,
-          "wins": 1,
-          "losses": 3,
+          "trades": 6,
+          "wins": 2,
+          "losses": 4,
           "be": 0,
-          "net_r": -1.5,
-          "pnl_usd": -75.0,
-          "win_rate": 25.0,
+          "net_r": -1.0,
+          "pnl_usd": -50.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "AUDCHF": {
@@ -765,14 +788,14 @@
           "status": "APPROVED"
         },
         "AUDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
+          "trades": 5,
+          "wins": 2,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 33.3,
-          "status": "BENCHED"
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
         },
         "AUDNZD": {
           "trades": 1,
@@ -785,14 +808,14 @@
           "status": "APPROVED"
         },
         "AUDUSD": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 5,
+          "wins": 2,
           "losses": 2,
           "be": 1,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 25.0,
-          "status": "BENCHED"
+          "net_r": 1.0,
+          "pnl_usd": 50.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
         },
         "CADCHF": {
           "trades": 2,
@@ -815,13 +838,13 @@
           "status": "APPROVED"
         },
         "CHFJPY": {
-          "trades": 4,
-          "wins": 3,
+          "trades": 5,
+          "wins": 4,
           "losses": 1,
           "be": 0,
-          "net_r": 3.5,
-          "pnl_usd": 175.0,
-          "win_rate": 75.0,
+          "net_r": 5.0,
+          "pnl_usd": 250.0,
+          "win_rate": 80.0,
           "status": "APPROVED"
         },
         "EURAUD": {
@@ -846,32 +869,32 @@
         },
         "EURCHF": {
           "trades": 2,
-          "wins": 0,
-          "losses": 2,
+          "wins": 1,
+          "losses": 1,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
-          "status": "BENCHED"
+          "net_r": 0.5,
+          "pnl_usd": 25.0,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "EURGBP": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "EURJPY": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 3,
+          "wins": 0,
           "losses": 3,
           "be": 0,
-          "net_r": -1.5,
-          "pnl_usd": -75.0,
-          "win_rate": 25.0,
+          "net_r": -3.0,
+          "pnl_usd": -150.0,
+          "win_rate": 0.0,
           "status": "BENCHED"
         },
         "EURNZD": {
@@ -895,13 +918,13 @@
           "status": "BENCHED"
         },
         "GBPAUD": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "GBPCAD": {
@@ -925,6 +948,16 @@
           "status": "BENCHED"
         },
         "GBPJPY": {
+          "trades": 5,
+          "wins": 3,
+          "losses": 2,
+          "be": 0,
+          "net_r": 2.5,
+          "pnl_usd": 125.0,
+          "win_rate": 60.0,
+          "status": "APPROVED"
+        },
+        "GBPNZD": {
           "trades": 4,
           "wins": 2,
           "losses": 2,
@@ -934,25 +967,25 @@
           "win_rate": 50.0,
           "status": "APPROVED"
         },
-        "GBPNZD": {
-          "trades": 3,
+        "GBPUSD": {
+          "trades": 2,
           "wins": 1,
-          "losses": 2,
+          "losses": 1,
           "be": 0,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 33.3,
-          "status": "BENCHED"
+          "net_r": 0.5,
+          "pnl_usd": 25.0,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "NZDCAD": {
-          "trades": 2,
-          "wins": 0,
-          "losses": 2,
+          "trades": 3,
+          "wins": 2,
+          "losses": 1,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
-          "status": "BENCHED"
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
+          "status": "APPROVED"
         },
         "NZDCHF": {
           "trades": 2,
@@ -965,22 +998,22 @@
           "status": "BENCHED"
         },
         "NZDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
           "be": 0,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 33.3,
-          "status": "BENCHED"
+          "net_r": 1.5,
+          "pnl_usd": 75.0,
+          "win_rate": 50.0,
+          "status": "APPROVED"
         },
         "NZDUSD": {
-          "trades": 2,
-          "wins": 2,
+          "trades": 3,
+          "wins": 3,
           "losses": 0,
           "be": 0,
-          "net_r": 3.0,
-          "pnl_usd": 150.0,
+          "net_r": 4.5,
+          "pnl_usd": 225.0,
           "win_rate": 100.0,
           "status": "APPROVED"
         },
@@ -1005,6 +1038,26 @@
           "status": "APPROVED"
         },
         "USDCHF": {
+          "trades": 5,
+          "wins": 2,
+          "losses": 3,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
+        },
+        "USDJPY": {
+          "trades": 5,
+          "wins": 3,
+          "losses": 2,
+          "be": 0,
+          "net_r": 2.5,
+          "pnl_usd": 125.0,
+          "win_rate": 60.0,
+          "status": "APPROVED"
+        },
+        "USDSGD": {
           "trades": 4,
           "wins": 1,
           "losses": 3,
@@ -1012,26 +1065,6 @@
           "net_r": -1.5,
           "pnl_usd": -75.0,
           "win_rate": 25.0,
-          "status": "BENCHED"
-        },
-        "USDJPY": {
-          "trades": 3,
-          "wins": 2,
-          "losses": 1,
-          "be": 0,
-          "net_r": 2.0,
-          "pnl_usd": 100.0,
-          "win_rate": 66.7,
-          "status": "APPROVED"
-        },
-        "USDSGD": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
-          "be": 0,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "USOIL.CASH": {
@@ -1045,23 +1078,23 @@
           "status": "BENCHED"
         },
         "XAGUSD": {
-          "trades": 1,
+          "trades": 3,
           "wins": 0,
-          "losses": 1,
+          "losses": 3,
           "be": 0,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
+          "net_r": -3.0,
+          "pnl_usd": -150.0,
           "win_rate": 0.0,
           "status": "BENCHED"
         },
         "XAUUSD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.5,
-          "pnl_usd": 25.0,
-          "win_rate": 50.0,
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         }
       },
@@ -1069,49 +1102,50 @@
     },
     "confluence_m15": {
       "name": "\u26a1 Confluence Standard M15 (Rule-Based Fixed 1.5R)",
-      "total_trades_ytd": 78,
+      "total_trades_ytd": 99,
       "winning_pairs": [
         "AUDCAD",
         "AUDCHF",
+        "AUDJPY",
         "AUDUSD",
         "CHFJPY",
-        "EURJPY",
+        "GBPAUD",
         "GBPCAD",
         "GBPJPY",
         "GBPNZD",
+        "NZDJPY",
         "NZDUSD",
         "USDCAD",
         "USDJPY",
-        "USDSGD"
+        "USDSGD",
+        "XAUUSD"
       ],
       "benched_pairs": [
-        "AUDJPY",
         "CADCHF",
         "EURAUD",
         "EURCAD",
         "EURCHF",
         "EURGBP",
+        "EURJPY",
         "EURNZD",
         "EURUSD",
-        "GBPAUD",
         "GBPCHF",
         "GBPUSD",
         "NZDCAD",
         "NZDCHF",
-        "NZDJPY",
         "USDCHF",
         "USOIL.CASH",
         "XAGUSD"
       ],
       "pair_stats": {
         "AUDCAD": {
-          "trades": 4,
-          "wins": 2,
+          "trades": 5,
+          "wins": 3,
           "losses": 2,
           "be": 0,
-          "net_r": 1.0,
-          "pnl_usd": 50.0,
-          "win_rate": 50.0,
+          "net_r": 2.5,
+          "pnl_usd": 125.0,
+          "win_rate": 60.0,
           "status": "APPROVED"
         },
         "AUDCHF": {
@@ -1125,23 +1159,23 @@
           "status": "APPROVED"
         },
         "AUDJPY": {
-          "trades": 4,
-          "wins": 1,
+          "trades": 5,
+          "wins": 2,
           "losses": 2,
           "be": 1,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 25.0,
-          "status": "BENCHED"
+          "net_r": 1.0,
+          "pnl_usd": 50.0,
+          "win_rate": 40.0,
+          "status": "APPROVED"
         },
         "AUDUSD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.5,
-          "pnl_usd": 25.0,
-          "win_rate": 50.0,
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "CADCHF": {
@@ -1155,13 +1189,13 @@
           "status": "BENCHED"
         },
         "CHFJPY": {
-          "trades": 5,
-          "wins": 3,
+          "trades": 6,
+          "wins": 4,
           "losses": 2,
           "be": 0,
-          "net_r": 2.5,
-          "pnl_usd": 125.0,
-          "win_rate": 60.0,
+          "net_r": 4.0,
+          "pnl_usd": 200.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "EURAUD": {
@@ -1195,24 +1229,24 @@
           "status": "BENCHED"
         },
         "EURGBP": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "EURJPY": {
-          "trades": 5,
-          "wins": 2,
+          "trades": 4,
+          "wins": 1,
           "losses": 3,
           "be": 0,
-          "net_r": 0.0,
-          "pnl_usd": 0.0,
-          "win_rate": 40.0,
-          "status": "APPROVED"
+          "net_r": -1.5,
+          "pnl_usd": -75.0,
+          "win_rate": 25.0,
+          "status": "BENCHED"
         },
         "EURNZD": {
           "trades": 2,
@@ -1235,14 +1269,14 @@
           "status": "BENCHED"
         },
         "GBPAUD": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 1,
           "be": 1,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
-          "win_rate": 0.0,
-          "status": "BENCHED"
+          "net_r": 0.5,
+          "pnl_usd": 25.0,
+          "win_rate": 33.3,
+          "status": "APPROVED"
         },
         "GBPCAD": {
           "trades": 2,
@@ -1265,43 +1299,43 @@
           "status": "BENCHED"
         },
         "GBPJPY": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.5,
-          "pnl_usd": 25.0,
-          "win_rate": 50.0,
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "GBPNZD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.5,
-          "pnl_usd": 25.0,
-          "win_rate": 50.0,
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "GBPUSD": {
-          "trades": 1,
-          "wins": 0,
-          "losses": 1,
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
           "be": 0,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "NZDCAD": {
-          "trades": 2,
-          "wins": 0,
+          "trades": 3,
+          "wins": 1,
           "losses": 2,
           "be": 0,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 33.3,
           "status": "BENCHED"
         },
         "NZDCHF": {
@@ -1315,22 +1349,22 @@
           "status": "BENCHED"
         },
         "NZDJPY": {
-          "trades": 3,
-          "wins": 1,
-          "losses": 2,
-          "be": 0,
-          "net_r": -0.5,
-          "pnl_usd": -25.0,
-          "win_rate": 33.3,
-          "status": "BENCHED"
-        },
-        "NZDUSD": {
-          "trades": 1,
-          "wins": 1,
-          "losses": 0,
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
           "be": 0,
           "net_r": 1.5,
           "pnl_usd": 75.0,
+          "win_rate": 50.0,
+          "status": "APPROVED"
+        },
+        "NZDUSD": {
+          "trades": 2,
+          "wins": 2,
+          "losses": 0,
+          "be": 0,
+          "net_r": 3.0,
+          "pnl_usd": 150.0,
           "win_rate": 100.0,
           "status": "APPROVED"
         },
@@ -1345,33 +1379,33 @@
           "status": "APPROVED"
         },
         "USDCHF": {
-          "trades": 3,
-          "wins": 0,
+          "trades": 4,
+          "wins": 1,
           "losses": 2,
           "be": 1,
-          "net_r": -2.0,
-          "pnl_usd": -100.0,
-          "win_rate": 0.0,
+          "net_r": -0.5,
+          "pnl_usd": -25.0,
+          "win_rate": 25.0,
           "status": "BENCHED"
         },
         "USDJPY": {
-          "trades": 5,
-          "wins": 3,
-          "losses": 2,
+          "trades": 7,
+          "wins": 4,
+          "losses": 3,
           "be": 0,
-          "net_r": 2.5,
-          "pnl_usd": 125.0,
-          "win_rate": 60.0,
+          "net_r": 3.0,
+          "pnl_usd": 150.0,
+          "win_rate": 57.1,
           "status": "APPROVED"
         },
         "USDSGD": {
-          "trades": 3,
+          "trades": 4,
           "wins": 2,
-          "losses": 1,
+          "losses": 2,
           "be": 0,
-          "net_r": 2.0,
-          "pnl_usd": 100.0,
-          "win_rate": 66.7,
+          "net_r": 1.0,
+          "pnl_usd": 50.0,
+          "win_rate": 50.0,
           "status": "APPROVED"
         },
         "USOIL.CASH": {
@@ -1385,21 +1419,31 @@
           "status": "BENCHED"
         },
         "XAGUSD": {
-          "trades": 1,
+          "trades": 3,
           "wins": 0,
-          "losses": 1,
+          "losses": 3,
           "be": 0,
-          "net_r": -1.0,
-          "pnl_usd": -50.0,
+          "net_r": -3.0,
+          "pnl_usd": -150.0,
           "win_rate": 0.0,
           "status": "BENCHED"
+        },
+        "XAUUSD": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "be": 0,
+          "net_r": 1.5,
+          "pnl_usd": 75.0,
+          "win_rate": 100.0,
+          "status": "APPROVED"
         }
       },
       "active_under_ytd": true
     },
     "foundation_v1": {
       "name": "\ud83c\udf10 Foundation V1 Macro AI",
-      "total_trades_ytd": 3162,
+      "total_trades_ytd": 3164,
       "winning_pairs": [
         "AUDCAD",
         "AUDCHF",
@@ -1480,13 +1524,13 @@
           "status": "APPROVED"
         },
         "AUDUSD": {
-          "trades": 66,
-          "wins": 24,
+          "trades": 67,
+          "wins": 25,
           "losses": 42,
           "be": 0,
-          "net_r": -6.0,
-          "pnl_usd": -300.0,
-          "win_rate": 36.4,
+          "net_r": -4.5,
+          "pnl_usd": -225.0,
+          "win_rate": 37.3,
           "status": "BENCHED"
         },
         "BTCUSD": {
@@ -1750,13 +1794,13 @@
           "status": "APPROVED"
         },
         "USDSGD": {
-          "trades": 57,
-          "wins": 34,
+          "trades": 58,
+          "wins": 35,
           "losses": 23,
           "be": 0,
-          "net_r": 28.0,
-          "pnl_usd": 1400.0,
-          "win_rate": 59.6,
+          "net_r": 29.5,
+          "pnl_usd": 1475.0,
+          "win_rate": 60.3,
           "status": "APPROVED"
         },
         "USOIL.CASH": {
@@ -1784,7 +1828,7 @@
     },
     "manual_m15": {
       "name": "\ud83c\udfaf Manual M15 Wick Sniper",
-      "total_trades_ytd": 95,
+      "total_trades_ytd": 106,
       "winning_pairs": [
         "AUDCAD",
         "AUDCHF",
@@ -1795,6 +1839,7 @@
         "GBPCAD",
         "GBPCHF",
         "GBPJPY",
+        "GBPNZD",
         "GBPUSD",
         "NZDUSD",
         "USDCAD",
@@ -1813,7 +1858,6 @@
         "EURNZD",
         "EURUSD",
         "GBPAUD",
-        "GBPNZD",
         "NZDCAD",
         "NZDCHF",
         "NZDJPY",
@@ -1822,13 +1866,13 @@
       ],
       "pair_stats": {
         "AUDCAD": {
-          "trades": 4,
-          "wins": 2,
+          "trades": 5,
+          "wins": 3,
           "losses": 2,
           "be": 0,
-          "net_r": 1.0,
-          "pnl_usd": 50.0,
-          "win_rate": 50.0,
+          "net_r": 2.5,
+          "pnl_usd": 125.0,
+          "win_rate": 60.0,
           "status": "APPROVED"
         },
         "AUDCHF": {
@@ -1852,13 +1896,13 @@
           "status": "BENCHED"
         },
         "AUDUSD": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 0,
           "be": 1,
-          "net_r": 0.94,
-          "pnl_usd": 47.0,
-          "win_rate": 50.0,
+          "net_r": 2.44,
+          "pnl_usd": 122.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "CADCHF": {
@@ -1882,13 +1926,13 @@
           "status": "APPROVED"
         },
         "CHFJPY": {
-          "trades": 5,
-          "wins": 3,
+          "trades": 6,
+          "wins": 4,
           "losses": 2,
           "be": 0,
-          "net_r": 2.5,
-          "pnl_usd": 125.0,
-          "win_rate": 60.0,
+          "net_r": 4.0,
+          "pnl_usd": 200.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "EURAUD": {
@@ -1992,24 +2036,24 @@
           "status": "APPROVED"
         },
         "GBPJPY": {
-          "trades": 2,
-          "wins": 1,
+          "trades": 3,
+          "wins": 2,
           "losses": 1,
           "be": 0,
-          "net_r": 0.5,
-          "pnl_usd": 25.0,
-          "win_rate": 50.0,
+          "net_r": 2.0,
+          "pnl_usd": 100.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "GBPNZD": {
-          "trades": 4,
-          "wins": 2,
+          "trades": 5,
+          "wins": 3,
           "losses": 2,
           "be": 0,
-          "net_r": -0.12,
-          "pnl_usd": -6.0,
-          "win_rate": 50.0,
-          "status": "BENCHED"
+          "net_r": 1.38,
+          "pnl_usd": 69.0,
+          "win_rate": 60.0,
+          "status": "APPROVED"
         },
         "GBPUSD": {
           "trades": 5,
@@ -2052,13 +2096,13 @@
           "status": "BENCHED"
         },
         "NZDUSD": {
-          "trades": 3,
-          "wins": 2,
+          "trades": 4,
+          "wins": 3,
           "losses": 1,
           "be": 0,
-          "net_r": 1.44,
-          "pnl_usd": 72.0,
-          "win_rate": 66.7,
+          "net_r": 2.38,
+          "pnl_usd": 119.0,
+          "win_rate": 75.0,
           "status": "APPROVED"
         },
         "USDCAD": {
@@ -2082,23 +2126,23 @@
           "status": "BENCHED"
         },
         "USDJPY": {
-          "trades": 5,
-          "wins": 3,
-          "losses": 2,
+          "trades": 7,
+          "wins": 4,
+          "losses": 3,
           "be": 0,
-          "net_r": 1.94,
-          "pnl_usd": 97.0,
-          "win_rate": 60.0,
+          "net_r": 1.88,
+          "pnl_usd": 94.0,
+          "win_rate": 57.1,
           "status": "APPROVED"
         },
         "USDSGD": {
-          "trades": 3,
+          "trades": 4,
           "wins": 3,
-          "losses": 0,
+          "losses": 1,
           "be": 0,
-          "net_r": 2.82,
-          "pnl_usd": 141.0,
-          "win_rate": 100.0,
+          "net_r": 1.82,
+          "pnl_usd": 91.0,
+          "win_rate": 75.0,
           "status": "APPROVED"
         },
         "USOIL.CASH": {
@@ -2112,13 +2156,13 @@
           "status": "BENCHED"
         },
         "XAGUSD": {
-          "trades": 1,
-          "wins": 1,
-          "losses": 0,
+          "trades": 3,
+          "wins": 2,
+          "losses": 1,
           "be": 0,
-          "net_r": 0.38,
-          "pnl_usd": 19.0,
-          "win_rate": 100.0,
+          "net_r": 0.32,
+          "pnl_usd": 16.0,
+          "win_rate": 66.7,
           "status": "APPROVED"
         },
         "XAUUSD": {

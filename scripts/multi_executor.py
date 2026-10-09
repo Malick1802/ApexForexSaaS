@@ -330,11 +330,13 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     actual_symbol = resolve_symbol_for_server(symbol, mt5)
 
     mod_ver = str(signal_row.get("model_version") or "").lower()
+    sig_ot = str(signal_row.get("order_type", "")).upper()
+    is_mirror = bool(signal_row.get("is_position_mirror") or sig_ot in ("MARKET", "DEAL"))
     is_manual = bool(
         signal_row.get("is_manual") == 1 or
         mod_ver in ("manual_m15", "confluence_ml_p60", "confluence_std_p25", "confluence_ml_m15", "confluence_m15") or
         mod_ver.startswith("confluence_") or
-        signal_row.get("order_type") in ("BUY_STOP", "SELL_STOP", "BUY_LIMIT", "SELL_LIMIT")
+        sig_ot in ("BUY_STOP", "SELL_STOP", "BUY_LIMIT", "SELL_LIMIT")
     )
 
     try:
@@ -413,8 +415,8 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         mt5.shutdown()
         return {"status": "FAILED", "error": "NO_TICK"}
 
-    # Check if pending order already active on this account for manual signals
-    if is_manual:
+    # Check if pending order already active on this account for manual signals (skip for position mirror)
+    if is_manual and not is_mirror:
         existing_orders = mt5.orders_get(symbol=actual_symbol)
         if existing_orders:
             for o in existing_orders:
@@ -440,7 +442,33 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     s_info = mt5.symbol_info(actual_symbol)
     default_pips = 0.28 if "JPY" in actual_symbol else 0.0028
 
-    if is_manual:
+    if is_mirror:
+        # ── Position Mirror Mode ──
+        # Follower executes an instant MARKET DEAL (TRADE_ACTION_DEAL) at follower's current market price
+        order_action = mt5.TRADE_ACTION_DEAL
+        order_type = mt5.ORDER_TYPE_BUY if signal_type == "BUY" else mt5.ORDER_TYPE_SELL
+        order_price = tick.ask if signal_type == "BUY" else tick.bid
+        type_time = mt5.ORDER_TIME_GTC
+        expiration = 0
+        magic = target_magic
+        comment = signal_row.get("comment") or f"APEX-MIRROR {signal_type}"
+
+        # Clean up any stale pending orders on follower for this symbol and model
+        try:
+            existing_orders = mt5.orders_get(symbol=actual_symbol)
+            if existing_orders:
+                for o in existing_orders:
+                    o_comm = str(getattr(o, "comment", "") or "").upper()
+                    o_magic = getattr(o, "magic", 0)
+                    if is_order_from_model(o_comm, mod_ver) or (o_magic == target_magic):
+                        logger.info(f"🧹 Clearing stale follower pending order #{o.ticket} on #{login} prior to market mirror.")
+                        mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": o.ticket})
+        except Exception as _cleane:
+            logger.warning(f"Error checking/clearing stale pending orders on #{login}: {_cleane}")
+
+        price_dist = abs(order_price - sl) if sl > 0 else default_pips
+        target_sl = (order_price - price_dist) if signal_type == "BUY" else (order_price + price_dist)
+    elif is_manual:
         order_price = float(signal_row.get("price_at_signal") or signal_row.get("entry") or (tick.ask if signal_type == "BUY" else tick.bid))
         sig_ot = str(signal_row.get("order_type", "")).upper()
         pip_sz = 0.01 if ("JPY" in actual_symbol or any(x in actual_symbol for x in ("XAU", "GOLD", "OIL", "USOIL"))) else 0.0001

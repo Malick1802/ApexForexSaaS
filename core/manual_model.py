@@ -25,6 +25,234 @@ logger = logging.getLogger("ManualModel")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
+def get_copy_trading_mode() -> str:
+    """Return 'position_mirror' (default) or 'signal_broadcast' from config.yaml."""
+    try:
+        cfg_path = PROJECT_ROOT / "config.yaml"
+        if cfg_path.exists():
+            import yaml
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            ct_cfg = cfg.get("copy_trading", {})
+            if not ct_cfg.get("enabled", True):
+                return "disabled"
+            return str(ct_cfg.get("mode", "position_mirror")).lower()
+    except Exception as e:
+        logger.debug(f"Error reading copy_trading mode from config.yaml: {e}")
+    return "position_mirror"
+
+
+MIRRORED_POSITIONS_PATH = PROJECT_ROOT / "data" / "mirrored_positions.json"
+_mirrored_lock = threading.RLock()
+_mirrored_cache = None
+
+
+def _load_mirrored_positions() -> dict:
+    """Load the persistent mirrored positions cache."""
+    global _mirrored_cache
+    with _mirrored_lock:
+        if _mirrored_cache is not None:
+            return _mirrored_cache
+        if MIRRORED_POSITIONS_PATH.exists():
+            try:
+                with open(MIRRORED_POSITIONS_PATH, "r", encoding="utf-8") as f:
+                    _mirrored_cache = json.load(f)
+                    if isinstance(_mirrored_cache, dict):
+                        return _mirrored_cache
+            except Exception as e:
+                logger.warning(f"Error reading {MIRRORED_POSITIONS_PATH}: {e}")
+        _mirrored_cache = {"mirrored_tickets": {}}
+        return _mirrored_cache
+
+
+def _is_position_mirrored(ticket: int) -> bool:
+    """Check if a master position ticket has already been mirrored to followers."""
+    data = _load_mirrored_positions()
+    return str(ticket) in data.get("mirrored_tickets", {})
+
+
+def _record_mirrored_position(ticket: int, details: dict):
+    """Record a master position ticket in the persistent mirrored cache."""
+    global _mirrored_cache
+    with _mirrored_lock:
+        data = _load_mirrored_positions()
+        tickets = data.setdefault("mirrored_tickets", {})
+        tickets[str(ticket)] = details
+        _mirrored_cache = data
+        try:
+            MIRRORED_POSITIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(MIRRORED_POSITIONS_PATH, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving {MIRRORED_POSITIONS_PATH}: {e}")
+
+
+def _seed_initial_master_positions():
+    """
+    On startup, record any existing open positions on the Master account into
+    data/mirrored_positions.json with status 'INITIAL_STATE'.
+    Guarantees that a restarted process never re-mirrors historical positions.
+    """
+    mt5 = get_mt5()
+    if not mt5:
+        return
+    try:
+        current_pos = mt5.positions_get()
+        if not current_pos:
+            return
+        for p in current_pos:
+            ticket = getattr(p, "ticket", None)
+            if ticket and not _is_position_mirrored(ticket):
+                _record_mirrored_position(ticket, {
+                    "status": "INITIAL_STATE",
+                    "symbol": p.symbol,
+                    "volume": p.volume,
+                    "price_open": p.price_open,
+                    "recorded_at": datetime.now(timezone.utc).isoformat()
+                })
+                logger.info(f"🪞 Seeded existing Master position #{ticket} ({p.symbol}) to mirrored cache.")
+    except Exception as e:
+        logger.warning(f"Error seeding initial master positions: {e}")
+
+
+def _send_position_mirror_telegram_alert(mirror_row: dict, results: dict) -> bool:
+    """Send a rich Telegram alert when a Master position fills and mirrors to followers."""
+    try:
+        from core.notifications import NotificationManager
+        notifier = NotificationManager()
+        if not notifier.enabled:
+            return False
+
+        sym = mirror_row.get("symbol", "?")
+        direction = mirror_row.get("signal", "?")
+        entry = float(mirror_row.get("price_at_signal", 0.0))
+        sl = float(mirror_row.get("sl_price", 0.0))
+        tp = float(mirror_row.get("tp_price", 0.0))
+        mod_ver = mirror_row.get("model_version", "manual_m15")
+        m_ticket = mirror_row.get("master_ticket", "-")
+        m_vol = float(mirror_row.get("master_volume", 0.0))
+
+        n_accounts = len(results) if results else 0
+        n_success = sum(1 for v in (results or {}).values() if str(v).isdigit())
+        details_lines = []
+        for u_name, res_val in (results or {}).items():
+            if str(res_val).isdigit():
+                details_lines.append(f"  • *{u_name}*: ✅ Filled #{res_val} at Market")
+            else:
+                details_lines.append(f"  • *{u_name}*: ⚠️ {res_val}")
+        details_block = "\n".join(details_lines) if details_lines else "  • No follower accounts"
+
+        msg = (
+            f"🪞 *POSITION MIRROR EXECUTED*\n"
+            f"*{sym}* · `{direction}` · *{mod_ver}*\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🏛 *Master Account Fill:*\n"
+            f"  • Ticket: `#{m_ticket}`\n"
+            f"  • Fill Price: `{entry:.5f}`\n"
+            f"  • Volume: `{m_vol:.2f}` lots\n"
+            f"  • SL: `{sl:.5f}` | TP: `{tp:.5f}`\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"👥 *Follower Accounts ({n_success}/{n_accounts}):*\n"
+            f"{details_block}\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🛡️ *Guarantee:* Zero orphan orders. Follower entered *only* after Master confirmed fill."
+        )
+        return notifier.send_telegram_message(msg)
+    except Exception as e:
+        logger.warning(f"Position mirror telegram alert error: {e}")
+        return False
+
+
+def _mirror_master_position_to_followers(sig: dict, pos) -> dict:
+    """
+    In Position Mirroring Mode:
+    Executes instant market orders across all enabled follower accounts
+    when the Master MT5 account confirms an active position fill.
+    """
+    mt5 = get_mt5()
+    pos_ticket = getattr(pos, "ticket", None) or sig.get("mt5_ticket")
+    if not pos_ticket:
+        return {"status": "SKIPPED", "reason": "NO_TICKET"}
+
+    pos_ticket_int = int(pos_ticket)
+    if _is_position_mirrored(pos_ticket_int):
+        return {"status": "SKIPPED", "reason": "ALREADY_MIRRORED"}
+
+    # Mark as dispatching immediately to prevent duplicate execution in 2s loop
+    _record_mirrored_position(pos_ticket_int, {
+        "status": "DISPATCHING",
+        "symbol": sig.get("symbol") or getattr(pos, "symbol", ""),
+        "dispatched_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    try:
+        account = mt5.account_info() if mt5 else None
+        master_balance = float(getattr(account, "balance", 0.0) or 0.0) if account else 0.0
+        master_volume = float(getattr(pos, "volume", 0.0) or sig.get("suggested_lots", 0.0))
+        symbol = sig.get("symbol") or getattr(pos, "symbol", "")
+        is_buy = getattr(pos, "type", 0) == 0
+        direction = sig.get("signal") or ("BUY" if is_buy else "SELL")
+        model_version = sig.get("model_version", "manual_m15")
+
+        mirror_row = dict(sig)
+        mirror_row["order_type"] = "MARKET"
+        mirror_row["is_position_mirror"] = True
+        mirror_row["master_ticket"] = pos_ticket_int
+        mirror_row["master_balance"] = master_balance
+        mirror_row["master_volume"] = master_volume
+        mirror_row["symbol"] = symbol
+        mirror_row["signal"] = direction
+        mirror_row["price_at_signal"] = float(getattr(pos, "price_open", sig.get("price_at_signal", 0.0)))
+        mirror_row["sl_price"] = float(getattr(pos, "sl", 0.0)) or float(sig.get("sl_price", 0.0))
+        mirror_row["tp_price"] = float(getattr(pos, "tp", 0.0)) or float(sig.get("tp_price", 0.0))
+        mirror_row["magic"] = getattr(pos, "magic", 202425)
+        mirror_row["comment"] = getattr(pos, "comment", f"APEX-MIRROR {direction}")
+        mirror_row["is_manual"] = 1
+        mirror_row["is_proven"] = 1
+        mirror_row["regime"] = sig.get("regime", "MANUAL")
+
+        def _bg_execute_mirror(m_row, m_ticket):
+            try:
+                import scripts.multi_executor
+                b_res = scripts.multi_executor.execute_signal_for_all_users(m_row)
+                logger.info(f"🪞 [Position Mirror] Follower execution finished for Master ticket #{m_ticket} ({symbol} {direction}): {b_res}")
+                _record_mirrored_position(m_ticket, {
+                    "status": "COMPLETED",
+                    "symbol": symbol,
+                    "direction": direction,
+                    "model_version": model_version,
+                    "master_ticket": m_ticket,
+                    "master_volume": master_volume,
+                    "master_balance": master_balance,
+                    "results": b_res,
+                    "mirrored_at": datetime.now(timezone.utc).isoformat()
+                })
+                try:
+                    _send_position_mirror_telegram_alert(m_row, b_res)
+                except Exception as _te:
+                    logger.warning(f"Telegram notice for position mirror failed: {_te}")
+            except Exception as _bge:
+                logger.error(f"Error in background position mirror worker for #{m_ticket}: {_bge}")
+                _record_mirrored_position(m_ticket, {
+                    "status": "FAILED",
+                    "error": str(_bge),
+                    "mirrored_at": datetime.now(timezone.utc).isoformat()
+                })
+
+        t = threading.Thread(
+            target=_bg_execute_mirror,
+            args=(mirror_row, pos_ticket_int),
+            daemon=True,
+            name=f"PositionMirror-{symbol}-{pos_ticket_int}"
+        )
+        t.start()
+        logger.info(f"🪞 [Position Mirror] Dispatched background copy worker for Master fill #{pos_ticket_int} ({symbol} {direction})")
+        return {"status": "DISPATCHED", "ticket": pos_ticket_int}
+    except Exception as e:
+        logger.error(f"Failed to initiate position mirror for ticket #{pos_ticket_int}: {e}")
+        return {"status": "ERROR", "error": str(e)}
+
+
 def get_mt5():
     """Return the connected MT5 module for the master account via MT5Connector."""
     try:
@@ -802,46 +1030,62 @@ def submit_manual_order(
     # Broadcast to subscriber copy-trading accounts (Decoupled background execution)
     broadcast_results = {}
     if broadcast_to_subscribers:
-        try:
-            account = mt5.account_info() if mt5 else None
-            m_balance = float(getattr(account, "balance", 0.0) or 0.0) if account else 0.0
-            signal_row["master_balance"] = m_balance
-            signal_row["master_volume"]  = lots
+        copy_mode = get_copy_trading_mode()
+        is_pending = order_type_str in ("BUY_STOP", "SELL_STOP", "BUY_LIMIT", "SELL_LIMIT")
 
-            def _bg_subscriber_broadcast(sig_dict, do_telegram):
+        if copy_mode == "position_mirror" and is_pending:
+            logger.info(
+                f"🪞 [Position Mirror Mode] Pending stop order #{ticket} ({order_type_str} on {symbol}) armed on Master MT5. "
+                f"Follower copy execution postponed until Master confirms position fill."
+            )
+            broadcast_results = {"status": "POSTPONED_POSITION_MIRROR", "reason": "Awaiting master fill"}
+            result["broadcast_results"] = broadcast_results
+            if send_telegram:
                 try:
-                    import scripts.multi_executor
-                    b_res = scripts.multi_executor.execute_signal_for_all_users(sig_dict)
-                    logger.info(f"🌐 Background follower copy broadcast finished for {sig_dict.get('symbol')} ({sig_dict.get('model_version')}): {b_res}")
-                    if do_telegram:
-                        try:
-                            _send_manual_telegram_alert(sig_dict, b_res)
-                        except Exception as te:
-                            logger.warning(f"Telegram alert error in background broadcaster: {te}")
-                except Exception as bge:
-                    logger.error(f"Background subscriber broadcast error: {bge}")
+                    _send_manual_telegram_alert(signal_row, broadcast_results)
+                except Exception as e:
+                    logger.warning(f"Telegram alert for manual M15 order failed: {e}")
+        else:
+            try:
+                account = mt5.account_info() if mt5 else None
+                m_balance = float(getattr(account, "balance", 0.0) or 0.0) if account else 0.0
+                signal_row["master_balance"] = m_balance
+                signal_row["master_volume"]  = lots
 
-            if async_subscribers:
-                t = threading.Thread(
-                    target=_bg_subscriber_broadcast,
-                    args=(dict(signal_row), send_telegram),
-                    daemon=True,
-                    name=f"SubscriberBroadcast-{symbol}-{ticket}"
-                )
-                t.start()
-                broadcast_results = {"status": "DISPATCHED_BACKGROUND"}
-                result["broadcast_results"] = broadcast_results
-            else:
-                import scripts.multi_executor
-                broadcast_results = scripts.multi_executor.execute_signal_for_all_users(signal_row)
-                result["broadcast_results"] = broadcast_results
-                if send_telegram:
+                def _bg_subscriber_broadcast(sig_dict, do_telegram):
                     try:
-                        _send_manual_telegram_alert(signal_row, broadcast_results)
-                    except Exception as e:
-                        logger.warning(f"Telegram alert for manual M15 order failed: {e}")
-        except Exception as e:
-            logger.error(f"Manual M15 subscriber broadcast setup error: {e}")
+                        import scripts.multi_executor
+                        b_res = scripts.multi_executor.execute_signal_for_all_users(sig_dict)
+                        logger.info(f"🌐 Background follower copy broadcast finished for {sig_dict.get('symbol')} ({sig_dict.get('model_version')}): {b_res}")
+                        if do_telegram:
+                            try:
+                                _send_manual_telegram_alert(sig_dict, b_res)
+                            except Exception as te:
+                                logger.warning(f"Telegram alert error in background broadcaster: {te}")
+                    except Exception as bge:
+                        logger.error(f"Background subscriber broadcast error: {bge}")
+
+                if async_subscribers:
+                    t = threading.Thread(
+                        target=_bg_subscriber_broadcast,
+                        args=(dict(signal_row), send_telegram),
+                        daemon=True,
+                        name=f"SubscriberBroadcast-{symbol}-{ticket}"
+                    )
+                    t.start()
+                    broadcast_results = {"status": "DISPATCHED_BACKGROUND"}
+                    result["broadcast_results"] = broadcast_results
+                else:
+                    import scripts.multi_executor
+                    broadcast_results = scripts.multi_executor.execute_signal_for_all_users(signal_row)
+                    result["broadcast_results"] = broadcast_results
+                    if send_telegram:
+                        try:
+                            _send_manual_telegram_alert(signal_row, broadcast_results)
+                        except Exception as e:
+                            logger.warning(f"Telegram alert for manual M15 order failed: {e}")
+            except Exception as e:
+                logger.error(f"Manual M15 subscriber broadcast setup error: {e}")
     elif send_telegram:
         try:
             _send_manual_telegram_alert(signal_row, broadcast_results)
@@ -887,7 +1131,12 @@ def _send_manual_telegram_alert(signal_row: dict, broadcast_results: dict = None
 
         n_accounts = len(broadcast_results) if broadcast_results else 0
         n_success  = sum(1 for v in (broadcast_results or {}).values() if str(v).isdigit())
-        broadcast_line = f"📡 Broadcast: {n_success}/{n_accounts} accounts executed\n" if n_accounts > 0 else ""
+        if broadcast_results and broadcast_results.get("status") == "POSTPONED_POSITION_MIRROR":
+            broadcast_line = "🪞 Copy Mode: *Position Mirror* (Followers enter upon master fill)\n"
+        elif n_accounts > 0:
+            broadcast_line = f"📡 Broadcast: {n_success}/{n_accounts} accounts executed\n"
+        else:
+            broadcast_line = ""
 
         try:
             from datetime import timedelta as _td
@@ -1679,7 +1928,7 @@ def reconcile_manual_orders():
         with db._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM signals WHERE (is_manual = 1 OR model_version IN ('manual_m15', 'confluence_m15')) AND outcome IN ('ACTIVE', 'N/A')")
+            cursor.execute("SELECT * FROM signals WHERE (is_manual = 1 OR model_version LIKE 'confluence%' OR model_version LIKE 'manual%') AND outcome IN ('ACTIVE', 'N/A')")
             active_manual_signals = [dict(r) for r in cursor.fetchall()]
         
         if not active_manual_signals:
@@ -1723,26 +1972,30 @@ def reconcile_manual_orders():
 
             # 2. Check if open position in MT5
             open_pos = mt5.positions_get(ticket=ticket)
-            if open_pos:
-                continue  # Still open position
+            matched_pos = open_pos[0] if open_pos else None
 
             # Also check if positions_get(symbol=symbol) has a position belonging to this trade/model
-            open_sym_pos = mt5.positions_get(symbol=symbol)
-            if open_sym_pos:
-                sig_mod = str(sig.get('model_version') or 'manual_m15').lower()
-                try:
-                    from core.confluence_model import is_order_from_model, MODEL_MAGIC_MAP
-                    sig_magic = MODEL_MAGIC_MAP.get(sig_mod, 202425)
-                except Exception:
-                    sig_magic = 202425
-                    is_order_from_model = lambda c, m: True
-                has_active = any(
-                    getattr(p, 'ticket', 0) == ticket or 
-                    (getattr(p, 'magic', 0) == sig_magic and is_order_from_model(getattr(p, 'comment', ''), sig_mod))
-                    for p in open_sym_pos
-                )
-                if has_active:
-                    continue
+            if not matched_pos:
+                open_sym_pos = mt5.positions_get(symbol=symbol)
+                if open_sym_pos:
+                    sig_mod = str(sig.get('model_version') or 'manual_m15').lower()
+                    try:
+                        from core.confluence_model import is_order_from_model, MODEL_MAGIC_MAP
+                        sig_magic = MODEL_MAGIC_MAP.get(sig_mod, 202425)
+                    except Exception:
+                        sig_magic = 202425
+                        is_order_from_model = lambda c, m: True
+                    for p in open_sym_pos:
+                        if getattr(p, 'ticket', 0) == ticket or (getattr(p, 'magic', 0) == sig_magic and is_order_from_model(getattr(p, 'comment', ''), sig_mod)):
+                            matched_pos = p
+                            break
+
+            if matched_pos:
+                # ── MASTER POSITION CONFIRMED OPEN ──
+                # In Position Mirror mode: Mirror to followers if not already mirrored!
+                if get_copy_trading_mode() == "position_mirror":
+                    _mirror_master_position_to_followers(sig, matched_pos)
+                continue  # Still open position
 
             # 3. If neither pending order nor open position exists, it was resolved!
             # Query history deals first (if filled position closed)
@@ -1758,6 +2011,13 @@ def reconcile_manual_orders():
                 reason = f"M15 TP hit (+${total_profit:.2f})" if total_profit > 0 else f"M15 SL hit (${total_profit:.2f})"
                 db.update_signal_outcome(sig_id, outcome, exit_price=exit_price, exit_reason=reason)
                 logger.info(f"Reconciled manual trade #{ticket} (ID {sig_id}): {outcome} ({reason})")
+
+                # Mirror close to follower accounts
+                try:
+                    from scripts.multi_executor import close_signal_for_all_users
+                    close_signal_for_all_users(symbol)
+                except Exception as _ce:
+                    logger.warning(f"Follower close broadcast warning for {symbol}: {_ce}")
                 continue
 
             # If no deals, check order history (cancelled or expired pending order)
@@ -1774,6 +2034,33 @@ def reconcile_manual_orders():
                     db.update_signal_outcome(sig_id, 'CANCELLED', exit_reason=f'Order State {o_state}')
             else:
                 db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Untracked order flush')
+
+        # Safety net: scan all open MT5 positions on Master with APEX magics
+        if get_copy_trading_mode() == "position_mirror":
+            try:
+                all_pos = mt5.positions_get() or []
+                apex_magics = (202425, 202404, 202460, 202415, 202401)
+                for p in all_pos:
+                    p_ticket = getattr(p, 'ticket', 0)
+                    if p_ticket and not _is_position_mirrored(p_ticket):
+                        p_magic = getattr(p, 'magic', 0)
+                        p_comm = str(getattr(p, 'comment', '') or '')
+                        if p_magic in apex_magics or "APEX" in p_comm:
+                            auto_sig = {
+                                "id": None,
+                                "symbol": p.symbol,
+                                "signal": "BUY" if p.type == 0 else "SELL",
+                                "model_version": "confluence_auto",
+                                "mt5_ticket": p_ticket,
+                                "price_at_signal": p.price_open,
+                                "sl_price": p.sl,
+                                "tp_price": p.tp,
+                                "magic": p_magic,
+                                "comment": p_comm,
+                            }
+                            _mirror_master_position_to_followers(auto_sig, p)
+            except Exception as _sne:
+                logger.warning(f"Position mirror safety net scan error: {_sne}")
     except Exception as e:
         logger.error(f"Error reconciling manual orders: {e}")
 
@@ -1811,6 +2098,7 @@ def _watcher_loop():
 def start_armed_sniper_watcher():
     """Ensure the background watcher thread is running (single thread per process, single process across OS)."""
     global _watcher_thread
+    _seed_initial_master_positions()
     with _watcher_lock:
         if _watcher_thread is None or not _watcher_thread.is_alive():
             _watcher_thread = threading.Thread(target=_watcher_loop, daemon=True, name="M15SniperWatcher")

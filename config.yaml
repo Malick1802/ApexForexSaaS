@@ -15,6 +15,9 @@ blocked_symbols:
 - XPDUSD
 - NGAS
 - NATGAS
+copy_trading:
+  enabled: true
+  mode: position_mirror  # "position_mirror" (execute market order only when master fills) or "signal_broadcast" (broadcast pending order immediately)
 confluence_model:
   allow_concurrent_asset: true
   asset_be_offsets:
