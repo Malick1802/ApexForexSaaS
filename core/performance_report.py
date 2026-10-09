@@ -38,7 +38,8 @@ class PerformanceReporter:
         conn = sqlite3.connect(self.db_path)
         df = pd.read_sql_query('''
             SELECT id, timestamp, exit_time, duration_seconds, symbol, signal, confidence, confidence_tier,
-                   is_hidden, outcome, exit_reason, price_at_signal, exit_price, mt5_ticket, model_version, is_manual, regime
+                   is_hidden, outcome, exit_reason, price_at_signal, exit_price, sl_price, tp_price,
+                   suggested_lots, sl_pips, tp_pips, mt5_ticket, model_version, is_manual, regime
             FROM signals
             WHERE signal IN ('BUY', 'SELL')
               AND outcome IN ('SUCCESS', 'FAIL')
@@ -77,10 +78,15 @@ class PerformanceReporter:
 
         for r in data_sorted.itertuples():
             ticket = getattr(r, 'mt5_ticket', None)
-            if pd.notnull(ticket) and ticket != "":
-                if ticket in seen_tickets:
+            if pd.notnull(ticket) and str(ticket).strip() not in ("", "0", "None"):
+                t_str = str(ticket).replace(".0", "")
+                if t_str in seen_tickets:
                     continue
-                seen_tickets.add(ticket)
+                seen_tickets.add(t_str)
+                keep_indices.append(r.Index)
+                continue
+
+            # Shadow / Paper trade intra-signal deduplication:
 
             key = (r.symbol, r.signal)
             entry_t = r.t_utc
@@ -118,7 +124,8 @@ class PerformanceReporter:
                         # Exclude administrative cleanup / duplicate closes from strategy performance
                         df_exits = df_exits[~df_exits['comment'].astype(str).str.contains("Duplicate|Test|clean", case=False, na=False)].copy()
                     if not df_exits.empty:
-                        df_exits['t_utc'] = pd.to_datetime(df_exits['time'], unit='s', utc=True)
+                        # MetaTrader 5 deal.time is already stored in broker server time (Unix epoch seconds)
+                        df_exits['t_trading'] = pd.to_datetime(df_exits['time'], unit='s')
                         return df_exits
         except Exception:
             pass
@@ -146,7 +153,7 @@ class PerformanceReporter:
                     pos_df = df_deals.groupby('position_id').agg({
                         'symbol': 'first',
                         'time': 'last',
-                        't_utc': 'last',
+                        't_trading': 'last',
                         'profit': 'sum',
                         'volume': 'sum',
                         'comment': lambda x: ' | '.join(x)
@@ -154,31 +161,39 @@ class PerformanceReporter:
                 else:
                     pos_df = df_deals.copy()
 
-                pos_df['time_metric'] = pos_df['t_utc']
-                if start_date:
-                    pos_df = pos_df[pos_df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
-                if end_date:
-                    pos_df = pos_df[pos_df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
+                pos_df['time_metric'] = pos_df['t_trading']
+                pos_df['t_naive'] = pos_df['t_trading']
 
+                if start_date:
+                    pos_df = pos_df[pos_df['t_naive'] >= pd.to_datetime(start_date)].copy()
+                if end_date:
+                    end_dt = pd.to_datetime(end_date)
+                    if len(str(end_date).strip()) <= 10:
+                        end_dt = end_dt + pd.Timedelta(hours=23, minutes=59, seconds=59)
+                    pos_df = pos_df[pos_df['t_naive'] <= end_dt].copy()
+                if pos_df.empty:
+                    return pd.DataFrame()
+
+                master_trade_risk = 500.0 if (account_size >= 50000.0 or risk_per_trade >= 250.0) else 50.0
                 def calc_deal_r(r):
                     p = float(r.get('profit', 0.0))
                     if p > 1.5:
-                        r_val = min(1.5, max(0.2, p / 50.0))
+                        r_val = round(min(reward_multiplier, max(0.2, p / 450.0 if p >= 400.0 else p / master_trade_risk)), 2)
                         status = 'WIN'
                     elif p < -1.5:
-                        r_val = -1.0
+                        r_val = round(max(-1.5, min(-0.2, p / master_trade_risk)), 2)
                         status = 'LOSS'
                     else:
                         r_val = 0.0
                         status = 'BREAKEVEN'
-                    pnl_val = p if abs(risk_per_trade - 50.0) < 0.01 else (r_val * risk_per_trade)
+                    pnl_val = p if (account_size >= 50000.0 or risk_per_trade >= 250.0) else round(r_val * risk_per_trade, 2)
                     return pd.Series([r_val, pnl_val, status], index=['realized_r', 'pnl_amount', 'trade_status'])
 
                 calc = pos_df.apply(calc_deal_r, axis=1)
                 pos_df['realized_r'] = calc['realized_r']
                 pos_df['pnl_amount'] = calc['pnl_amount']
                 pos_df['trade_status'] = calc['trade_status']
-                pos_df['outcome'] = np.where(pos_df['trade_status'] == 'WIN', 'SUCCESS', 'FAIL')
+                pos_df['outcome'] = np.where(pos_df['trade_status'] == 'WIN', 'SUCCESS', np.where(pos_df['trade_status'] == 'BREAKEVEN', 'BREAKEVEN', 'FAIL'))
                 filtered = pos_df
             else:
                 df = self._get_signals_df()
@@ -197,10 +212,25 @@ class PerformanceReporter:
             # Use exit time if available, otherwise entry time
             df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc']) if use_close_time else df['t_utc']
 
+            try:
+                import zoneinfo
+                trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+                t_trading = df['time_metric'].dt.tz_convert(trading_tz)
+            except Exception:
+                from datetime import timedelta
+                t_trading = df['time_metric'] + timedelta(hours=3)
+            df['t_trading'] = t_trading
+            df['t_naive'] = t_trading.dt.tz_localize(None)
+
             if start_date:
-                df = df[df['time_metric'] >= pd.to_datetime(start_date, utc=True)].copy()
+                df = df[df['t_naive'] >= pd.to_datetime(start_date)].copy()
             if end_date:
-                df = df[df['time_metric'] <= pd.to_datetime(end_date, utc=True)].copy()
+                end_dt = pd.to_datetime(end_date)
+                if len(str(end_date).strip()) <= 10:
+                    end_dt = end_dt + pd.Timedelta(hours=23, minutes=59, seconds=59)
+                df = df[df['t_naive'] <= end_dt].copy()
+            if df.empty:
+                return pd.DataFrame()
 
             from core.symbol_guard import is_symbol_blocked, is_direction_blocked
 
@@ -263,18 +293,17 @@ class PerformanceReporter:
                 # Restricts trades strictly to assets with Year-To-Date Net R >= 0.0 for that model
                 from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, normalize_model_key, normalize_symbol
                 if "live" in mode:
-                    cand = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+                    filtered = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
                 else:
                     cand = df[df['outcome'].isin(['SUCCESS', 'FAIL']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
-
-                if not cand.empty:
-                    approved_set = get_dynamic_whitelist_manager().get_approved_set()
-                    m_keys = [normalize_model_key(m) for m in cand['model_version']]
-                    sym_keys = [normalize_symbol(s) for s in cand['symbol']]
-                    cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
-                    filtered = cand[cand['is_whitelisted']].copy()
-                else:
-                    filtered = cand
+                    if not cand.empty:
+                        approved_set = get_dynamic_whitelist_manager().get_approved_set()
+                        m_keys = [normalize_model_key(m) for m in cand['model_version']]
+                        sym_keys = [normalize_symbol(s) for s in cand['symbol']]
+                        cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
+                        filtered = cand[cand['is_whitelisted']].copy()
+                    else:
+                        filtered = cand
                 filtered = self._dedup(filtered)
             elif mode in ("aggregate_all", "all_models"):
                 # All Strategy Models Aggregated (Live + Shadow Paper Trades Combined)
@@ -357,7 +386,7 @@ class PerformanceReporter:
                 is_be = True
             elif price_r is not None and abs(price_r) < 0.12 and outcome == 'FAIL':
                 is_be = True
-            elif "BE hit" in reason or "Breakeven" in reason or "SL hit ($0.00)" in reason:
+            elif "BE hit" in reason or "Breakeven" in reason or "SL hit ($0.00)" in reason or "BE Profit: $0.00" in reason:
                 is_be = True
                 
             if is_be:
@@ -374,15 +403,27 @@ class PerformanceReporter:
                 is_p60 = ("p60" in model_ver) or ("p60" in mode)
                 is_p25 = ("p25" in model_ver) or ("p25" in mode)
                 
+                # Dynamic Partial + BE Runner detection across any account size ($10k or $100k)
+                is_partial_be = False
+                if "Partial" in reason or "BE" in reason:
+                    is_partial_be = True
+                elif price_r is not None and 0.05 <= price_r < 0.6:
+                    is_partial_be = True
+                elif raw_profit is not None:
+                    ref_risk = 500.0 if (account_size >= 50000.0 or risk_per_trade >= 250.0) else 50.0
+                    r_est = raw_profit / ref_risk
+                    if 0.08 <= r_est <= 0.65:
+                        is_partial_be = True
+
                 if is_p60:
-                    if raw_profit is not None and 0 < raw_profit < 35.0:
+                    if is_partial_be:
                         r_val = 0.90  # TP1 (60% @ 1.5R) + BE runner
                     elif price_r is not None and price_r >= 1.4:
                         r_val = 1.50  # Full TP reached on runner
                     else:
                         r_val = 1.15
                 elif is_p25:
-                    if raw_profit is not None and 0 < raw_profit < 25.0:
+                    if is_partial_be:
                         r_val = 0.38  # TP1 (25% @ 1.5R) + BE runner
                     elif price_r is not None and price_r >= 1.4:
                         r_val = 1.50  # Full TP reached
@@ -404,17 +445,17 @@ class PerformanceReporter:
             filtered['pnl_amount'] = calc_df['pnl_amount']
             filtered['trade_status'] = calc_df['trade_status']
 
-        # Convert to Normal Forex Trading Time (Broker Server Time: GMT+2/GMT+3)
-        # In Forex and Prop Firms (FTMO), the trading day begins and ends at 17:00 NY / 00:00 Broker Server Time.
-        try:
-            import zoneinfo
-            trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
-            t_trading = filtered['time_metric'].dt.tz_convert(trading_tz)
-        except Exception:
-            from datetime import timedelta
-            t_trading = filtered['time_metric'] + timedelta(hours=3)
-
-        t_naive = t_trading.dt.tz_localize(None)
+        if 't_naive' in filtered.columns:
+            t_naive = filtered['t_naive']
+        else:
+            try:
+                import zoneinfo
+                trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+                t_trading = filtered['time_metric'].dt.tz_convert(trading_tz)
+            except Exception:
+                from datetime import timedelta
+                t_trading = filtered['time_metric'] + timedelta(hours=3)
+            t_naive = t_trading.dt.tz_localize(None)
         if period == "monthly":
             filtered['period_obj'] = t_naive.dt.to_period('M')
             format_fn = lambda p: str(p)
@@ -465,20 +506,83 @@ class PerformanceReporter:
         self,
         date_str: str,
         mode: str = "dynamic_ytd_live",
-        risk_per_trade: float = 50.0
+        risk_per_trade: float = 50.0,
+        account_size: Optional[float] = None
     ) -> pd.DataFrame:
         """Return all individual trades that closed on a specific calendar trading day."""
         clean_date = date_str.split(' ')[0].strip()
+        if account_size is None or account_size <= 0:
+            account_size = 100000.0 if risk_per_trade >= 500.0 else 10000.0
+
+        try:
+            import zoneinfo
+            trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+        except Exception:
+            trading_tz = None
+
+        if mode == "mt5_live":
+            # For MT5 live executed trades: extract directly from real broker history deals!
+            df_deals = self._get_mt5_deals_df()
+            if df_deals.empty:
+                return pd.DataFrame()
+            if 'position_id' in df_deals.columns:
+                pos_df = df_deals.groupby('position_id').agg({
+                    'symbol': 'first',
+                    'time': 'last',
+                    't_trading': 'last',
+                    'profit': 'sum',
+                    'volume': 'sum',
+                    'comment': lambda x: ' | '.join(x)
+                }).reset_index()
+            else:
+                pos_df = df_deals.copy()
+
+            pos_df['date_key'] = pos_df['t_trading'].dt.strftime('%Y-%m-%d')
+            day_deals = pos_df[pos_df['date_key'] == clean_date].copy()
+            if day_deals.empty:
+                return pd.DataFrame()
+
+            master_risk = 500.0 if (account_size >= 50000.0 or risk_per_trade >= 250.0) else 50.0
+            def calc_deal_drill(r):
+                p = float(r.get('profit', 0.0))
+                if p > 1.5:
+                    r_val = round(min(1.5, max(0.2, p / 450.0 if p >= 400.0 else p / master_risk)), 2)
+                    st = 'WIN'
+                elif p < -1.5:
+                    r_val = round(max(-1.5, min(-0.2, p / master_risk)), 2)
+                    st = 'LOSS'
+                else:
+                    r_val = 0.0
+                    st = 'BREAKEVEN'
+                pnl_val = p if (account_size >= 50000.0 or risk_per_trade >= 250.0) else round(r_val * risk_per_trade, 2)
+                return pd.Series([r_val, pnl_val, st], index=['realized_r', 'pnl_amount', 'status'])
+
+            c = day_deals.apply(calc_deal_drill, axis=1)
+            day_deals['realized_r'] = c['realized_r']
+            day_deals['pnl_amount'] = c['pnl_amount']
+            day_deals['status'] = c['status']
+
+            res = pd.DataFrame({
+                'Ticket': day_deals['position_id'].astype(str),
+                'Time (Broker)': day_deals['t_trading'].dt.strftime('%H:%M:%S'),
+                'Symbol': day_deals['symbol'],
+                'Direction': day_deals['comment'].apply(lambda x: 'BUY' if 'BUY' in str(x) else ('SELL' if 'SELL' in str(x) else '-')),
+                'Model': day_deals['comment'].apply(lambda x: str(x).split(' ')[0] if ' ' in str(x) else str(x)),
+                'Status': day_deals['status'],
+                'Edge (R)': day_deals['realized_r'].apply(lambda x: f"{x:+.2f}R"),
+                'PnL ($)': day_deals['pnl_amount'].apply(lambda x: f"${x:+,.2f}"),
+                'Exit Reason': day_deals['comment'].fillna('-')
+            })
+            return res.sort_values('Time (Broker)', ascending=False)
+
         df = self._get_signals_df()
         if df.empty:
             return pd.DataFrame()
         df['t_exit_utc'] = pd.to_datetime(df['exit_time'], format='ISO8601', utc=True)
         df['time_metric'] = df['t_exit_utc'].fillna(df['t_utc'])
-        try:
-            import zoneinfo
-            trading_tz = zoneinfo.ZoneInfo("Europe/Athens")
+        if trading_tz is not None:
             t_trading = df['time_metric'].dt.tz_convert(trading_tz)
-        except Exception:
+        else:
             from datetime import timedelta
             t_trading = df['time_metric'] + timedelta(hours=3)
         df['date_key'] = t_trading.dt.strftime('%Y-%m-%d')
@@ -487,17 +591,17 @@ class PerformanceReporter:
         if mode in ("dynamic_ytd", "dynamic_ytd_model", "dynamic_ytd_all", "dynamic_ytd_live"):
             from core.dynamic_model_whitelist import get_dynamic_whitelist_manager, normalize_model_key, normalize_symbol
             if "live" in mode:
-                cand = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+                filtered = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
             else:
                 cand = df[df['outcome'].isin(['SUCCESS', 'FAIL']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
-            if not cand.empty:
-                approved_set = get_dynamic_whitelist_manager().get_approved_set()
-                m_keys = [normalize_model_key(m) for m in cand['model_version']]
-                sym_keys = [normalize_symbol(s) for s in cand['symbol']]
-                cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
-                filtered = cand[cand['is_whitelisted']].copy()
-            else:
-                filtered = cand
+                if not cand.empty:
+                    approved_set = get_dynamic_whitelist_manager().get_approved_set()
+                    m_keys = [normalize_model_key(m) for m in cand['model_version']]
+                    sym_keys = [normalize_symbol(s) for s in cand['symbol']]
+                    cand['is_whitelisted'] = [(m, s) in approved_set for m, s in zip(m_keys, sym_keys)]
+                    filtered = cand[cand['is_whitelisted']].copy()
+                else:
+                    filtered = cand
             filtered = self._dedup(filtered)
         elif mode in ("confluence_ml_p60", "confluence_ml_p60_all"):
             filtered = df[df['model_version'].isin(['confluence_ml_p60', 'confluence_ml_m15_p60']) & (df['exit_reason'] != 'ML_SUPPRESSED')].copy()
@@ -511,8 +615,8 @@ class PerformanceReporter:
         elif mode in ("confluence_std_p25_live",):
             filtered = df[df['model_version'].isin(['confluence_std_p25', 'confluence_m15_p25']) & df['mt5_ticket'].notnull()].copy()
             filtered = self._dedup(filtered)
-        elif mode == "mt5_live":
-            filtered = df[df['mt5_ticket'].notnull() & df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
+        elif mode in ("confluence", "confluence_live", "confluence_both_live"):
+            filtered = df[(df['model_version'].isin(['confluence_m15', 'confluence_ml_m15', 'confluence_ml_p60', 'confluence_std_p25']) | (df['regime'] == 'CONFLUENCE')) & df['mt5_ticket'].notnull()].copy()
             filtered = self._dedup(filtered)
         else:
             filtered = df[df['outcome'].isin(['SUCCESS', 'FAIL'])].copy()
@@ -527,12 +631,21 @@ class PerformanceReporter:
             outcome = r.get('outcome')
             m = PROFIT_REGEX.search(reason)
             raw_p = float(m.group(1).replace(',', '')) if m else None
-            if "BE hit" in reason or "Breakeven" in reason or (raw_p is not None and abs(raw_p) < 2.0):
+            model_ver = str(r.get('model_version') or '')
+            if "BE hit" in reason or "Breakeven" in reason or "BE Profit" in reason or (raw_p is not None and abs(raw_p) < 2.0):
                 return pd.Series([0.0, 0.0, 'BREAKEVEN'], index=['realized_r', 'pnl_amount', 'status'])
             if outcome == 'FAIL':
                 return pd.Series([-1.0, -risk_per_trade, 'LOSS'], index=['realized_r', 'pnl_amount', 'status'])
             if outcome == 'SUCCESS':
-                r_val = 0.9 if "p60" in str(r.get('model_version')) else 1.5
+                is_p60 = "p60" in model_ver or "p60" in mode
+                is_p25 = "p25" in model_ver or "p25" in mode
+                is_partial_be = ("Partial" in reason) or ("BE" in reason)
+                if is_p60:
+                    r_val = 0.90 if is_partial_be else 1.50
+                elif is_p25:
+                    r_val = 0.38 if is_partial_be else 1.50
+                else:
+                    r_val = 1.50
                 return pd.Series([r_val, r_val * risk_per_trade, 'WIN'], index=['realized_r', 'pnl_amount', 'status'])
             return pd.Series([0.0, 0.0, 'OTHER'], index=['realized_r', 'pnl_amount', 'status'])
 

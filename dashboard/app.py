@@ -3169,7 +3169,7 @@ def render_periodic_performance_matrix():
                     sel_day = st.selectbox("Select Trading Day to Inspect", day_choices, key="perf_drilldown_day_sel")
                     if sel_day:
                         from core.performance_report import PerformanceReporter
-                        drill_df = PerformanceReporter().get_trades_for_day(sel_day, mode=mode_key, risk_per_trade=risk_val)
+                        drill_df = PerformanceReporter().get_trades_for_day(sel_day, mode=mode_key, risk_per_trade=risk_val, account_size=account_size)
                         if not drill_df.empty:
                             st.dataframe(drill_df, use_container_width=True, hide_index=True)
                         else:

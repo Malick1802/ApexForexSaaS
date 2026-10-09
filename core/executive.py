@@ -1195,8 +1195,15 @@ class ExecutiveEngine:
                                     current_price = last_exit.price
                                     # Sum the profits of all deals associated with this position
                                     total_profit = sum(getattr(d, 'profit', 0.0) for d in hist)
-                                    outcome = 'SUCCESS' if total_profit > 0 else 'FAIL'
-                                    reason = f"MT5 Native Close (Profit: ${total_profit:.2f})"
+                                    if abs(total_profit) < 2.0:
+                                        outcome = 'SUCCESS'
+                                        reason = f"MT5 Native Close (BE Profit: ${total_profit:.2f})"
+                                    elif total_profit > 0:
+                                        outcome = 'SUCCESS'
+                                        reason = f"MT5 Native Close (Profit: ${total_profit:.2f})"
+                                    else:
+                                        outcome = 'FAIL'
+                                        reason = f"MT5 Native Close (Loss: ${total_profit:.2f})"
                                 else:
                                     logger.info(f"MT5 Position {ticket} closed, but exit deals not available in history yet. Waiting.")
                                     continue

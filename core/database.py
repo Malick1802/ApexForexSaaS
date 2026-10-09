@@ -847,31 +847,52 @@ class SignalDatabase:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 if live_only:
-                    query = """
-                        SELECT 
-                            symbol,
-                            COUNT(DISTINCT mt5_ticket) as total_trades,
-                            COUNT(DISTINCT CASE WHEN outcome = 'SUCCESS' THEN mt5_ticket END) as wins,
-                            COUNT(DISTINCT CASE WHEN outcome = 'FAIL' THEN mt5_ticket END) as losses,
-                            AVG(confidence) as avg_confidence,
-                            MAX(timestamp) as last_trade
-                        FROM signals
-                        WHERE timestamp >= ? 
-                          AND outcome IN ('SUCCESS', 'FAIL')
-                          AND signal IN ('BUY', 'SELL')
-                          AND symbol != 'SYSTEM'
-                          AND mt5_ticket IS NOT NULL
-                    """
+                    mv_filter = ""
                     params = [cutoff]
                     if model_version and model_version != "ALL":
-                        if model_version.endswith("_live"):
-                            actual_mv = model_version[:-5]
-                            query += " AND model_version = ?"
-                            params.append(actual_mv)
-                        else:
-                            query += " AND model_version = ?"
-                            params.append(model_version)
-                    query += " GROUP BY symbol ORDER BY wins DESC, total_trades DESC"
+                        actual_mv = model_version[:-5] if model_version.endswith("_live") else model_version
+                        mv_filter = " AND model_version = ?"
+                        params.append(actual_mv)
+
+                    query = f"""
+                        WITH dedup_tickets AS (
+                            SELECT 
+                                mt5_ticket,
+                                symbol,
+                                model_version,
+                                MAX(timestamp) as timestamp,
+                                AVG(confidence) as confidence,
+                                CASE 
+                                    WHEN SUM(CASE WHEN exit_reason LIKE '%Profit: $%' THEN 
+                                        CAST(REPLACE(SUBSTR(exit_reason, INSTR(exit_reason, 'Profit: $') + 9, INSTR(SUBSTR(exit_reason, INSTR(exit_reason, 'Profit: $') + 9), ')') - 1), ',', '') AS REAL)
+                                        ELSE 0 END) > 0 THEN 'SUCCESS'
+                                    WHEN SUM(CASE WHEN exit_reason LIKE '%Profit: $%' THEN 
+                                        CAST(REPLACE(SUBSTR(exit_reason, INSTR(exit_reason, 'Profit: $') + 9, INSTR(SUBSTR(exit_reason, INSTR(exit_reason, 'Profit: $') + 9), ')') - 1), ',', '') AS REAL)
+                                        ELSE 0 END) < 0 THEN 'FAIL'
+                                    WHEN MAX(outcome = 'SUCCESS') = 1 THEN 'SUCCESS'
+                                    ELSE 'FAIL'
+                                END as resolved_outcome
+                            FROM signals
+                            WHERE timestamp >= ? 
+                              AND outcome IN ('SUCCESS', 'FAIL')
+                              AND signal IN ('BUY', 'SELL')
+                              AND symbol != 'SYSTEM'
+                              AND mt5_ticket IS NOT NULL
+                              AND mt5_ticket NOT IN (0, '0', '')
+                              {mv_filter}
+                            GROUP BY mt5_ticket
+                        )
+                        SELECT 
+                            symbol,
+                            COUNT(*) as total_trades,
+                            SUM(CASE WHEN resolved_outcome = 'SUCCESS' THEN 1 ELSE 0 END) as wins,
+                            SUM(CASE WHEN resolved_outcome = 'FAIL' THEN 1 ELSE 0 END) as losses,
+                            AVG(confidence) as avg_confidence,
+                            MAX(timestamp) as last_trade
+                        FROM dedup_tickets
+                        GROUP BY symbol 
+                        ORDER BY wins DESC, total_trades DESC
+                    """
                 else:
                     query = """
                         SELECT 

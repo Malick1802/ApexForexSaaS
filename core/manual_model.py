@@ -2007,8 +2007,15 @@ def reconcile_manual_orders():
                     continue
                 total_profit = sum(getattr(d, 'profit', 0.0) for d in hist_deals)
                 exit_price = exit_deals[-1].price
-                outcome = 'SUCCESS' if total_profit > 0 else 'FAIL'
-                reason = f"M15 TP hit (+${total_profit:.2f})" if total_profit > 0 else f"M15 SL hit (${total_profit:.2f})"
+                if abs(total_profit) < 2.0:
+                    outcome = 'SUCCESS'
+                    reason = f"M15 BE hit (+${total_profit:.2f})"
+                elif total_profit > 0:
+                    outcome = 'SUCCESS'
+                    reason = f"M15 TP hit (+${total_profit:.2f})"
+                else:
+                    outcome = 'FAIL'
+                    reason = f"M15 SL hit (${total_profit:.2f})"
                 db.update_signal_outcome(sig_id, outcome, exit_price=exit_price, exit_reason=reason)
                 logger.info(f"Reconciled manual trade #{ticket} (ID {sig_id}): {outcome} ({reason})")
 
