@@ -256,7 +256,7 @@ with st.container(border=True):
 
     m_col1, m_col2, m_col3 = st.columns(3)
     with m_col1:
-        st.metric("Total Strategy Models", len(gate_cfg), help="Engines monitored by the ApexForex runtime")
+        st.metric("Total Strategy Models", len(gate_cfg), help="Engines monitored by the ForexAlert runtime")
     with m_col2:
         st.metric("🟢 Live MT5 Models", live_count, help="Models authorized to submit live broker orders")
     with m_col3:

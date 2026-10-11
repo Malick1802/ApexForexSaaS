@@ -127,7 +127,12 @@ def inject_css():
 
     /* ── Global ────────────────────────────────────── */
     .stApp {
-        background: radial-gradient(circle at 50% 0%, #0d152b 0%, #060913 70%, #04060c 100%) !important;
+        background: 
+            radial-gradient(circle at 18% 12%, rgba(0, 229, 255, 0.08) 0%, transparent 45%),
+            radial-gradient(circle at 82% 18%, rgba(255, 215, 0, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 50% 65%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% -10%, #0d1e3d 0%, #060a16 55%, #03050a 100%) !important;
+        background-attachment: fixed !important;
         font-family: var(--font-ui);
         color: var(--text-primary);
         letter-spacing: -0.01em;
@@ -182,11 +187,11 @@ def inject_css():
     /* ── Sidebar ───────────────────────────────────── */
     section[data-testid="stSidebar"],
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #090e1c 0%, #050811 100%) !important;
-        border-right: 1px solid var(--border-glass) !important;
+        background: linear-gradient(180deg, #070b17 0%, #040711 100%) !important;
+        border-right: 1px solid rgba(0, 229, 255, 0.14) !important;
         position: relative !important;
-        padding-top: 72px !important; /* Compact spacing beneath top logo */
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+        padding-top: 76px !important; /* Compact spacing beneath top logo */
+        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.5) !important;
     }
     [data-testid="stSidebarHeader"] {
         height: 0 !important;
@@ -207,61 +212,69 @@ def inject_css():
         background: rgba(255, 255, 255, 0.02) !important;
         border: 1px solid transparent !important;
         border-radius: var(--radius-md) !important;
-        color: var(--text-secondary) !important;
-        padding: 9px 16px !important;
-        margin-bottom: 5px !important;
+        color: #8fa0be !important;
+        padding: 10px 16px !important;
+        margin-bottom: 6px !important;
         font-weight: 500 !important;
         font-size: 0.88rem !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     [data-testid="stSidebarNavLink"]:hover,
     [data-testid="stSidebarNavLink"]:focus {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border-color: rgba(0, 229, 255, 0.3) !important;
+        background: rgba(0, 229, 255, 0.06) !important;
+        border-color: rgba(0, 229, 255, 0.25) !important;
         color: var(--accent-cyan) !important;
-        transform: translateX(3px) !important;
-        box-shadow: 0 4px 14px rgba(0, 229, 255, 0.12) !important;
+        transform: translateX(4px) !important;
+        box-shadow: 0 4px 16px rgba(0, 229, 255, 0.12) !important;
     }
     [data-testid="stSidebarNavLink"][data-selected="true"],
     [data-testid="stSidebarNavLink"][aria-current="page"] {
-        background: linear-gradient(90deg, rgba(0, 229, 255, 0.14) 0%, rgba(0, 229, 255, 0.02) 100%) !important;
-        border: 1px solid rgba(0, 229, 255, 0.4) !important;
+        background: linear-gradient(90deg, rgba(0, 229, 255, 0.18) 0%, rgba(0, 229, 255, 0.03) 100%) !important;
+        border: 1px solid rgba(0, 229, 255, 0.45) !important;
+        border-left: 3px solid var(--accent-cyan) !important;
         color: var(--accent-cyan) !important;
         font-weight: 700 !important;
-        box-shadow: var(--shadow-glow-cyan) !important;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2) !important;
     }
 
     /* ── Glassmorphic Cards ─────────────────────────── */
     .glass-card {
-        background: var(--bg-card);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--border-glass);
+        background: 
+            radial-gradient(circle at 95% 5%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+            linear-gradient(145deg, rgba(13, 20, 38, 0.78) 0%, rgba(7, 11, 23, 0.9) 100%) !important;
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(0, 229, 255, 0.14) !important;
         border-radius: var(--radius-lg);
         padding: 24px;
-        box-shadow: var(--shadow-card);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
     }
     .glass-card:hover {
-        background: var(--bg-card-hover);
-        border-color: var(--border-glow);
-        box-shadow: var(--shadow-card), var(--shadow-glow-cyan);
+        background: 
+            radial-gradient(circle at 95% 5%, rgba(0, 229, 255, 0.08) 0%, transparent 50%),
+            linear-gradient(145deg, rgba(16, 25, 48, 0.88) 0%, rgba(9, 14, 28, 0.95) 100%) !important;
+        border-color: rgba(0, 229, 255, 0.35) !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 22px rgba(0, 229, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 
     /* ── KPI Metric Cards ──────────────────────────── */
     .kpi-card {
-        background: var(--bg-card);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--border-glass);
+        background: 
+            radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
+            linear-gradient(145deg, rgba(14, 22, 42, 0.8) 0%, rgba(8, 12, 25, 0.9) 100%) !important;
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-top: 2px solid var(--accent-cyan) !important;
         border-radius: var(--radius-lg);
-        padding: 14px 18px;
-        box-shadow: var(--shadow-card);
+        padding: 16px 20px;
+        box-shadow: 0 8px 28px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
-        min-height: 110px;
+        min-height: 115px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -271,16 +284,23 @@ def inject_css():
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0;
-        height: 3px;
+        height: 2px;
         background: linear-gradient(90deg, var(--accent-cyan), transparent);
-        opacity: 0;
+        opacity: 0.8;
         transition: opacity 0.3s;
     }
-    .kpi-card:hover::before { opacity: 1; }
     .kpi-card:hover {
-        border-color: var(--border-glow);
-        box-shadow: var(--shadow-card), var(--shadow-glow-cyan);
+        border-color: rgba(0, 229, 255, 0.45) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(0, 229, 255, 0.18) !important;
     }
+    .kpi-card.accent-gold { border-top: 2px solid var(--accent-gold) !important; }
+    .kpi-card.accent-gold::before { background: linear-gradient(90deg, var(--accent-gold), transparent); }
+    .kpi-card.accent-green { border-top: 2px solid var(--signal-buy) !important; }
+    .kpi-card.accent-green::before { background: linear-gradient(90deg, var(--signal-buy), transparent); }
+    .kpi-card.accent-red { border-top: 2px solid var(--signal-sell) !important; }
+    .kpi-card.accent-red::before { background: linear-gradient(90deg, var(--signal-sell), transparent); }
+
     a.kpi-card-link {
         text-decoration: none !important;
         color: inherit !important;
@@ -293,19 +313,19 @@ def inject_css():
     a.kpi-card-link:hover .kpi-card {
         transform: translateY(-3px);
         border-color: rgba(0, 229, 255, 0.55) !important;
-        box-shadow: 0 10px 28px rgba(0, 229, 255, 0.22), 0 0 12px rgba(0, 229, 255, 0.12) !important;
+        box-shadow: 0 12px 32px rgba(0, 229, 255, 0.22), 0 0 14px rgba(0, 229, 255, 0.15) !important;
     }
     a.kpi-card-link:hover .kpi-card.accent-gold {
         border-color: rgba(255, 171, 0, 0.55) !important;
-        box-shadow: 0 10px 28px rgba(255, 171, 0, 0.22), 0 0 12px rgba(255, 171, 0, 0.12) !important;
+        box-shadow: 0 12px 32px rgba(255, 171, 0, 0.22), 0 0 14px rgba(255, 171, 0, 0.15) !important;
     }
     a.kpi-card-link:hover .kpi-card.accent-green {
         border-color: rgba(0, 230, 118, 0.55) !important;
-        box-shadow: 0 10px 28px rgba(0, 230, 118, 0.22), 0 0 12px rgba(0, 230, 118, 0.12) !important;
+        box-shadow: 0 12px 32px rgba(0, 230, 118, 0.22), 0 0 14px rgba(0, 230, 118, 0.15) !important;
     }
     a.kpi-card-link:hover .kpi-card.accent-red {
         border-color: rgba(255, 23, 68, 0.55) !important;
-        box-shadow: 0 10px 28px rgba(255, 23, 68, 0.22), 0 0 12px rgba(255, 23, 68, 0.12) !important;
+        box-shadow: 0 12px 32px rgba(255, 23, 68, 0.22), 0 0 14px rgba(255, 23, 68, 0.15) !important;
     }
     a.kpi-card-link:hover .kpi-card-arrow {
         opacity: 1 !important;
@@ -321,22 +341,26 @@ def inject_css():
     }
     .kpi-value {
         font-family: var(--font-mono);
-        font-size: 1.85rem;
+        font-size: 1.95rem;
         font-weight: 800;
-        color: var(--text-primary);
+        color: #ffffff;
         line-height: 1.1;
         letter-spacing: -0.02em;
+        text-shadow: 0 0 16px rgba(0, 229, 255, 0.25);
     }
     .kpi-delta {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
+        font-size: 0.76rem;
+        color: #9ab0d3;
         margin-top: 6px;
         font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
-    .kpi-card.accent-cyan .kpi-value { color: var(--accent-cyan); }
-    .kpi-card.accent-gold .kpi-value { color: var(--accent-gold); }
-    .kpi-card.accent-green .kpi-value { color: var(--signal-buy); }
-    .kpi-card.accent-red .kpi-value { color: var(--signal-sell); }
+    .kpi-card.accent-cyan .kpi-value { color: var(--accent-cyan); text-shadow: 0 0 18px rgba(0, 229, 255, 0.35); }
+    .kpi-card.accent-gold .kpi-value { color: var(--accent-gold); text-shadow: 0 0 18px rgba(255, 215, 0, 0.35); }
+    .kpi-card.accent-green .kpi-value { color: var(--signal-buy); text-shadow: 0 0 18px rgba(0, 255, 136, 0.35); }
+    .kpi-card.accent-red .kpi-value { color: var(--signal-sell); text-shadow: 0 0 18px rgba(255, 68, 102, 0.35); }
 
     /* ── Signal Badges ─────────────────────────────── */
     .signal-badge {
@@ -484,49 +508,99 @@ def inject_css():
 
     /* ── Hero Banner ───────────────────────────────── */
     .hero-banner {
-        background: linear-gradient(135deg, rgba(13, 21, 43, 0.82) 0%, rgba(8, 12, 24, 0.92) 100%);
-        border: 1px solid rgba(0, 229, 255, 0.22);
-        border-radius: var(--radius-lg);
-        padding: 16px 24px;
-        margin-bottom: 16px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        background: 
+            radial-gradient(ellipse at 85% 0%, rgba(0, 229, 255, 0.14) 0%, transparent 60%),
+            radial-gradient(circle at 10% 100%, rgba(255, 215, 0, 0.05) 0%, transparent 45%),
+            linear-gradient(135deg, rgba(13, 22, 45, 0.9) 0%, rgba(7, 11, 23, 0.96) 100%) !important;
+        border: 1px solid rgba(0, 229, 255, 0.22) !important;
+        border-top: 2px solid var(--accent-cyan) !important;
+        border-radius: var(--radius-lg) !important;
+        padding: 20px 28px !important;
+        margin-bottom: 20px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.55), 0 0 20px rgba(0, 229, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
     }
-    .hero-banner::before {
+    .hero-banner::after {
         content: '';
         position: absolute;
-        top: -50%; right: -20%;
-        width: 300px; height: 300px;
-        background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
-        pointer-events: none;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, rgba(0, 229, 255, 0.3) 30%, rgba(255, 215, 0, 0.2) 70%, transparent 100%);
+    }
+    .hero-banner-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        position: relative;
+        z-index: 2;
     }
     .hero-title {
-        font-size: 1.45rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-gold) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 4px;
-        letter-spacing: -0.02em;
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+        background: linear-gradient(135deg, #FFFFFF 0%, #E0F7FA 40%, var(--accent-cyan) 85%, var(--accent-gold) 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        margin-bottom: 6px !important;
+        letter-spacing: -0.03em !important;
+        line-height: 1.2 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
     }
-    .hero-subtitle { font-size: 0.82rem; color: var(--text-secondary); font-weight: 400; }
-    .hero-status {
-        display: inline-flex; align-items: center; gap: 8px;
-        margin-top: 10px; padding: 4px 12px;
-        background: rgba(0, 230, 118, 0.08);
-        border: 1px solid rgba(0, 230, 118, 0.25);
+    .hero-subtitle {
+        font-size: 0.88rem !important;
+        color: #9ab0d3 !important;
+        font-weight: 400 !important;
+        line-height: 1.5 !important;
+        max-width: 820px !important;
+    }
+    .hero-pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        background: rgba(0, 229, 255, 0.1);
+        border: 1px solid rgba(0, 229, 255, 0.3);
         border-radius: 20px;
-        font-size: 0.72rem; font-weight: 600; color: var(--success);
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    .hero-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background: rgba(0, 255, 136, 0.08);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        border-radius: 20px;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--signal-buy);
+        box-shadow: 0 0 16px rgba(0, 255, 136, 0.15);
     }
     .status-dot {
-        width: 7px; height: 7px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        background: var(--success);
+        background: var(--signal-buy);
+        box-shadow: 0 0 8px var(--signal-buy);
         animation: blink 1.5s ease-in-out infinite;
     }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.85); } }
 
     /* ── MoonX Pro Terminal Tokens & Dock ──────────────── */
     .moonx-ribbon-dock {
@@ -707,93 +781,106 @@ def inject_css():
 
     /* ── Streamlit Overrides ───────────────────────── */
     [data-testid="stMetric"] {
-        background: var(--bg-card) !important;
-        backdrop-filter: blur(20px) !important;
+        background: 
+            radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+            linear-gradient(145deg, rgba(14, 22, 42, 0.8) 0%, rgba(8, 12, 25, 0.9) 100%) !important;
+        backdrop-filter: blur(24px) !important;
         padding: 18px 22px !important;
         border-radius: var(--radius-lg) !important;
-        border: 1px solid var(--border-glass) !important;
-        box-shadow: var(--shadow-card) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-top: 2px solid var(--accent-cyan) !important;
+        box-shadow: 0 8px 28px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+        transition: all 0.25s ease !important;
+    }
+    [data-testid="stMetric"]:hover {
+        border-color: rgba(0, 229, 255, 0.45) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.15) !important;
     }
     [data-testid="stMetricValue"] { 
         font-family: var(--font-mono) !important; 
         font-weight: 800 !important; 
-        font-size: 1.8rem !important; 
-        color: var(--text-primary) !important;
+        font-size: 1.95rem !important; 
+        color: #ffffff !important;
         letter-spacing: -0.02em !important;
+        text-shadow: 0 0 16px rgba(0, 229, 255, 0.25) !important;
     }
     [data-testid="stMetricLabel"] { 
         font-weight: 700 !important; 
         text-transform: uppercase !important; 
         font-size: 0.72rem !important; 
-        letter-spacing: 0.08em !important; 
+        letter-spacing: 0.1em !important; 
         color: var(--text-muted) !important;
     }
 
     [data-testid="stDataFrame"] {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-glass) !important;
-        border-radius: var(--radius-lg) !important;
+        background: rgba(8, 12, 24, 0.82) !important;
+        border: 1px solid rgba(0, 229, 255, 0.18) !important;
+        border-radius: var(--radius-md) !important;
         overflow: hidden !important;
-        box-shadow: var(--shadow-card) !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(16px) !important;
     }
 
     /* Modern Pill Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        background: rgba(8, 12, 24, 0.75) !important;
-        backdrop-filter: blur(16px) !important;
-        border: 1px solid var(--border-glass) !important;
+        background: rgba(8, 13, 27, 0.85) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(0, 229, 255, 0.16) !important;
         border-radius: 30px !important;
         padding: 5px !important;
         gap: 6px !important;
         width: fit-content !important;
         margin-bottom: 22px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45) !important;
     }
     .stTabs [data-baseweb="tab"] {
         border-radius: 25px !important;
         font-family: var(--font-ui) !important;
         font-weight: 600 !important;
         font-size: 0.85rem !important;
-        padding: 8px 20px !important;
+        padding: 8px 22px !important;
         color: var(--text-secondary) !important;
         border: 1px solid transparent !important;
         background: transparent !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .stTabs [data-baseweb="tab"]:hover {
-        color: var(--text-primary) !important;
-        background: rgba(255, 255, 255, 0.04) !important;
+        color: #ffffff !important;
+        background: rgba(255, 255, 255, 0.06) !important;
     }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(0, 229, 255, 0.16) 0%, rgba(0, 229, 255, 0.04) 100%) !important;
-        border-color: rgba(0, 229, 255, 0.4) !important;
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.2) 0%, rgba(0, 229, 255, 0.05) 100%) !important;
+        border-color: rgba(0, 229, 255, 0.45) !important;
         color: var(--accent-cyan) !important;
         font-weight: 700 !important;
-        box-shadow: 0 0 16px rgba(0, 229, 255, 0.18) !important;
+        box-shadow: 0 0 18px rgba(0, 229, 255, 0.22) !important;
     }
     .stTabs [data-baseweb="tab-border"] { display: none !important; }
     .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
 
     /* Expanders */
     div[data-testid="stExpander"] {
-        background: var(--bg-card) !important;
-        border: 1px solid var(--border-glass) !important;
+        background: linear-gradient(145deg, rgba(13, 20, 38, 0.72) 0%, rgba(7, 11, 22, 0.85) 100%) !important;
+        border: 1px solid rgba(0, 229, 255, 0.15) !important;
         border-radius: var(--radius-lg) !important;
         overflow: hidden !important;
-        backdrop-filter: blur(16px) !important;
-        box-shadow: var(--shadow-card) !important;
+        backdrop-filter: blur(20px) !important;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
         margin-bottom: 16px !important;
-        transition: border-color 0.25s ease !important;
+        transition: all 0.25s ease !important;
     }
     div[data-testid="stExpander"]:hover {
-        border-color: rgba(0, 229, 255, 0.25) !important;
+        border-color: rgba(0, 229, 255, 0.32) !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 229, 255, 0.1) !important;
     }
     div[data-testid="stExpander"] summary {
         font-family: var(--font-ui) !important;
-        font-weight: 600 !important;
-        color: var(--text-primary) !important;
-        padding: 14px 20px !important;
-        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        padding: 14px 22px !important;
+        font-size: 0.96rem !important;
+        letter-spacing: -0.01em !important;
     }
     div[data-testid="stExpander"] summary:hover {
         color: var(--accent-cyan) !important;
@@ -976,12 +1063,45 @@ def inject_css():
 
     /* ── Section Headers ───────────────────────────── */
     .section-header {
-        display: flex; align-items: center; gap: 10px;
-        margin-bottom: 20px; padding-bottom: 12px;
-        border-bottom: 1px solid var(--border-glass);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        position: relative;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .section-header-icon { font-size: 1.3rem; }
-    .section-header-text { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .section-header::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 140px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-cyan) 0%, rgba(0, 229, 255, 0.3) 70%, transparent 100%);
+        box-shadow: 0 0 8px var(--accent-cyan);
+    }
+    .section-header-icon-wrap {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.14) 0%, rgba(0, 229, 255, 0.02) 100%);
+        border: 1px solid rgba(0, 229, 255, 0.3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        box-shadow: 0 0 14px rgba(0, 229, 255, 0.15);
+        flex-shrink: 0;
+    }
+    .section-header-text {
+        font-family: var(--font-ui);
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+    }
 
     /* ── Logo ──────────────────────────────────────── */
     .logo-container { text-align: center; padding: 0; margin: 0; }
@@ -1043,17 +1163,21 @@ def inject_css():
 
     /* ── Streamlit Container Glass Overrides ── */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: var(--bg-card) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
-        border: 1px solid var(--border-glass) !important;
+        background: 
+            radial-gradient(circle at 95% 5%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+            linear-gradient(145deg, rgba(13, 20, 38, 0.76) 0%, rgba(7, 11, 23, 0.88) 100%) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(0, 229, 255, 0.14) !important;
         border-radius: var(--radius-lg) !important;
-        padding: 24px !important;
-        box-shadow: var(--shadow-card) !important;
-        transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+        padding: 22px 26px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        transition: all 0.25s ease !important;
+        margin-bottom: 14px !important;
     }
     div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border-color: var(--border-glow) !important;
+        border-color: rgba(0, 229, 255, 0.32) !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
     }
 
     /* ── Move Logo to Top of Sidebar ──────────────── */
@@ -1261,14 +1385,23 @@ def kpi_card(label, value, delta="", accent="", link_url=""):
     return card_html
 
 
-def hero_banner(title, subtitle, show_status=False):
-    """Generate hero banner HTML."""
-    status_html = '<div class="hero-status"><div class="status-dot"></div> All Systems Operational</div>' if show_status else ""
+def hero_banner(title, subtitle, show_status=False, badge="INSTITUTIONAL AI"):
+    """Generate radiant glassmorphic cyber hero banner HTML."""
+    status_html = (
+        '<div class="hero-status"><div class="status-dot"></div> ALL SYSTEMS OPERATIONAL</div>'
+        if show_status else ""
+    )
+    badge_html = f'<div class="hero-pill-badge">⚡ {badge}</div>' if badge else ""
     st.markdown(
         f'<div class="hero-banner">'
+        f'<div class="hero-banner-inner">'
+        f'<div>'
+        f'{badge_html}'
         f'<div class="hero-title">{title}</div>'
         f'<div class="hero-subtitle">{subtitle}</div>'
+        f'</div>'
         f'{status_html}'
+        f'</div>'
         f'</div>', 
         unsafe_allow_html=True
     )
@@ -1432,10 +1565,10 @@ def render_system_monitor():
 
 
 def section_header(icon, text):
-    """Render section divider header."""
+    """Render section divider header with glowing cyber icon badge and scanline rule."""
     st.markdown(f"""
     <div class="section-header">
-        <span class="section-header-icon">{icon}</span>
-        <span class="section-header-text">{text}</span>
+        <div class="section-header-icon-wrap">{icon}</div>
+        <div class="section-header-text">{text}</div>
     </div>
     """, unsafe_allow_html=True)

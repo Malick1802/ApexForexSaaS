@@ -250,7 +250,7 @@ else:
                     unsafe_allow_html=True
                 )
             with ic2:
-                mailto_url = f"mailto:{inq['email']}?subject=ApexForex%20Inquiry%20Follow-up"
+                mailto_url = f"mailto:{inq['email']}?subject=ForexAlert%20Inquiry%20Follow-up"
                 st.link_button("✉️ Reply via Email", mailto_url, use_container_width=True)
                 
                 b_c1, b_c2 = st.columns(2)

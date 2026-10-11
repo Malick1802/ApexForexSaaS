@@ -299,9 +299,6 @@ def show_command_center():
     engine = load_engine()
     db = get_db()
 
-    # MoonX-style Top Live Ticker & Safety Ribbon Dock
-    render_moonx_ticker_ribbon()
-
     hero_banner("Command Center",
                 "Real-time AI surveillance across 31 assets (Forex & Commodities) · Institutional-level precision targeting",
                 show_status=True)
@@ -356,7 +353,7 @@ def show_command_center():
                             <span style="font-size:2rem;">🚀</span>
                             <div>
                                 <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary);">
-                                    Welcome to ApexForex! Connect your broker to start automated copy trading.
+                                    Welcome to ForexAlert! Connect your broker to start automated copy trading.
                                 </div>
                                 <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:3px;">
                                     Your 14-day free trial is active. Enter your MT5 credentials in the Copy Trading Hub to mirror institutional signals automatically.
@@ -537,7 +534,7 @@ def show_command_center():
             <div style="font-size: 2rem; margin-bottom: 8px;">📡</div>
             <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 4px;">Market Surveillance Active</div>
             <div style="color: var(--text-secondary); font-size: 0.85rem; max-width: 540px; margin: 0 auto; line-height: 1.6;">
-                Apex Neural Engines are continuously monitoring 29 FX pairs and commodities. High-conviction trade opportunities will populate here automatically.
+                ForexAlert Neural Engines are continuously monitoring 29 FX pairs and commodities. High-conviction trade opportunities will populate here automatically.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -585,7 +582,6 @@ def show_command_center():
 def show_market_overview():
     import yaml
 
-    render_moonx_ticker_ribbon()
     hero_banner("Market Overview", "Real-time AI signal grid across 31 global currency pairs")
 
     # RANGING-approved whitelist (must match core/inference.py)
@@ -882,9 +878,6 @@ def show_trading_terminal():
 
         st.slider("Confidence Filter", 50, 95, key='confidence_thresh')
         confidence_thresh = st.session_state['confidence_thresh']
-
-    # MoonX-style Top Live Ticker & Safety Ribbon Dock
-    render_moonx_ticker_ribbon()
 
     # ── Trading Engine Selector ───────────────────────────────────────────────
     if "terminal_active_strategy" not in st.session_state:
@@ -4418,6 +4411,9 @@ else:
         st.switch_page(pg_admin)
     elif target_page in ("settings", "control") and is_admin:
         st.switch_page(pg_settings_ext)
+
+    # ── Global Top Live Tickers Marquee (All Pages) ─────────────────────────
+    render_moonx_ticker_ribbon()
 
     # Run!
     pg.run()
