@@ -111,22 +111,54 @@ class PerformanceReporter:
     def _get_mt5_deals_df(self) -> pd.DataFrame:
         try:
             from core.manual_model import get_mt5
-            mt5 = get_mt5()
-            if mt5:
-                from_date = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-                to_date = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-                deals = mt5.history_deals_get(from_date, to_date)
-                if deals:
-                    deal_list = [d._asdict() for d in deals]
-                    df_deals = pd.DataFrame(deal_list)
-                    df_exits = df_deals[df_deals['entry'] == 1].copy() # 1 = DEAL_ENTRY_OUT
-                    if not df_exits.empty and 'comment' in df_exits.columns:
-                        # Exclude administrative cleanup / duplicate closes from strategy performance
-                        df_exits = df_exits[~df_exits['comment'].astype(str).str.contains("Duplicate|Test|clean", case=False, na=False)].copy()
-                    if not df_exits.empty:
-                        # MetaTrader 5 deal.time is already stored in broker server time (Unix epoch seconds)
-                        df_exits['t_trading'] = pd.to_datetime(df_exits['time'], unit='s')
-                        return df_exits
+            deals_list = []
+            from_date = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            to_date = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+            # Query deals across both Forex master (MetaQuotes) and Crypto master (FTMO)
+            for sym in ("EURUSD", "BTCUSD"):
+                try:
+                    mt5_inst = get_mt5(symbol=sym)
+                    if mt5_inst:
+                        deals = mt5_inst.history_deals_get(from_date, to_date)
+                        if deals:
+                            deals_list.extend([d._asdict() for d in deals])
+                except Exception as _de:
+                    logger.debug(f"Error fetching deals for {sym}: {_de}")
+
+            if deals_list:
+                df_deals = pd.DataFrame(deals_list)
+                if 'ticket' in df_deals.columns:
+                    df_deals = df_deals.drop_duplicates(subset=['ticket'])
+                
+                # Extract entry deal comments to preserve strategy model names and direction
+                entries = {}
+                if 'position_id' in df_deals.columns and 'comment' in df_deals.columns:
+                    for _, erow in df_deals[df_deals['entry'] == 0].iterrows():
+                        pid = erow.get('position_id')
+                        comm = str(erow.get('comment') or '').strip()
+                        if pid and comm:
+                            entries[pid] = comm
+
+                df_exits = df_deals[df_deals['entry'] == 1].copy() # 1 = DEAL_ENTRY_OUT
+                if not df_exits.empty and 'comment' in df_exits.columns:
+                    # Exclude administrative cleanup / duplicate closes from strategy performance
+                    df_exits = df_exits[~df_exits['comment'].astype(str).str.contains("Duplicate|Test|clean", case=False, na=False)].copy()
+                    
+                    # Merge entry comment with exit comment (e.g. 'APEX-ML-P60 SELL 1.5R | [sl 64.83]')
+                    def _combine_comments(r):
+                        pid = r.get('position_id')
+                        e_comm = entries.get(pid, '')
+                        x_comm = str(r.get('comment') or '').strip()
+                        if e_comm and x_comm and e_comm != x_comm:
+                            return f"{e_comm} | {x_comm}"
+                        return e_comm or x_comm
+                    df_exits['comment'] = df_exits.apply(_combine_comments, axis=1)
+
+                if not df_exits.empty:
+                    # MetaTrader 5 deal.time is already stored in broker server time (Unix epoch seconds)
+                    df_exits['t_trading'] = pd.to_datetime(df_exits['time'], unit='s')
+                    return df_exits
         except Exception:
             pass
         return pd.DataFrame()
@@ -317,7 +349,8 @@ class PerformanceReporter:
                 # Live Alerts Sent to Telegram: non-hidden signals, active symbols, shielded (61%+ Forex / 55%+ Commodities)
                 from core.symbol_guard import is_commodity
                 def is_valid_tg(r):
-                    if r.get('is_manual') == 1 or r.get('model_version') in ('manual_m15', 'confluence_m15', 'confluence_ml_m15'):
+                    mod = str(r.get('model_version') or '')
+                    if r.get('is_manual') == 1 or mod.startswith(('manual', 'confluence')):
                         return True
                     sym = r['symbol']
                     sig = r['signal']
@@ -337,7 +370,8 @@ class PerformanceReporter:
                 # Live Production: 61%+ for Forex, 55%+ for Commodities
                 from core.symbol_guard import is_commodity
                 def is_valid_prod(r):
-                    if r.get('is_manual') == 1 or r.get('model_version') in ('manual_m15', 'confluence_m15'):
+                    mod = str(r.get('model_version') or '')
+                    if r.get('is_manual') == 1 or mod.startswith(('manual', 'confluence')):
                         return True
                     sym = r['symbol']
                     sig = r['signal']
@@ -355,7 +389,7 @@ class PerformanceReporter:
                 filtered = self._dedup(filtered)
             else: # "baseline"
                 # 50.0%+ floor, active traded instruments
-                filtered = df[((df['conf'] >= 0.50) | (df['is_manual'] == 1) | (df['model_version'] in ('manual_m15', 'confluence_m15'))) & (~df['symbol'].apply(is_symbol_blocked))].copy()
+                filtered = df[((df['conf'] >= 0.50) | (df['is_manual'] == 1) | (df['model_version'].astype(str).str.startswith(('manual', 'confluence')))) & (~df['symbol'].apply(is_symbol_blocked))].copy()
                 filtered = self._dedup(filtered)
 
         if filtered.empty:

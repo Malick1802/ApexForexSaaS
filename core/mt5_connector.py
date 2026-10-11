@@ -9,6 +9,7 @@ using the mt5linux library. Supports 127.0.0.1:18812 connectivity.
 import logging
 import os
 import yaml
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -41,6 +42,7 @@ class MT5Connector:
     """
     _instance: Optional['MT5Connector'] = None
     _connection = None
+    _lock = threading.RLock()
 
     def __new__(cls):
         if cls._instance is None:
@@ -86,32 +88,33 @@ class MT5Connector:
         Return the active MT5 connection object for the given symbol.
         Automatically connects to FTMO for crypto and MetaQuotes for forex.
         """
-        if not MT5_AVAILABLE:
-            logger.error("[ERROR] MT5 Interface unavailable (mt5linux missing).")
-            return None
+        with self._lock:
+            if not MT5_AVAILABLE:
+                logger.error("[ERROR] MT5 Interface unavailable (mt5linux missing).")
+                return None
 
-        # Verify active connection against current configuration on disk
-        target_cfg = self._get_target_config(symbol=symbol)
-        target_login = str(target_cfg.get('login', '')).strip()
-        target_server = str(target_cfg.get('server', '')).strip()
+            # Verify active connection against current configuration on disk
+            target_cfg = self._get_target_config(symbol=symbol)
+            target_login = str(target_cfg.get('login', '')).strip()
+            target_server = str(target_cfg.get('server', '')).strip()
 
-        if self._connection:
-            try:
-                acc = self._connection.account_info()
-                if acc is not None:
-                    curr_login = str(getattr(acc, 'login', '')).strip()
-                    curr_server = str(getattr(acc, 'server', '')).strip()
-                    # Check if connection matches the desired target master
-                    if curr_login == target_login and (not target_server or curr_server.upper() == target_server.upper()):
-                        return self._connection
-                    else:
-                        logger.info(f"🔄 Switching MT5 Master: #{curr_login} ({curr_server}) -> #{target_login} ({target_server}) for {symbol or 'forex'}")
-                        self.shutdown()
-            except Exception:
-                logger.warning("[RETRY] MT5 connection stale. Re-initializing...")
-                self._connection = None
+            if self._connection:
+                try:
+                    acc = self._connection.account_info()
+                    if acc is not None:
+                        curr_login = str(getattr(acc, 'login', '')).strip()
+                        curr_server = str(getattr(acc, 'server', '')).strip()
+                        # Check if connection matches the desired target master
+                        if curr_login == target_login and (not target_server or curr_server.upper() == target_server.upper()):
+                            return self._connection
+                        else:
+                            logger.info(f"🔄 Switching MT5 Master: #{curr_login} ({curr_server}) -> #{target_login} ({target_server}) for {symbol or 'forex'}")
+                            self.shutdown()
+                except Exception:
+                    logger.warning("[RETRY] MT5 connection stale. Re-initializing...")
+                    self._connection = None
 
-        return self._initialize_connection(target_cfg=target_cfg)
+            return self._initialize_connection(target_cfg=target_cfg)
 
     def reload_config(self) -> dict:
         """Reload configuration from disk."""
@@ -185,13 +188,14 @@ class MT5Connector:
 
     def shutdown(self):
         """Gracefully release the bridge connection."""
-        if self._connection:
-            try:
-                self._connection.shutdown()
-                logger.info("[DISCONNECT] MT5 Bridge disconnected.")
-            except Exception:
-                pass
-            self._connection = None
+        with self._lock:
+            if self._connection:
+                try:
+                    self._connection.shutdown()
+                    logger.info("[DISCONNECT] MT5 Bridge disconnected.")
+                except Exception:
+                    pass
+                self._connection = None
 
 # Global helper for quick access
 def get_mt5(symbol: Optional[str] = None):

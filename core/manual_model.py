@@ -1983,6 +1983,18 @@ def reconcile_manual_orders():
             if not mt5:
                 continue
 
+            # Verify that MT5 is actually connected to the correct account for this symbol
+            try:
+                from core.mt5_connector import MT5Connector
+                target_cfg = MT5Connector()._get_target_config(symbol=symbol)
+                target_login = int(target_cfg.get('login', 0))
+                acc = mt5.account_info()
+                if acc and target_login and int(getattr(acc, 'login', 0)) != target_login:
+                    logger.debug(f"Account mismatch during reconcile for {symbol} (#{getattr(acc, 'login', 0)} != #{target_login}). Skipping cycle.")
+                    continue
+            except Exception:
+                pass
+
             # 1. Check if still pending in MT5
             pending_orders = mt5.orders_get(ticket=ticket)
             if pending_orders:
@@ -2034,9 +2046,25 @@ def reconcile_manual_orders():
                     _mirror_master_position_to_followers(sig, matched_pos)
                 continue  # Still open position
 
-            # 3. If neither pending order nor open position exists, it was resolved!
-            # Query history deals first (if filled position closed)
+            # 3. If neither pending order nor open position exists, check if resolved by history deals
             hist_deals = mt5.history_deals_get(position=ticket)
+            if not hist_deals:
+                # Fallback: check by deal ticket or symbol window
+                hist_deals = mt5.history_deals_get(ticket=ticket)
+            if not hist_deals:
+                try:
+                    from datetime import datetime as _dt
+                    ts_val = sig.get('timestamp')
+                    if ts_val:
+                        from_t = _dt.fromisoformat(ts_val) - timedelta(minutes=15)
+                        to_t = datetime.now(timezone.utc) + timedelta(minutes=15)
+                        sym_deals = mt5.history_deals_get(from_t, to_t) or []
+                        matched_deals = [d for d in sym_deals if getattr(d, 'position_id', None) == ticket or getattr(d, 'order', None) == ticket]
+                        if matched_deals:
+                            hist_deals = matched_deals
+                except Exception:
+                    pass
+
             if hist_deals:
                 exit_deals = [d for d in hist_deals if getattr(d, 'entry', None) in (1, 2, 3)]
                 if not exit_deals:
@@ -2044,6 +2072,7 @@ def reconcile_manual_orders():
                     continue
                 total_profit = sum(getattr(d, 'profit', 0.0) for d in hist_deals)
                 exit_price = exit_deals[-1].price
+                exit_time_str = datetime.fromtimestamp(exit_deals[-1].time, tz=timezone.utc).isoformat()
                 if abs(total_profit) < 2.0:
                     outcome = 'SUCCESS'
                     reason = f"M15 BE hit (+${total_profit:.2f})"
@@ -2053,7 +2082,7 @@ def reconcile_manual_orders():
                 else:
                     outcome = 'FAIL'
                     reason = f"M15 SL hit (${total_profit:.2f})"
-                db.update_signal_outcome(sig_id, outcome, exit_price=exit_price, exit_reason=reason)
+                db.update_signal_outcome(sig_id, outcome, exit_price=exit_price, exit_reason=reason, exit_time=exit_time_str)
                 logger.info(f"Reconciled manual trade #{ticket} (ID {sig_id}): {outcome} ({reason})")
 
                 # Mirror close to follower accounts
@@ -2073,7 +2102,7 @@ def reconcile_manual_orders():
                     logger.warning(f"Follower close broadcast warning for {symbol}: {_ce}")
                 continue
 
-            # If no deals, check order history (cancelled or expired pending order)
+            # 4. If no deals, check order history (cancelled or expired pending order)
             hist_orders = mt5.history_orders_get(ticket=ticket)
             if hist_orders:
                 o_state = hist_orders[0].state
@@ -2083,10 +2112,33 @@ def reconcile_manual_orders():
                 elif o_state == mt5.ORDER_STATE_EXPIRED:
                     db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Candle Expired (Unfilled)')
                     logger.info(f"Reconciled manual order #{ticket} (ID {sig_id}): EXPIRED")
+                elif o_state == mt5.ORDER_STATE_FILLED:
+                    # Order was filled into a position! Keep active and wait for exit deals to settle
+                    logger.debug(f"Order #{ticket} is FILLED. Awaiting position close deals.")
+                    continue
                 else:
-                    db.update_signal_outcome(sig_id, 'CANCELLED', exit_reason=f'Order State {o_state}')
+                    logger.debug(f"Order #{ticket} has intermediate state {o_state}. Keeping active.")
+                    continue
             else:
-                db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Untracked order flush')
+                # Neither open position, deals, nor order history found on MT5.
+                # Only expire if signal is older than 24 hours to prevent premature flush during broker sync/delays.
+                sig_ts = sig.get('timestamp')
+                is_stale = False
+                if sig_ts:
+                    try:
+                        from datetime import datetime as _dt
+                        st_dt = _dt.fromisoformat(sig_ts)
+                        if st_dt.tzinfo is None:
+                            st_dt = st_dt.replace(tzinfo=timezone.utc)
+                        if (datetime.now(timezone.utc) - st_dt).total_seconds() > 86400: # 24h grace period
+                            is_stale = True
+                    except Exception:
+                        pass
+                if is_stale:
+                    db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Untracked order flush (>24h stale)')
+                    logger.info(f"Flushed stale untracked signal #{ticket} (ID {sig_id}) after 24h grace period.")
+                else:
+                    logger.debug(f"Signal #{ticket} (ID {sig_id}) temporarily not found in MT5 cache. Retrying next cycle.")
 
         # Safety net: scan all open MT5 positions on Master with APEX magics
         if get_copy_trading_mode() == "position_mirror":
