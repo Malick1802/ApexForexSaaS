@@ -101,12 +101,20 @@ class MT5Provider(DataProviderBase):
             return clean
         
         # 3. Try common broker suffixes
-        for suffix in ["m", ".raw", ".ecn", ".i", "_i", "pro", ".pro"]:
+        for suffix in ["m", ".raw", ".ecn", ".i", "_i", "pro", ".pro", ".cash", ".std", ".c"]:
             test = clean + suffix
             info = self.mt5.symbol_info(test)
             if info is not None:
                 logger.info(f"Symbol mapped: {symbol} -> {test}")
                 return test
+
+        # 4. Try stripped base if symbol had suffix (e.g., BTCUSD.cash -> BTCUSD)
+        base = clean.split(".")[0]
+        if base != clean:
+            info = self.mt5.symbol_info(base)
+            if info is not None:
+                logger.info(f"Symbol mapped (base): {symbol} -> {base}")
+                return base
         
         # Return upper version as backup
         return clean
@@ -146,6 +154,9 @@ class MT5Provider(DataProviderBase):
         
         # Ensure symbol is available for data
         if not self.mt5.symbol_select(mt5_symbol, True):
+            info = self.mt5.symbol_info(mt5_symbol)
+            if info is None:
+                raise KeyError(f"Symbol {mt5_symbol} is not offered by MT5 broker")
             raise ValueError(f"Cannot select symbol {mt5_symbol} in MT5 (Thread Context Issue)")
         
         # Determine date range

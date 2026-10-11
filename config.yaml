@@ -467,16 +467,16 @@ mt5:
   breakeven_recovery_target: 10000.0
   enabled: true
   host: 127.0.0.1
-  login: 10012808167
+  login: 1514884839
   max_open_trades: 20
   max_positions_per_currency: 1
   max_trade_leverage: 30
-  password: EkJ*A3Zm
-  path: C:\Program Files\MetaTrader 5\terminal64.exe
+  password: t5!SFg7*l8au
+  path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
   port: 18812
   risk_type: percent
   risk_value: 0.5
-  server: MetaQuotes-Demo
+  server: FTMO-Demo
 notifications:
   telegram:
     alert_threshold: 0.61

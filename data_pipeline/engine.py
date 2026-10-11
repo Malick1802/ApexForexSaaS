@@ -334,7 +334,20 @@ class DataEngine:
         if days is None and start is None:
             days = self._config["data"].get("default_history_days", 365)
         
-        df = self._provider.fetch_ohlcv(symbol, interval, start, end, days)
+        try:
+            df = self._provider.fetch_ohlcv(symbol, interval, start, end, days)
+        except Exception as e:
+            if self._provider.name != "yfinance":
+                logger.warning(f"Primary data provider ({self._provider.name}) failed for {symbol}: {e}. Falling back to YFinanceProvider...")
+                try:
+                    from data_pipeline.providers.yfinance_provider import YFinanceProvider
+                    yf_provider = YFinanceProvider()
+                    df = yf_provider.fetch_ohlcv(symbol, interval, start, end, days)
+                except Exception as yf_err:
+                    logger.error(f"Fallback YFinanceProvider also failed for {symbol}: {yf_err}")
+                    raise e
+            else:
+                raise e
         
         # Cache the result
         if should_cache:

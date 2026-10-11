@@ -470,7 +470,9 @@ class DynamicModelWhitelistManager:
                 pnl_usd = round(float(grp['pnl_amount'].sum()), 2)
                 wr = round(float(n_wins / n_trades * 100), 1) if n_trades > 0 else 0.0
 
-                is_winning = (net_r >= m_info["min_r_threshold"])
+                # Require at least 3 trades before benching an asset, so a single loss on trade #1
+                # does not permanently ban a pair without statistical significance.
+                is_winning = (net_r >= m_info["min_r_threshold"]) or (n_trades < 3)
                 if is_winning:
                     winning_pairs.append(sym_clean)
                 else:
@@ -555,11 +557,19 @@ class DynamicModelWhitelistManager:
         if (m_canonical, sym_clean) in self._approved_set:
             return True
 
+        # Check if the pair was explicitly benched
+        model_entry = self._cache.get("models", {}).get(m_canonical, {})
+        benched = model_entry.get("benched_pairs", [])
+        if sym_clean in benched:
+            return False
+
         # If model not in cache at all, allow as fallback only if active
         if m_canonical not in self._cache.get("models", {}):
             return True
 
-        return False
+        # If pair is un-traded (0 trades YTD) and not in benched_pairs, allow it
+        # so newly configured pairs (e.g. crypto assets) can take their first trades.
+        return True
 
     def get_winning_pairs(self, model_version: str) -> List[str]:
         """Return list of approved winning pairs for a model."""

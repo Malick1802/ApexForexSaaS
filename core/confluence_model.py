@@ -338,6 +338,10 @@ def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional
     day_start = day_end - timedelta(days=1)
 
     # Fetch ~500 M15 bars to cover the past week
+    try:
+        mt5.symbol_select(symbol, True)
+    except Exception:
+        pass
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 500)
     if rates is None or len(rates) < 20:
         return None
@@ -411,6 +415,10 @@ def get_swing_lines(
     if not mt5:
         return result
 
+    try:
+        mt5.symbol_select(symbol, True)
+    except Exception:
+        pass
     offset_h = get_broker_offset_hours(symbol)
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, lookback_bars)
     if rates is None or len(rates) < 50:
@@ -539,6 +547,11 @@ def evaluate_confluence_setup(
     if not mt5:
         res["error"] = "MT5 not connected."
         return res
+
+    try:
+        mt5.symbol_select(symbol, True)
+    except Exception:
+        pass
 
     offset_h = get_broker_offset_hours(symbol)
     now_utc = datetime.now(timezone.utc)

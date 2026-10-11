@@ -279,6 +279,10 @@ def get_broker_offset_hours(symbol: str = "EURUSD") -> int:
     if not mt5:
         return 0
     try:
+        try:
+            mt5.symbol_select(symbol, True)
+        except Exception:
+            pass
         tick = mt5.symbol_info_tick(symbol)
         if tick and tick.time > 0:
             now_utc = datetime.now(timezone.utc)
@@ -495,6 +499,10 @@ def calculate_lot_size(
             risk_usd = balance * (float(risk_value) / 100.0)
             result["risk_usd"] = risk_usd
 
+        try:
+            mt5.symbol_select(symbol, True)
+        except Exception:
+            pass
         sym_info = mt5.symbol_info(symbol)
         if not sym_info:
             result["error"] = f"Symbol {symbol} not found"
@@ -781,6 +789,10 @@ def submit_manual_order(
             logger.info(f"🎯 Placing manual order on MT5 Master: #{getattr(acc_info, 'login', '?')} ({getattr(acc_info, 'server', '?')})")
 
     symbol         = order_spec["symbol"]
+    try:
+        mt5.symbol_select(symbol, True)
+    except Exception:
+        pass
     direction      = order_spec["direction"]
     entry          = order_spec["entry"]
     sl             = order_spec["sl"]
@@ -945,14 +957,15 @@ def submit_manual_order(
         type_time  = mt5.ORDER_TIME_DAY
         expiration = 0
 
+    sym_digits = getattr(sym_info, 'digits', 2 if ('BTC' in symbol.upper() or 'ETH' in symbol.upper() or 'SOL' in symbol.upper()) else 5)
     request = {
         "action":       mt5.TRADE_ACTION_PENDING,
         "symbol":       symbol,
         "volume":       lots,
         "type":         mt5_order_type,
-        "price":        round(entry, 5),
-        "sl":           round(sl, 5),
-        "tp":           round(tp, 5),
+        "price":        round(entry, sym_digits),
+        "sl":           round(sl, sym_digits),
+        "tp":           round(tp, sym_digits),
         "magic":        target_magic,
         "comment":      order_spec.get("comment", f"APEX-M15 {direction} {order_spec.get('rrr', 1.5)}R"),
         "type_time":    type_time,

@@ -80,12 +80,33 @@ class YFinanceProvider(DataProviderBase):
         return "yfinance"
     
     def _to_yf_symbol(self, symbol: str) -> str:
-        """Convert standard forex symbol to yfinance format."""
+        """Convert standard forex/crypto symbol to yfinance format."""
         # If symbol already has yfinance structure (e.g. GC=F, ^VIX, or ends with =X), use as is
         if "=" in symbol or "^" in symbol:
              return symbol
              
         normalized = self.normalize_symbol(symbol)
+        norm_upper = normalized.upper()
+        if norm_upper in ("GOLD", "XAUUSD"):
+            return "GC=F"
+        if norm_upper in ("SILVER", "XAGUSD"):
+            return "SI=F"
+        if norm_upper in ("USOIL", "USOIL.CASH", "WTI", "CL"):
+            return "CL=F"
+        if norm_upper in ("UKOIL", "UKOIL.CASH", "BRENT", "BRN"):
+            return "BZ=F"
+        if norm_upper in ("COPPER", "HG"):
+            return "HG=F"
+
+        try:
+            from core.market_hours import is_crypto
+            if is_crypto(normalized):
+                if normalized.endswith("USD"):
+                    return f"{normalized[:-3]}-USD"
+                elif normalized.endswith("USDT"):
+                    return f"{normalized[:-4]}-USD"
+        except Exception:
+            pass
         return f"{normalized}=X"
     
     def _rate_limit(self) -> None:

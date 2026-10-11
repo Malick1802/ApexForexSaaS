@@ -1,5 +1,5 @@
 {
-  "last_updated_utc": "2026-10-11T05:01:00.517966+00:00",
+  "last_updated_utc": "2026-10-11T14:08:02.620802+00:00",
   "as_of_date": "2026-10-11",
   "min_r_hurdle": 0.0,
   "sub_models_config": {
@@ -23,11 +23,15 @@
         "EURCHF",
         "EURJPY",
         "EURNZD",
+        "GBPCAD",
+        "GBPCHF",
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
         "NZDCAD",
+        "NZDCHF",
         "NZDUSD",
+        "SOLUSD",
         "USDCAD",
         "USDJPY",
         "XAUUSD"
@@ -41,11 +45,7 @@
         "EURGBP",
         "EURUSD",
         "GBPAUD",
-        "GBPCAD",
-        "GBPCHF",
-        "NZDCHF",
         "NZDJPY",
-        "SOLUSD",
         "USDCHF",
         "USDSGD",
         "USOIL.CASH",
@@ -220,7 +220,7 @@
           "net_r": -1.01,
           "pnl_usd": -50.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "GBPCHF": {
           "trades": 2,
@@ -230,7 +230,7 @@
           "net_r": -2.09,
           "pnl_usd": -104.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "GBPJPY": {
           "trades": 6,
@@ -280,7 +280,7 @@
           "net_r": -2.11,
           "pnl_usd": -105.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "NZDJPY": {
           "trades": 8,
@@ -310,7 +310,7 @@
           "net_r": -0.94,
           "pnl_usd": -47.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "USDCAD": {
           "trades": 4,
@@ -392,7 +392,9 @@
         "AUDCAD",
         "AUDCHF",
         "AUDJPY",
+        "AUDNZD",
         "AUDUSD",
+        "CADCHF",
         "CADJPY",
         "CHFJPY",
         "EURJPY",
@@ -401,15 +403,15 @@
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "NZDCHF",
         "NZDUSD",
         "USDCAD",
         "USDCHF",
         "USDJPY",
-        "USDSGD"
+        "USDSGD",
+        "XAUUSD"
       ],
       "benched_pairs": [
-        "AUDNZD",
-        "CADCHF",
         "EURAUD",
         "EURCAD",
         "EURCHF",
@@ -418,11 +420,9 @@
         "EURUSD",
         "GBPCHF",
         "NZDCAD",
-        "NZDCHF",
         "NZDJPY",
         "USOIL.CASH",
-        "XAGUSD",
-        "XAUUSD"
+        "XAGUSD"
       ],
       "pair_stats": {
         "AUDCAD": {
@@ -463,7 +463,7 @@
           "net_r": -0.93,
           "pnl_usd": -46.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "AUDUSD": {
           "trades": 6,
@@ -483,7 +483,7 @@
           "net_r": -2.0,
           "pnl_usd": -100.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "CADJPY": {
           "trades": 3,
@@ -653,7 +653,7 @@
           "net_r": -2.0,
           "pnl_usd": -100.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "NZDJPY": {
           "trades": 8,
@@ -743,7 +743,7 @@
           "net_r": -0.15,
           "pnl_usd": -7.5,
           "win_rate": 50.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         }
       },
       "active_under_ytd": true
@@ -755,37 +755,37 @@
         "AUDCHF",
         "AUDJPY",
         "AUDNZD",
+        "CADCHF",
         "CADJPY",
         "CHFJPY",
         "EURCHF",
         "EURJPY",
         "EURNZD",
+        "GBPCAD",
+        "GBPCHF",
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
         "NZDCAD",
+        "NZDCHF",
         "NZDUSD",
+        "SOLUSD",
         "USDCAD",
         "USDJPY",
+        "USOIL.CASH",
         "XAUUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
         "AUDUSD",
-        "CADCHF",
         "EURAUD",
         "EURCAD",
         "EURGBP",
         "EURUSD",
         "GBPAUD",
-        "GBPCAD",
-        "GBPCHF",
-        "NZDCHF",
         "NZDJPY",
-        "SOLUSD",
         "USDCHF",
         "USDSGD",
-        "USOIL.CASH",
         "XAGUSD"
       ],
       "pair_stats": {
@@ -847,7 +847,7 @@
           "net_r": -2.0,
           "pnl_usd": -100.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "CADJPY": {
           "trades": 4,
@@ -957,7 +957,7 @@
           "net_r": -1.01,
           "pnl_usd": -50.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "GBPCHF": {
           "trades": 2,
@@ -967,7 +967,7 @@
           "net_r": -2.09,
           "pnl_usd": -104.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "GBPJPY": {
           "trades": 6,
@@ -1017,7 +1017,7 @@
           "net_r": -2.11,
           "pnl_usd": -105.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "NZDJPY": {
           "trades": 8,
@@ -1047,7 +1047,7 @@
           "net_r": -0.94,
           "pnl_usd": -47.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "USDCAD": {
           "trades": 4,
@@ -1097,7 +1097,7 @@
           "net_r": -2.04,
           "pnl_usd": -102.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "XAGUSD": {
           "trades": 4,
@@ -1129,7 +1129,9 @@
         "AUDCAD",
         "AUDCHF",
         "AUDJPY",
+        "AUDNZD",
         "AUDUSD",
+        "CADCHF",
         "CADJPY",
         "CHFJPY",
         "EURJPY",
@@ -1139,17 +1141,17 @@
         "GBPNZD",
         "GBPUSD",
         "NZDCAD",
+        "NZDCHF",
         "NZDJPY",
         "NZDUSD",
         "USDCAD",
         "USDCHF",
         "USDJPY",
         "USDSGD",
+        "USOIL.CASH",
         "XAUUSD"
       ],
       "benched_pairs": [
-        "AUDNZD",
-        "CADCHF",
         "EURAUD",
         "EURCAD",
         "EURCHF",
@@ -1157,8 +1159,6 @@
         "EURNZD",
         "EURUSD",
         "GBPCHF",
-        "NZDCHF",
-        "USOIL.CASH",
         "XAGUSD"
       ],
       "pair_stats": {
@@ -1200,7 +1200,7 @@
           "net_r": -0.93,
           "pnl_usd": -46.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "AUDUSD": {
           "trades": 3,
@@ -1220,7 +1220,7 @@
           "net_r": -2.0,
           "pnl_usd": -100.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "CADJPY": {
           "trades": 3,
@@ -1390,7 +1390,7 @@
           "net_r": -2.0,
           "pnl_usd": -100.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "NZDJPY": {
           "trades": 7,
@@ -1460,7 +1460,7 @@
           "net_r": -0.96,
           "pnl_usd": -48.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "XAGUSD": {
           "trades": 4,
@@ -1487,7 +1487,7 @@
     },
     "foundation_v1": {
       "name": "\ud83c\udf10 Foundation V1 Macro AI",
-      "total_trades_ytd": 3217,
+      "total_trades_ytd": 3218,
       "winning_pairs": [
         "AUDCAD",
         "AUDCHF",
@@ -1512,6 +1512,7 @@
         "USDJPY",
         "USDSGD",
         "USOIL.CASH",
+        "XAGUSD",
         "XAUUSD"
       ],
       "benched_pairs": [
@@ -1524,8 +1525,7 @@
         "EURUSD",
         "GBPAUD",
         "NZDCHF",
-        "NZDJPY",
-        "XAGUSD"
+        "NZDJPY"
       ],
       "pair_stats": {
         "AUDCAD": {
@@ -1579,13 +1579,13 @@
           "status": "BENCHED"
         },
         "BTCUSD": {
-          "trades": 1,
+          "trades": 2,
           "wins": 1,
-          "losses": 0,
+          "losses": 1,
           "be": 0,
-          "net_r": 1.5,
-          "pnl_usd": 75.0,
-          "win_rate": 100.0,
+          "net_r": 0.5,
+          "pnl_usd": 25.0,
+          "win_rate": 50.0,
           "status": "APPROVED"
         },
         "CADCHF": {
@@ -1866,7 +1866,7 @@
           "net_r": -1.0,
           "pnl_usd": -50.0,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "XAUUSD": {
           "trades": 141,
@@ -1891,6 +1891,7 @@
         "AUDUSD",
         "CADJPY",
         "CHFJPY",
+        "EURGBP",
         "EURJPY",
         "GBPAUD",
         "GBPCAD",
@@ -1911,7 +1912,6 @@
         "EURAUD",
         "EURCAD",
         "EURCHF",
-        "EURGBP",
         "EURNZD",
         "EURUSD",
         "NZDCAD",
@@ -2028,7 +2028,7 @@
           "net_r": -1.89,
           "pnl_usd": -94.5,
           "win_rate": 0.0,
-          "status": "BENCHED"
+          "status": "APPROVED"
         },
         "EURJPY": {
           "trades": 6,
