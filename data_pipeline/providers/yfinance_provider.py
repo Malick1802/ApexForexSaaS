@@ -81,7 +81,8 @@ class YFinanceProvider(DataProviderBase):
     
     def _to_yf_symbol(self, symbol: str) -> str:
         """Convert standard forex/crypto symbol to yfinance format."""
-        # If symbol already has yfinance structure (e.g. GC=F, ^VIX, or ends with =X), use as is
+        if symbol.upper() in ("DX-Y.NYB", "DXY", "USDX"):
+            return "DX-Y.NYB"
         if "=" in symbol or "^" in symbol:
              return symbol
              

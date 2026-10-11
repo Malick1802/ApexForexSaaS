@@ -3,7 +3,7 @@ import sqlite3
 import yaml
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ class PropGuardrail:
             logger.error(f"Guardrail failed to load config: {e}")
             return {}
 
-    def get_safety_status(self, exec_engine = None) -> Dict[str, Any]:
+    def get_safety_status(self, exec_engine = None, symbol: Optional[str] = None) -> Dict[str, Any]:
         """
         Evaluate if it is safe to generate new signals.
         Enforces:
-          1. Weekend mode / Friday 14:00 UTC entry cutoff.
+          1. Weekend mode / Friday 14:00 UTC entry cutoff (Crypto is exempt 24/7).
           2. Dynamic Daily drawdown kill switch: Scales with account tier
              (e.g. 4.5% = $450 on $10k, $4,500 on $100k, $45,000 on $1M).
              Closes all open MT5 positions immediately, resolves DB signals, and halts trading for the day.
@@ -55,7 +55,7 @@ class PropGuardrail:
             return {'safe': True, 'reason': 'PROG_DISABLED', 'drawdown': 0.0}
 
         # 1. Check Weekend Mode (Friday 14:00 UTC cutoff & Sunday open buffer)
-        is_weekend, weekend_reason = self._is_weekend_mode(conf)
+        is_weekend, weekend_reason = self._is_weekend_mode(conf, symbol=symbol)
         if is_weekend:
             return {'safe': False, 'reason': weekend_reason, 'drawdown': 0.0}
 
@@ -231,10 +231,10 @@ class PropGuardrail:
         except Exception as e:
             logger.error(f"Failed to send emergency Telegram notification: {e}")
 
-    def _is_weekend_mode(self, conf: Dict) -> (bool, str):
+    def _is_weekend_mode(self, conf: Dict, symbol: Optional[str] = None) -> (bool, str):
         """Check if trading should be halted for the weekend using dynamic NY market hours."""
         from core.market_hours import is_weekend_halt
-        return is_weekend_halt()
+        return is_weekend_halt(symbol=symbol)
 
     def _get_state_path(self):
         path = Path("data_cache/drawdown_state.json")

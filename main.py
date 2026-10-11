@@ -65,17 +65,7 @@ def job(exec_engine, notifier):
     except Exception as _dwe:
         logger.error(f"❌ Dynamic Whitelist daily rollover check failed: {_dwe}", exc_info=True)
 
-    # ── 2. Safety Guardrail (Prop Firm Compliance & Emergency Kill Switch) ─
-    try:
-        guard = get_guardrail()
-        status = guard.get_safety_status(exec_engine=exec_engine)
-        if not status['safe']:
-            logger.warning(f"🛑 SAFETY HALT: {status['reason']} (Drawdown: {status['drawdown']:.1f}%) - Skipping Inference Scan.")
-            return # Skip new trade entries
-    except Exception as ge:
-        logger.error(f"❌ Safety Guardrail Check Failed: {ge}", exc_info=True)
-        return
-
+    # ── 2. Determine Pairs to Scan (Weekend 24/7 Crypto Mode) ─────────
     from core.market_hours import is_weekend_halt, is_crypto
     halted, reason = is_weekend_halt()
     symbols = exec_engine.get_all_pairs()
@@ -85,6 +75,18 @@ def job(exec_engine, notifier):
             logger.info(f"⏸️ WEEKEND MODE: {reason}. No active crypto pairs to scan.")
             return
         logger.info(f"🪙 WEEKEND 24/7 CRYPTO SCAN: Scanning {len(symbols)} crypto pairs during weekend ({symbols}).")
+
+    # ── 2b. Safety Guardrail (Prop Firm Compliance & Emergency Kill Switch) ─
+    try:
+        guard = get_guardrail()
+        test_sym = symbols[0] if (halted and symbols) else None
+        status = guard.get_safety_status(exec_engine=exec_engine, symbol=test_sym)
+        if not status['safe']:
+            logger.warning(f"🛑 SAFETY HALT: {status['reason']} (Drawdown: {status['drawdown']:.1f}%) - Skipping Inference Scan.")
+            return # Skip new trade entries
+    except Exception as ge:
+        logger.error(f"❌ Safety Guardrail Check Failed: {ge}", exc_info=True)
+        return
 
     try:
         # ── 3. Run New Inference Scan (Background) ──────────────────────

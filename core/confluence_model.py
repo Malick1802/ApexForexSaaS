@@ -1595,17 +1595,6 @@ def scan_and_execute_all_pairs(
     if not cfg.get("enabled", True):
         return {"scanned": 0, "setups": [], "executed": []}
 
-    # Guardrail Pre-flight Safety Check
-    try:
-        from core.guardrail import get_guardrail
-        guard_res = get_guardrail().get_safety_status()
-        if not guard_res.get("safe", True):
-            reason = guard_res.get("reason", "Trading blocked by Safety Guardrail.")
-            logger.warning(f"⚡ Confluence scanning halted: {reason}")
-            return {"scanned": 0, "setups": [], "executed": [], "halted_reason": reason}
-    except Exception as e:
-        logger.error(f"Guardrail check failed in Confluence scanner: {e}")
-
     auto_trade = cfg.get("auto_trade", True) if force_auto_trade is None else force_auto_trade
     symbols = enabled_symbols or cfg.get("symbols", DEFAULT_SYMBOLS)
 
@@ -1617,6 +1606,18 @@ def scan_and_execute_all_pairs(
         if not symbols:
             return {"scanned": 0, "setups": [], "executed": [], "halted_reason": f"Weekend Halt: {reason}"}
         logger.info(f"🪙 Confluence Scanner: Scanning {len(symbols)} crypto pairs 24/7 during weekend ({symbols})")
+
+    # Guardrail Pre-flight Safety Check
+    try:
+        from core.guardrail import get_guardrail
+        test_sym = symbols[0] if (halted and symbols) else None
+        guard_res = get_guardrail().get_safety_status(symbol=test_sym)
+        if not guard_res.get("safe", True):
+            reason = guard_res.get("reason", "Trading blocked by Safety Guardrail.")
+            logger.warning(f"⚡ Confluence scanning halted: {reason}")
+            return {"scanned": 0, "setups": [], "executed": [], "halted_reason": reason}
+    except Exception as e:
+        logger.error(f"Guardrail check failed in Confluence scanner: {e}")
 
     from core.model_gatekeeper import is_model_live_authorized
     enable_ml_p60 = is_model_live_authorized("confluence_ml_p60")

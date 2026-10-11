@@ -287,7 +287,7 @@ class ExecutiveEngine:
             logger.error(f"Failed lot calculation for {symbol}: {e}")
             return 0.01
 
-    def _check_drawdown_limits(self) -> bool:
+    def _check_drawdown_limits(self, symbol: Optional[str] = None) -> bool:
         """
         Check if account is near daily loss limit, max trailing loss limit, or max open trades limit. 
         Returns True if safe to trade, False if blocked.
@@ -310,7 +310,7 @@ class ExecutiveEngine:
 
             # 1. FTMO Prop Firm Guardrail Check (Enforces dynamic 4.5% daily drawdown and killswitch)
             from core.guardrail import get_guardrail
-            guard_res = get_guardrail().get_safety_status(exec_engine=self)
+            guard_res = get_guardrail().get_safety_status(exec_engine=self, symbol=symbol)
             if not guard_res.get("safe", True):
                 logger.critical(f"🛑 GUARDRAIL SHIELD: Blocked - {guard_res.get('reason')}")
                 return False
@@ -419,7 +419,7 @@ class ExecutiveEngine:
             # --- PROP FIRM DRAWDOWN & WEEKEND SAFETY GATE ---
             from core.guardrail import get_guardrail
             guard = get_guardrail()
-            safety_status = guard.get_safety_status()
+            safety_status = guard.get_safety_status(symbol=signal.get('symbol'))
             if not safety_status['safe']:
                 logger.error(f"BLOCK: {signal['symbol']} trade canceled by Safety Guardrail ({safety_status['reason']}). Saving as SHADOW instead.")
                 signal['is_hidden'] = 1 # Force it into shadow log
@@ -868,8 +868,10 @@ class ExecutiveEngine:
         self.monitor_active_signals()
 
         from core.guardrail import get_guardrail
+        from core.market_hours import is_crypto
         guard = get_guardrail()
-        status = guard.get_safety_status(exec_engine=self)
+        test_sym = symbols[0] if (symbols and all(is_crypto(s) for s in symbols)) else None
+        status = guard.get_safety_status(exec_engine=self, symbol=test_sym)
         if not status['safe']:
             logger.warning(f"🛑 SAFETY HALT: {status['reason']} (Drawdown: {status['drawdown']:.1f}%) - Skipping Setup Scan.")
             return
@@ -1091,28 +1093,29 @@ class ExecutiveEngine:
         # If MT5 is disconnected or positions_get() returns None, do NOT sync (which would falsely close secondary trades).
         if mt5_conn:
             try:
-                from core.market_hours import is_weekend_halt
-                halted, _ = is_weekend_halt()
-                if not halted:
-                    term_info = mt5_conn.terminal_info()
-                    acc_info = mt5_conn.account_info()
-                    is_connected = term_info and getattr(term_info, "connected", False)
-                    is_authorized = acc_info and getattr(acc_info, "login", None)
+                term_info = mt5_conn.terminal_info()
+                acc_info = mt5_conn.account_info()
+                is_connected = term_info and getattr(term_info, "connected", False)
+                is_authorized = acc_info and getattr(acc_info, "login", None)
 
-                    if is_connected and is_authorized:
-                        master_pos = mt5_conn.positions_get()
-                        master_orders = mt5_conn.orders_get()
-                        if master_pos is not None:
-                            master_symbols = [p.symbol for p in master_pos]
-                            if master_orders:
-                                master_symbols.extend([o.symbol for o in master_orders])
-                            master_symbols = list(set(master_symbols))
+                if is_connected and is_authorized:
+                    master_pos = mt5_conn.positions_get()
+                    master_orders = mt5_conn.orders_get()
+                    if master_pos is not None:
+                        master_symbols = [p.symbol for p in master_pos]
+                        if master_orders:
+                            master_symbols.extend([o.symbol for o in master_orders])
+                        master_symbols = list(set(master_symbols))
+
+                        from core.market_hours import is_weekend_halt, is_crypto
+                        halted, _ = is_weekend_halt()
+                        if not halted or any(is_crypto(s) for s in master_symbols):
                             from scripts.multi_executor import sync_positions_with_master
                             sync_positions_with_master(master_symbols)
-                        else:
-                            logger.warning("Watchdog: positions_get() returned None. Skipping secondary position sync.")
                     else:
-                        logger.warning("Watchdog: MT5 terminal disconnected/unauthorized. Skipping secondary position sync.")
+                        logger.warning("Watchdog: positions_get() returned None. Skipping secondary position sync.")
+                else:
+                    logger.warning("Watchdog: MT5 terminal disconnected/unauthorized. Skipping secondary position sync.")
             except Exception as _syne:
                 logger.error(f"Secondary position sync error: {_syne}")
 

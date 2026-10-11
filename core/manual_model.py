@@ -734,7 +734,7 @@ def submit_manual_order(
     # Guardrail Safety & Drawdown Check
     try:
         from core.guardrail import get_guardrail
-        guard_res = get_guardrail().get_safety_status()
+        guard_res = get_guardrail().get_safety_status(symbol=order_spec.get("symbol"))
         if not guard_res.get("safe", True):
             reason = guard_res.get("reason", "Trading blocked by Safety Guardrail.")
             logger.warning(f"🛑 Order blocked by Guardrail: {reason}")
@@ -1691,7 +1691,7 @@ def process_armed_m15_orders() -> List[Dict[str, Any]]:
                 # Guardrail Safety & Drawdown Check
                 try:
                     from core.guardrail import get_guardrail
-                    guard_res = get_guardrail().get_safety_status()
+                    guard_res = get_guardrail().get_safety_status(symbol=symbol)
                     if not guard_res.get("safe", True):
                         reason = guard_res.get("reason", "Trading blocked by Safety Guardrail.")
                         logger.warning(f"🛑 Armed setup placement blocked by Guardrail: {reason}")

@@ -89,9 +89,9 @@ class NotificationManager:
             logger.info(f"Telegram alert blocked for {symbol}: Symbol is blacklisted.")
             return False
 
-        # Weekend Gate: NEVER send trade alerts during weekend halt mode
+        # Weekend Gate: NEVER send trade alerts during weekend halt mode (exempt for 24/7 crypto)
         from core.market_hours import is_weekend_halt
-        halted, reason = is_weekend_halt()
+        halted, reason = is_weekend_halt(symbol=symbol)
         if halted:
             logger.info(f"Telegram alert suppressed for {symbol} {signal}: Market closed for weekend ({reason}).")
             return False

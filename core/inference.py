@@ -624,13 +624,13 @@ class InferenceEngine:
     
 
     
-    def _is_data_stale(self, last_candle_time: pd.Timestamp) -> bool:
+    def _is_data_stale(self, last_candle_time: pd.Timestamp, symbol: str = None) -> bool:
         """
         Check if data is too old (e.g., market closed).
         
         Logic:
         1. If > 2 hours old, it's stale (allowing for 1h candle + 1h delay).
-        2. If it's the weekend (Sat/Sun), stricter checks apply.
+        2. If it's the weekend (Sat/Sun), stricter checks apply (exempt for 24/7 crypto).
         """
         try:
             # 1. Standard Comparison (UTC vs UTC)
@@ -648,9 +648,9 @@ class InferenceEngine:
             # Debug log (Temporary enabled for diagnosis)
             # logger.info(f"Stale Check: Last={last_candle_aware} Now={now_utc} Diff={hours_diff:.2f}h")
             
-            # 2. Hard Weekend Block (Forex Logic)
+            # 2. Hard Weekend Block (Forex Logic, bypassed for 24/7 crypto)
             from core.market_hours import is_weekend_halt
-            weekend_halt, _ = is_weekend_halt(now_utc)
+            weekend_halt, _ = is_weekend_halt(now_utc, symbol=symbol)
             if weekend_halt:
                 if hours_diff > 1.0:
                     return True
@@ -896,7 +896,7 @@ class InferenceEngine:
             df = self.data_engine.fetch(symbol, interval="1h", days=60, use_cache=use_cache)  # 60 days for 720-bar window warmup
 
             if df is None or len(df) < 60: return None
-            if not allow_stale and self._is_data_stale(df.index[-1]): return None
+            if not allow_stale and self._is_data_stale(df.index[-1], symbol=symbol): return None
 
             # ── 1. REGIME DETECTION GATE (LIVE) ─────────────────────────────────────────
             # We detect the regime for EVERY call, even if locked, to ensure the dashboard 
