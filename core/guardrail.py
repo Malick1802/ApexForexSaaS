@@ -62,14 +62,15 @@ class PropGuardrail:
         # 2. Check Daily Drawdown & Emergency Kill Switch
         # Always calculate daily drawdown FIRST so that trading day rollover (00:00 CEST = 22:00 UTC)
         # resets state["halted_for_day"] = False at midnight.
-        result = self._calculate_daily_drawdown()
+        result = self._calculate_daily_drawdown(symbol=symbol)
         drawdown = result["drawdown_pct"]
         dollar_drawdown = result.get("dollar_drawdown", 0.0)
         max_loss_amount = result.get("max_loss_amount", 450.0)
         account_tier = result.get("account_tier", 10000.0)
+        account_login = result.get("account_login")
         max_dd_pct = float(conf.get('max_daily_drawdown_pct', 4.5))
 
-        state = self._load_state()
+        state = self._load_state(account_login=account_login)
         if state.get("halted_for_day", False):
             halt_dd = state.get("halt_drawdown", dollar_drawdown)
             return {
@@ -236,28 +237,43 @@ class PropGuardrail:
         from core.market_hours import is_weekend_halt
         return is_weekend_halt(symbol=symbol)
 
-    def _get_state_path(self):
-        path = Path("data_cache/drawdown_state.json")
+    def _get_state_path(self, account_login: Optional[int] = None):
+        if account_login:
+            path = Path(f"data_cache/drawdown_state_{account_login}.json")
+        else:
+            path = Path("data_cache/drawdown_state.json")
         path.parent.mkdir(exist_ok=True, parents=True)
         return path
 
-    def _load_state(self):
+    def _load_state(self, account_login: Optional[int] = None):
         import json
-        path = self._get_state_path()
+        path = self._get_state_path(account_login)
         if path.exists():
             try:
                 with open(path, 'r') as f:
                     return json.load(f)
             except:
                 pass
+        # Fallback to shared state file if account-specific not yet created
+        if account_login:
+            fallback = self._get_state_path(None)
+            if fallback.exists():
+                try:
+                    with open(fallback, 'r') as f:
+                        data = json.load(f)
+                        if data.get("account_login") == account_login:
+                            return data
+                except:
+                    pass
         return {"date": "", "midnight_balance": 0.0, "initial_balance": 0.0}
 
-    def _save_state(self, state):
+    def _save_state(self, state, account_login: Optional[int] = None):
         import json
-        with open(self._get_state_path(), 'w') as f:
+        login = account_login or state.get("account_login")
+        with open(self._get_state_path(login), 'w') as f:
             json.dump(state, f)
 
-    def _calculate_daily_drawdown(self) -> dict:
+    def _calculate_daily_drawdown(self, symbol: Optional[str] = None) -> dict:
         """
         Calculates FTMO-compliant Daily Drawdown.
 
@@ -269,7 +285,7 @@ class PropGuardrail:
         """
         try:
             from core.mt5_connector import get_mt5
-            mt5 = get_mt5()
+            mt5 = get_mt5(symbol=symbol)
 
             if not mt5:
                 logger.error("MT5 disconnected. Failsafe activated.")
@@ -282,19 +298,19 @@ class PropGuardrail:
 
             current_equity = float(account.equity)   # includes open floating P&L
             current_balance = float(account.balance) # closed trades only
+            account_login = int(account.login)
 
             # --- CE(S)T Rollover: Dynamic European timezone handling (CET/CEST) ---
             from zoneinfo import ZoneInfo
             now_cest = datetime.now(ZoneInfo("Europe/Prague"))
             trading_day = now_cest.strftime("%Y-%m-%d")
 
-            state = self._load_state()
+            state = self._load_state(account_login=account_login)
             conf = self.config.get('safety', {})
             max_dd_pct = float(conf.get('max_daily_drawdown_pct', 4.5))
 
             # --- Midnight snapshot: store balance at the start of each CEST day ---
             # Also reset snapshot if the connected account login ID has changed (e.g. migration)
-            account_login = int(account.login)
             if (
                 state.get("date") != trading_day
                 or state.get("midnight_balance", 0.0) == 0.0
@@ -316,7 +332,7 @@ class PropGuardrail:
                     "account_tier": tier,
                     "halted_for_day": False
                 }
-                self._save_state(state)
+                self._save_state(state, account_login=account_login)
                 logger.info(
                     f"[FTMO Guardrail] Account #{account_login} Active | Date: {trading_day} "
                     f"| Midnight Balance: ${midnight_balance:,.2f} "
@@ -356,7 +372,8 @@ class PropGuardrail:
                 "floor": daily_floor,
                 "midnight_balance": midnight_balance,
                 "max_loss_amount": max_loss_amount,
-                "account_tier": tier
+                "account_tier": tier,
+                "account_login": account_login
             }
 
         except Exception as e:

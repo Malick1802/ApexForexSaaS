@@ -1139,19 +1139,17 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
     Broadcast a signal across all enabled user accounts using ISOLATED worker subprocesses.
     The calling process (main.py / executive.py) NEVER disconnects from FTMO.
     """
-    from core.user_accounts import get_enabled_users, mark_last_trade
-
-    users = get_enabled_users()
-    if not users:
-        logger.info("No enabled copy trading users registered.")
-        return {}
-
-    symbol = signal_row["symbol"]
-    signal_type = signal_row["signal"]
+    symbol = signal_row.get("symbol", "")
+    signal_type = signal_row.get("signal", "")
 
     from core.symbol_guard import is_symbol_blocked
     if is_symbol_blocked(symbol):
         logger.critical(f"🛑 COMMODITY SHIELD: Symbol {symbol} is blacklisted. Skipping multi-user execution!")
+        return {}
+
+    users = get_enabled_users(symbol=symbol)
+    if not users:
+        logger.info(f"No enabled copy trading users registered for {symbol}.")
         return {}
 
     logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Broadcasting {symbol} {signal_type} to {len(users)} user(s)")
@@ -1226,7 +1224,7 @@ def close_signal_for_all_users(symbol: str, target_tickets: dict = None) -> dict
     """Close positions for a symbol across all enabled users via isolated subprocesses."""
     from core.user_accounts import get_enabled_users
 
-    users = get_enabled_users()
+    users = get_enabled_users(symbol=symbol)
     if not users:
         return {}
 
@@ -1272,7 +1270,7 @@ def partial_close_and_modify_sl_for_all_users(symbol: str, partial_pct: float = 
     """
     from core.user_accounts import get_enabled_users
 
-    users = get_enabled_users()
+    users = get_enabled_users(symbol=symbol)
     if not users:
         return {}
 

@@ -61,9 +61,9 @@ class MT5Provider(DataProviderBase):
         # Initial connection check
         self._connect()
     
-    def _connect(self):
+    def _connect(self, symbol: Optional[str] = None):
         """Get the shared MT5 connection from the connector."""
-        self.mt5 = get_mt5()
+        self.mt5 = get_mt5(symbol=symbol)
         if self.mt5 is None:
             raise ConnectionError(
                 "Failed to connect to MT5 Bridge. "
@@ -88,7 +88,7 @@ class MT5Provider(DataProviderBase):
         """
         Normalize symbol for MT5 broker.
         """
-        self._connect()
+        self._connect(symbol=symbol)
         # 1. Try raw symbol as-is
         info = self.mt5.symbol_info(symbol)
         if info is not None:
@@ -141,7 +141,7 @@ class MT5Provider(DataProviderBase):
             DataFrame with columns: ['open', 'high', 'low', 'close', 'volume']
             Index: DatetimeIndex (UTC)
         """
-        self._connect()
+        self._connect(symbol=symbol)
         
         mt5_symbol = self.normalize_symbol(symbol)
         
@@ -270,7 +270,7 @@ class MT5Provider(DataProviderBase):
     
     def validate_symbol(self, symbol: str) -> bool:
         """Check if symbol exists in MT5."""
-        self._connect()
+        self._connect(symbol=symbol)
         mt5_symbol = self.normalize_symbol(symbol)
         info = self.mt5.symbol_info(mt5_symbol)
         return info is not None

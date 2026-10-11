@@ -194,7 +194,7 @@ def get_symbol_sl_buffer(
 
     # 4. Spread Floor Protection: Buffer must be >= 1.5x live spread to prevent instant stop-out
     try:
-        mt5 = get_mt5()
+        mt5 = get_mt5(symbol=symbol)
         if mt5:
             tick = mt5.symbol_info_tick(symbol)
             pip_sz = get_pip_size(symbol)
@@ -244,7 +244,7 @@ def get_symbol_be_offset(symbol: str, cfg: Optional[Dict[str, Any]] = None) -> f
 
     # Spread Floor Protection: BE offset must be >= spread_pips + 1.0
     try:
-        mt5 = get_mt5()
+        mt5 = get_mt5(symbol=symbol)
         if mt5:
             tick = mt5.symbol_info_tick(symbol)
             pip_sz = get_pip_size(symbol)
@@ -318,7 +318,7 @@ def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional
         'bar_count': int
       }
     """
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return None
 
@@ -405,7 +405,7 @@ def get_swing_lines(
     - lower_swing_line: The first M15 swing low going backwards that is LOWER than lower_day_line.
     Filters out 21:00 UTC rollover gap / spread spike bars to ensure clean price action swings.
     """
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     result = {
         "upper_swing_line": None,
         "lower_swing_line": None,
@@ -543,7 +543,7 @@ def evaluate_confluence_setup(
         "error": None,
     }
 
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         res["error"] = "MT5 not connected."
         return res
@@ -920,7 +920,7 @@ def execute_confluence_setup(
     allow_concurrent = (target_model in ("confluence_ml_p60", "confluence_std_p25")) or bool(cfg.get("allow_concurrent_asset", False))
 
     # ── TIER 4: MT5 Broker-Level Pending Order & Position Deduplication (Per Model) ──
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     if mt5:
         pip_sz = get_pip_size(symbol)
         target_magic = MODEL_MAGIC_MAP.get(target_model, 202425)
@@ -1369,20 +1369,34 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
        - Send rich Telegram alert
     """
     results = {"checked": 0, "partials_taken": [], "sl_moved": []}
-    mt5 = get_mt5()
-    if not mt5:
+    positions = []
+    try:
+        m1 = get_mt5(symbol="EURUSD")
+        if m1:
+            p1 = m1.positions_get()
+            if p1:
+                positions.extend(p1)
+        m2 = get_mt5(symbol="BTCUSD")
+        if m2:
+            p2 = m2.positions_get()
+            if p2:
+                seen_t = {getattr(p, "ticket", None) for p in positions}
+                for p in p2:
+                    if getattr(p, "ticket", None) not in seen_t:
+                        positions.append(p)
+    except Exception as _mpe:
+        logger.warning(f"Error checking positions across masters: {_mpe}")
+
+    if not positions:
         return results
 
     try:
-        positions = mt5.positions_get()
-        if not positions:
-            return results
-
         state = _load_confluence_state()
         managed_positions = state.setdefault("managed_positions", {})
         dirty = False
 
         for pos in positions:
+            pos_mt5 = get_mt5(symbol=pos.symbol) or m1
             # Check if this position belongs to Confluence models
             comm = str(pos.comment or "")
             magic = getattr(pos, "magic", 0)
@@ -1483,7 +1497,7 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                         "magic": pos.magic,
                         "comment": f"APEX Partial {int(partial_ratio*100)}%",
                     }
-                    deal_res = mt5.order_send(deal_req)
+                    deal_res = pos_mt5.order_send(deal_req)
                     if deal_res and deal_res.retcode == mt5.TRADE_RETCODE_DONE:
                         partial_ok = True
                         closed_lots = close_vol
@@ -1502,7 +1516,7 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                         "sl": be_sl,
                         "tp": pos.tp,
                     }
-                    sltp_res = mt5.order_send(sltp_req)
+                    sltp_res = pos_mt5.order_send(sltp_req)
                     if sltp_res and sltp_res.retcode == mt5.TRADE_RETCODE_DONE:
                         sl_moved_ok = True
                         logger.info(f"🛡️ Master SL successfully moved to BE+2p ({be_sl}) for #{pos.ticket} ({pos.symbol})")
@@ -1566,7 +1580,7 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                     "sl": be_sl,
                     "tp": pos.tp,
                 }
-                sltp_res = mt5.order_send(sltp_req)
+                sltp_res = pos_mt5.order_send(sltp_req)
                 if sltp_res and sltp_res.retcode == mt5.TRADE_RETCODE_DONE:
                     rec["be_sl_moved"] = True
                     managed_positions[pos_key] = rec

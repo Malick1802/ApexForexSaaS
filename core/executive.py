@@ -163,6 +163,11 @@ class ExecutiveEngine:
         """Dynamic connection to MT5 (prevents stale connection issues)."""
         from core.mt5_connector import get_mt5
         return get_mt5()
+
+    def get_mt5_conn(self, symbol: Optional[str] = None):
+        """Dynamic symbol-aware connection to MT5."""
+        from core.mt5_connector import get_mt5
+        return get_mt5(symbol=symbol)
         
     def get_all_pairs(self) -> List[str]:
         """Proxy for DataEngine.get_all_pairs()."""
@@ -189,10 +194,11 @@ class ExecutiveEngine:
         Logic: Lots = (Balance * 0.005) / (SL_Pips * Pip_Value_per_Lot)
         """
         try:
-            if not self.mt5:
+            conn = self.get_mt5_conn(symbol)
+            if not conn:
                 return 0.01
                 
-            account = self.mt5.account_info()
+            account = conn.account_info()
             if not account:
                 return 0.01
                 
@@ -228,7 +234,7 @@ class ExecutiveEngine:
             # A 1.0 unit change in EURUSD (e.g. 1.05 -> 1.06) is 100 pips.
             # Pip_Value_per_Lot for MT5 is usually in Account Currency.
             
-            symbol_info = self.mt5.symbol_info(symbol)
+            symbol_info = conn.symbol_info(symbol)
             if not symbol_info:
                 return 0.01
                 
@@ -242,7 +248,7 @@ class ExecutiveEngine:
             loss_per_lot = None
             try:
                 calc_sl = symbol_info.ask - sl_dist_price
-                profit_1lot = self.mt5.order_calc_profit(self.mt5.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask, calc_sl)
+                profit_1lot = conn.order_calc_profit(conn.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask, calc_sl)
                 if profit_1lot is not None and abs(profit_1lot) > 0:
                     loss_per_lot = abs(profit_1lot)
             except Exception:
@@ -261,7 +267,7 @@ class ExecutiveEngine:
             # E.g. $10k account at 1:30 max position is ~$300k notional (approx 3.0 lots total)
             max_leverage = 30
             # Calculate the explicit margin required for 1.0 standard lot using MT5 api
-            margin_per_lot = self.mt5.order_calc_margin(self.mt5.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask)
+            margin_per_lot = conn.order_calc_margin(conn.ORDER_TYPE_BUY, symbol, 1.0, symbol_info.ask)
             
             if margin_per_lot:
                 # We use 90% of available margin to ensure we don't hit auto-liquidation walls
@@ -293,17 +299,18 @@ class ExecutiveEngine:
         Returns True if safe to trade, False if blocked.
         """
         try:
-            if not self.mt5:
+            conn = self.get_mt5_conn(symbol)
+            if not conn:
                 return True
                 
-            account = self.mt5.account_info()
+            account = conn.account_info()
             if not account:
                 return True
                 
             # 0. Max Open Trades Check
             max_open = self.config.get('mt5', {}).get('max_open_trades', 5)
             if max_open > 0:
-                open_positions = self.mt5.positions_total()
+                open_positions = conn.positions_total()
                 if open_positions >= max_open:
                     logger.critical(f"🛑 RISK SHIELD: Maximum open trades reached ({open_positions}/{max_open}). Blocking all Live Trades!")
                     return False
@@ -330,14 +337,15 @@ class ExecutiveEngine:
             (is_blocked: bool, reason: str)
         """
         try:
-            if not self.mt5:
+            conn = self.get_mt5_conn(symbol)
+            if not conn:
                 return False, "MT5_DISCONNECTED"
 
             mt5_cfg = self.config.get('mt5', {})
             max_open = int(mt5_cfg.get('max_open_trades', getattr(self, 'max_open_trades', 3)))
             max_per_curr = int(mt5_cfg.get('max_positions_per_currency', getattr(self, 'max_positions_per_currency', 1)))
 
-            positions = self.mt5.positions_get()
+            positions = conn.positions_get()
             if positions is None:
                 return False, "NO_POSITIONS_DATA"
 
@@ -378,8 +386,11 @@ class ExecutiveEngine:
     def place_mt5_trade(self, signal: Dict[str, Any]):
         """Place a live trade on MT5 terminal."""
         try:
-            if not self.mt5:
-                logger.error("MT5 not connected. Cannot place trade.")
+            symbol = signal['symbol']
+            action = signal['signal']
+            mt5 = self.get_mt5_conn(symbol)
+            if not mt5:
+                logger.error(f"MT5 not connected for {symbol}. Cannot place trade.")
                 return False
                 
             if not self.config.get('trading', {}).get('execute_trades', True):
@@ -390,53 +401,50 @@ class ExecutiveEngine:
             from core.model_gatekeeper import is_model_live_authorized
             model_ver = signal.get('model_version', 'v1')
             if not is_model_live_authorized(model_ver):
-                logger.info(f"👻 MODEL GATEKEEPER: Model '{model_ver}' is currently in SHADOW MODE (not authorized for live trading). Blocking MT5 order for {signal['symbol']}.")
+                logger.info(f"👻 MODEL GATEKEEPER: Model '{model_ver}' is currently in SHADOW MODE (not authorized for live trading). Blocking MT5 order for {symbol}.")
                 signal['is_hidden'] = 1
                 return False
 
             # --- DYNAMIC YTD MODEL WHITELIST GATE (WINNING ASSETS ONLY) ---
             from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
-            if not is_pair_whitelisted_for_model(model_ver, signal['symbol']):
-                logger.info(f"🛡️ DYNAMIC YTD GATE: {signal['symbol']} is not an approved winning asset for '{model_ver}' (YTD Net R < 0.0). Diverting to SHADOW.")
+            if not is_pair_whitelisted_for_model(model_ver, symbol):
+                logger.info(f"🛡️ DYNAMIC YTD GATE: {symbol} is not an approved winning asset for '{model_ver}' (YTD Net R < 0.0). Diverting to SHADOW.")
                 signal['is_hidden'] = 1
                 return False
 
             # --- COMMODITY / BLOCKED SYMBOL / DIRECTIONAL SAFETY GATE ---
             from core.symbol_guard import is_symbol_blocked, is_direction_blocked, is_commodity_benched
-            if is_symbol_blocked(signal['symbol']):
-                logger.critical(f"🛑 COMMODITY SHIELD: {signal['symbol']} is a blacklisted commodity. Blocking Live MT5 Trade execution!")
+            if is_symbol_blocked(symbol):
+                logger.critical(f"🛑 COMMODITY SHIELD: {symbol} is a blacklisted commodity. Blocking Live MT5 Trade execution!")
                 signal['is_hidden'] = 1
                 return False
-            if is_direction_blocked(signal['symbol'], signal.get('signal')):
-                logger.critical(f"🛑 DIRECTIONAL SHIELD: {signal['symbol']} {signal.get('signal')} is blacklisted by directional shield. Blocking Live MT5 Trade execution!")
+            if is_direction_blocked(symbol, action):
+                logger.critical(f"🛑 DIRECTIONAL SHIELD: {symbol} {action} is blacklisted by directional shield. Blocking Live MT5 Trade execution!")
                 signal['is_hidden'] = 1
                 return False
-            if is_commodity_benched(signal['symbol'], signal.get('signal')):
-                logger.critical(f"🛑 COMMODITY 40% GATE: {signal['symbol']} {signal.get('signal')} is benched (<40% WR in last 5 trades). Blocking Live MT5 Trade execution!")
+            if is_commodity_benched(symbol, action):
+                logger.critical(f"🛑 COMMODITY 40% GATE: {symbol} {action} is benched (<40% WR in last 5 trades). Blocking Live MT5 Trade execution!")
                 signal['is_hidden'] = 1
                 return False
 
             # --- PROP FIRM DRAWDOWN & WEEKEND SAFETY GATE ---
             from core.guardrail import get_guardrail
             guard = get_guardrail()
-            safety_status = guard.get_safety_status(symbol=signal.get('symbol'))
+            safety_status = guard.get_safety_status(symbol=symbol)
             if not safety_status['safe']:
-                logger.error(f"BLOCK: {signal['symbol']} trade canceled by Safety Guardrail ({safety_status['reason']}). Saving as SHADOW instead.")
+                logger.error(f"BLOCK: {symbol} trade canceled by Safety Guardrail ({safety_status['reason']}). Saving as SHADOW instead.")
                 signal['is_hidden'] = 1 # Force it into shadow log
                 return False
 
             # --- STRICT CONCURRENCY & CURRENCY BASKET CAP ---
-            blocked_by_cap, cap_reason = self._check_currency_basket_cap(signal['symbol'])
+            blocked_by_cap, cap_reason = self._check_currency_basket_cap(symbol)
             if blocked_by_cap:
-                logger.warning(f"🛑 BASKET/CONCURRENCY CAP: {signal['symbol']} trade canceled ({cap_reason}). Saving as SHADOW.")
+                logger.warning(f"🛑 BASKET/CONCURRENCY CAP: {symbol} trade canceled ({cap_reason}). Saving as SHADOW.")
                 signal['is_hidden'] = 1
                 return False
 
-            symbol = signal['symbol']
-            action = signal['signal']
-
             # ── ABSOLUTE DUPLICATE LOCK: NEVER OPEN 2 POSITIONS ON THE SAME PAIR ──
-            existing_positions = self.mt5.positions_get(symbol=symbol)
+            existing_positions = mt5.positions_get(symbol=symbol)
             if existing_positions:
                 logger.warning(f"🛑 CRITICAL DEDUP LOCK: Position for {symbol} already exists in MT5 ({len(existing_positions)} open). REJECTING new trade.")
                 return False
@@ -450,23 +458,23 @@ class ExecutiveEngine:
             lots = self._calculate_lot_size(symbol, sl_pips)
             
             # MT5 Order Type
-            order_type = self.mt5.ORDER_TYPE_BUY if action == "BUY" else self.mt5.ORDER_TYPE_SELL
+            order_type = mt5.ORDER_TYPE_BUY if action == "BUY" else mt5.ORDER_TYPE_SELL
             
             # 🔍 Determine supported filling mode (Broker-Specific)
-            filling_type = self.mt5.ORDER_FILLING_FOK
-            symbol_info = self.mt5.symbol_info(symbol)
+            filling_type = mt5.ORDER_FILLING_FOK
+            symbol_info = mt5.symbol_info(symbol)
             if symbol_info:
                 # Check bitmask for supported modes (1=FOK, 2=IOC)
                 if (symbol_info.filling_mode & 1):
-                    filling_type = self.mt5.ORDER_FILLING_FOK
+                    filling_type = mt5.ORDER_FILLING_FOK
                 elif (symbol_info.filling_mode & 2):
-                    filling_type = self.mt5.ORDER_FILLING_IOC
+                    filling_type = mt5.ORDER_FILLING_IOC
                 else:
                     # Common retail fallback
-                    filling_type = self.mt5.ORDER_FILLING_RETURN
+                    filling_type = mt5.ORDER_FILLING_RETURN
 
             request = {
-                "action": self.mt5.TRADE_ACTION_DEAL,
+                "action": mt5.TRADE_ACTION_DEAL,
                 "symbol": symbol,
                 "volume": lots,
                 "type": order_type,
@@ -475,13 +483,13 @@ class ExecutiveEngine:
                 "tp": tp,
                 "magic": 202404,  # APEX Magic Number
                 "comment": f"APEX {signal.get('confidence_tier')}%",
-                "type_time": self.mt5.ORDER_TIME_GTC,
+                "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": filling_type,
             }
 
             # Send order
-            result = self.mt5.order_send(request)
-            if not result or result.retcode != self.mt5.TRADE_RETCODE_DONE:
+            result = mt5.order_send(request)
+            if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
                 err_msg = result.comment if result else "Connection Timeout"
                 err_code = result.retcode if result else "N/A"
                 logger.error(f"MT5 ORDER FAILED: {err_msg} (Code: {err_code}) | Mode: {filling_type}")
@@ -660,9 +668,10 @@ class ExecutiveEngine:
                     # If there is already an active LIVE trade on this symbol in MT5, BLOCK any new entry!
                     if not new_is_shadow:
                         # 1. Check live positions directly in MT5 terminal
-                        if self.mt5:
+                        sym_mt5 = self.get_mt5_conn(symbol)
+                        if sym_mt5:
                             try:
-                                existing_mt5_pos = self.mt5.positions_get(symbol=symbol)
+                                existing_mt5_pos = sym_mt5.positions_get(symbol=symbol)
                                 if existing_mt5_pos:
                                     for p in existing_mt5_pos:
                                         if (signal == 'BUY' and p.type == 0) or (signal == 'SELL' and p.type == 1):
@@ -803,9 +812,10 @@ class ExecutiveEngine:
                     try:
                         from core.manual_model import get_copy_trading_mode, _mirror_master_position_to_followers
                         copy_mode = get_copy_trading_mode()
+                        m_mt5 = self.get_mt5_conn(symbol)
                         if copy_mode == "position_mirror":
                             if ticket and str(ticket).isdigit():
-                                m_pos = self.mt5.positions_get(ticket=int(ticket)) if (hasattr(self, 'mt5') and self.mt5) else None
+                                m_pos = m_mt5.positions_get(ticket=int(ticket)) if m_mt5 else None
                                 if m_pos:
                                     _mirror_master_position_to_followers(result, m_pos[0])
                                 else:
@@ -814,12 +824,12 @@ class ExecutiveEngine:
                             import importlib, scripts.multi_executor
                             importlib.reload(scripts.multi_executor)
                             from scripts.multi_executor import execute_signal_for_all_users
-                            if hasattr(self, 'mt5') and self.mt5:
-                                m_acc = self.mt5.account_info()
+                            if m_mt5:
+                                m_acc = m_mt5.account_info()
                                 if m_acc:
                                     result['master_balance'] = m_acc.balance
                                 if ticket and str(ticket).isdigit():
-                                    m_pos = self.mt5.positions_get(ticket=int(ticket))
+                                    m_pos = m_mt5.positions_get(ticket=int(ticket))
                                     if m_pos:
                                         result['master_volume'] = m_pos[0].volume
                             execute_signal_for_all_users(result)
@@ -1163,13 +1173,14 @@ class ExecutiveEngine:
             # If a signal has no ticket but MT5 has an open position for that symbol/direction,
             # save the ticket to the DB and keep the signal ACTIVE.
             # This prevents the watchdog from resolving via live tick with wrong outcomes.
-            if (not ticket or not str(ticket).isdigit() or int(ticket) == 0) and mt5_conn:
+            sig_mt5 = self.get_mt5_conn(symbol)
+            if (not ticket or not str(ticket).isdigit() or int(ticket) == 0) and sig_mt5:
                 is_suppressed = (sig.get('exit_reason') == 'ML_SUPPRESSED') or (sig.get('is_hidden', 0) == 1)
                 model_ver = str(sig.get('model_version') or '')
                 conf_val = float(sig.get('confidence') or 0.0)
                 if not is_suppressed and not (model_ver == 'confluence_ml_m15' and conf_val < 0.48):
                     try:
-                        open_positions = mt5_conn.positions_get(symbol=symbol)
+                        open_positions = sig_mt5.positions_get(symbol=symbol)
                         if open_positions:
                             for pos in open_positions:
                                 pos_direction = 'BUY' if pos.type == 0 else 'SELL'
@@ -1206,10 +1217,10 @@ class ExecutiveEngine:
 
             # ── CHECK 1: MT5 Ticket Status (Highest Priority) ──────────
             if ticket and str(ticket).isdigit() and int(ticket) > 0:
-                if mt5_conn:
+                if sig_mt5:
                     try:
                         # Check if position is still open in MT5
-                        pos = mt5_conn.positions_get(ticket=int(ticket))
+                        pos = sig_mt5.positions_get(ticket=int(ticket))
                         if pos:
                             # Position is actively open and managed natively by MT5 server with hard SL/TP.
                             # Keep ACTIVE and let MT5 natively execute the exit.
@@ -1218,7 +1229,7 @@ class ExecutiveEngine:
                         else:
                             # Position closed in MT5! Find out why in history deals.
                             import MetaTrader5 as mt
-                            hist = mt5_conn.history_deals_get(position=int(ticket))
+                            hist = sig_mt5.history_deals_get(position=int(ticket))
                             if hist:
                                 # Filter for exit deals (entry: 1=OUT, 2=INOUT, 3=OUT_BY)
                                 exit_deals = [d for d in hist if getattr(d, 'entry', None) in (1, 2, 3)]
@@ -1251,9 +1262,9 @@ class ExecutiveEngine:
 
 
             # ── CHECK 2: MT5 Live Ticks (Medium Priority) ──────────────
-            if not outcome and mt5_conn:
+            if not outcome and sig_mt5:
                 try:
-                    tick = mt5_conn.symbol_info_tick(symbol)
+                    tick = sig_mt5.symbol_info_tick(symbol)
                     if tick:
                         # Use BID for BUY exits, ASK for SELL exits
                         current_price = tick.bid if direction == 'BUY' else tick.ask
@@ -1331,7 +1342,7 @@ class ExecutiveEngine:
                     if copy_mode != 'position_mirror':
                         if ticket and str(ticket).isdigit() and int(ticket) > 0:
                             from scripts.multi_executor import close_signal_for_all_users
-                            open_on_master = [p for p in (self.mt5.positions_get(symbol=symbol) or []) if getattr(p, 'ticket', 0) != ticket] if (hasattr(self, 'mt5') and self.mt5) else []
+                            open_on_master = [p for p in (sig_mt5.positions_get(symbol=symbol) or []) if getattr(p, 'ticket', 0) != ticket] if sig_mt5 else []
                             if open_on_master:
                                 from core.manual_model import _load_mirrored_positions
                                 m_data = _load_mirrored_positions().get("mirrored_tickets", {}).get(str(ticket), {})

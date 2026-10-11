@@ -103,6 +103,7 @@ def init_db():
         "last_equity":         "REAL NOT NULL DEFAULT 0.0",
         "last_synced_at":      "TEXT NOT NULL DEFAULT ''",
         "is_master":           "INTEGER NOT NULL DEFAULT 0",
+        "is_crypto_master":    "INTEGER NOT NULL DEFAULT 0",
         "max_open_trades":     "INTEGER NOT NULL DEFAULT 3",
     }
     for col, definition in migrations.items():
@@ -379,9 +380,20 @@ def get_all_users() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def get_master_account() -> dict | None:
-    """Return the designated master MT5 account record."""
+def get_master_account(symbol: str = None) -> dict | None:
+    """Return the designated master MT5 account record (symbol-aware: FTMO for crypto, MetaQuotes for forex)."""
     conn = get_connection()
+    if symbol:
+        try:
+            from core.market_hours import is_crypto
+            if is_crypto(symbol):
+                row = conn.execute("SELECT * FROM user_accounts WHERE is_crypto_master = 1 LIMIT 1").fetchone()
+                if row:
+                    conn.close()
+                    return dict(row)
+        except Exception:
+            pass
+
     row = conn.execute("SELECT * FROM user_accounts WHERE is_master = 1 LIMIT 1").fetchone()
     conn.close()
     if row:
@@ -395,6 +407,10 @@ def get_master_account() -> dict | None:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
             mt5_cfg = cfg.get("mt5", {})
+            if symbol:
+                from core.market_hours import is_crypto
+                if is_crypto(symbol) and "crypto_master" in mt5_cfg:
+                    mt5_cfg = mt5_cfg.get("crypto_master", mt5_cfg)
             m_login = str(mt5_cfg.get("login", "")).strip()
             if m_login:
                 conn = get_connection()
@@ -405,6 +421,16 @@ def get_master_account() -> dict | None:
     except Exception:
         pass
     return None
+
+
+def set_crypto_master_account(account_id: int) -> bool:
+    """Designate a connected account as the dedicated Crypto Master Account."""
+    conn = get_connection()
+    conn.execute("UPDATE user_accounts SET is_crypto_master = 0")
+    conn.execute("UPDATE user_accounts SET is_crypto_master = 1, enabled = 1 WHERE id = ?", (int(account_id),))
+    conn.commit()
+    conn.close()
+    return True
 
 
 def set_master_account(account_id: int) -> bool:
@@ -500,30 +526,56 @@ def get_copy_target_accounts() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def get_enabled_users() -> list[dict]:
-    """Return only non-master accounts whose subscription is active and copy trading is enabled."""
+def get_enabled_users(symbol: str = None) -> list[dict]:
+    """Return only non-master accounts eligible to receive copied trades."""
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM user_accounts WHERE enabled = 1 AND (is_master = 0 OR is_master IS NULL) ORDER BY id"
+        "SELECT * FROM user_accounts WHERE enabled = 1 ORDER BY id"
     ).fetchall()
     conn.close()
 
-    # Get master login to protect against accidental duplicate execution
-    m_login = ""
+    # Get master logins (both forex and crypto) to protect against accidental duplicate execution
+    m_logins = set()
     try:
         import yaml
         cfg_path = PROJECT_ROOT / "config.yaml"
         if cfg_path.exists():
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
-            m_login = str(cfg.get("mt5", {}).get("login", "")).strip()
+            m1 = str(cfg.get("mt5", {}).get("login", "")).strip()
+            if m1:
+                m_logins.add(m1)
+            m2 = str(cfg.get("mt5", {}).get("crypto_master", {}).get("login", "")).strip()
+            if m2:
+                m_logins.add(m2)
     except Exception:
         pass
+
+    from core.market_hours import is_crypto
+    is_c = is_crypto(symbol) if symbol else False
 
     res = []
     for r in rows:
         d = dict(r)
-        if is_subscription_active(d) and (not m_login or str(d.get("mt5_login", "")).strip() != m_login):
+        acc_login = str(d.get("mt5_login", "")).strip()
+        is_primary_m = bool(d.get("is_master", 0))
+        is_crypto_m = bool(d.get("is_crypto_master", 0))
+
+        # FTMO is dedicated crypto master: NEVER copy Forex or Commodity trades!
+        if is_crypto_m and not is_c:
+            continue
+
+        # If it's a crypto trade, primary forex master does not copy it
+        if is_primary_m and is_c:
+            continue
+
+        # Skip the active master for this specific symbol
+        if is_primary_m and not is_c:
+            continue
+        if is_crypto_m and is_c:
+            continue
+
+        if is_subscription_active(d) and (acc_login not in m_logins):
             res.append(d)
     return res
 

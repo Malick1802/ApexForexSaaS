@@ -65,17 +65,33 @@ class MT5Connector:
             current = current.parent
         return {}
 
-    def get_connection(self):
+    def _get_target_config(self, symbol: Optional[str] = None) -> dict:
+        """Return the target account config (crypto_master for crypto, primary for forex)."""
+        base_cfg = self._load_config()
+        if symbol:
+            try:
+                from core.market_hours import is_crypto
+                if is_crypto(symbol):
+                    crypto_cfg = base_cfg.get('crypto_master', {})
+                    if crypto_cfg:
+                        merged = dict(base_cfg)
+                        merged.update(crypto_cfg)
+                        return merged
+            except Exception:
+                pass
+        return base_cfg
+
+    def get_connection(self, symbol: Optional[str] = None):
         """
-        Return the active MT5 connection object.
-        Initializes the connection if not already active.
+        Return the active MT5 connection object for the given symbol.
+        Automatically connects to FTMO for crypto and MetaQuotes for forex.
         """
         if not MT5_AVAILABLE:
             logger.error("[ERROR] MT5 Interface unavailable (mt5linux missing).")
             return None
 
         # Verify active connection against current configuration on disk
-        target_cfg = self._load_config()
+        target_cfg = self._get_target_config(symbol=symbol)
         target_login = str(target_cfg.get('login', '')).strip()
         target_server = str(target_cfg.get('server', '')).strip()
 
@@ -89,22 +105,23 @@ class MT5Connector:
                     if curr_login == target_login and (not target_server or curr_server.upper() == target_server.upper()):
                         return self._connection
                     else:
-                        logger.info(f"🔄 Master account changed: Connected to #{curr_login} ({curr_server}) but target is #{target_login} ({target_server}). Reconnecting...")
+                        logger.info(f"🔄 Switching MT5 Master: #{curr_login} ({curr_server}) -> #{target_login} ({target_server}) for {symbol or 'forex'}")
                         self.shutdown()
             except Exception:
                 logger.warning("[RETRY] MT5 connection stale. Re-initializing...")
                 self._connection = None
 
-        return self._initialize_connection()
+        return self._initialize_connection(target_cfg=target_cfg)
 
     def reload_config(self) -> dict:
         """Reload configuration from disk."""
         self.config = self._load_config()
         return self.config
 
-    def _initialize_connection(self):
+    def _initialize_connection(self, target_cfg: Optional[dict] = None):
         """Perform the actual MT5 initialization (Native or Bridge)."""
-        self.config = self._load_config()
+        cfg = target_cfg or self._load_config()
+        self.config = cfg
         if BRIDGE_MODE:
             logger.info("[LINK] Attempting link to Linux MT5 Bridge (Wine)...")
         else:
@@ -116,13 +133,13 @@ class MT5Connector:
             conn = mt5() if BRIDGE_MODE else mt5
             
             # Read parameters from config
-            login = self.config.get('login')
-            password = self.config.get('password')
-            server = self.config.get('server')
+            login = cfg.get('login')
+            password = cfg.get('password')
+            server = cfg.get('server')
 
             if BRIDGE_MODE:
-                host = self.config.get('host', '127.0.0.1')
-                port = self.config.get('port', 18812)
+                host = cfg.get('host', '127.0.0.1')
+                port = cfg.get('port', 18812)
                 logger.info(f"Connecting to {host}:{port} (Account: {login})")
                 success = conn.initialize(
                     host=host,
@@ -132,7 +149,13 @@ class MT5Connector:
                     server=server
                 )
             else:
-                path = self.config.get('path') or (r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe" if "FTMO" in str(server).upper() else None)
+                path = cfg.get('path')
+                if not path:
+                    if "FTMO" in str(server).upper():
+                        path = r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe"
+                    else:
+                        path = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+
                 init_kwargs = {
                     "login": int(login) if login else None,
                     "password": str(password) if password else None,
@@ -171,6 +194,6 @@ class MT5Connector:
             self._connection = None
 
 # Global helper for quick access
-def get_mt5():
-    """Returns the singleton MT5 connection object."""
-    return MT5Connector().get_connection()
+def get_mt5(symbol: Optional[str] = None):
+    """Returns the MT5 connection object (symbol-aware: FTMO for crypto, MetaQuotes for forex)."""
+    return MT5Connector().get_connection(symbol=symbol)

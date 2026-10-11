@@ -253,18 +253,11 @@ def _mirror_master_position_to_followers(sig: dict, pos) -> dict:
         return {"status": "ERROR", "error": str(e)}
 
 
-def get_mt5():
+def get_mt5(symbol: Optional[str] = None):
     """Return the connected MT5 module for the master account via MT5Connector."""
     try:
-        from core.mt5_connector import MT5Connector
-        connector = MT5Connector()
-        conn = connector.get_connection()
-        if conn is not None:
-            return conn
-        import MetaTrader5 as mt5
-        if mt5.terminal_info() is None:
-            mt5.initialize()
-        return mt5
+        from core.mt5_connector import get_mt5 as _get_mt5
+        return _get_mt5(symbol=symbol)
     except Exception as e:
         logger.error(f"MT5 not available: {e}")
         return None
@@ -275,7 +268,7 @@ def get_broker_offset_hours(symbol: str = "EURUSD") -> int:
     Determine the offset in hours between the MT5 broker clock and UTC.
     E.g., FTMO server is GMT+3 (EEST summer), so this returns 3.
     """
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return 0
     try:
@@ -311,7 +304,7 @@ def get_forming_candle(symbol: str) -> Optional[Dict[str, Any]]:
       next_candle_close (when the NEXT M15 window ends - order expiry),
       is_forming (True if candle is still live), spread
     """
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return None
     try:
@@ -467,7 +460,7 @@ def calculate_lot_size(
     Compute broker-accurate lot size.
     Returns lots, risk_usd, balance, pip_size, sl_pips, loss_per_lot, margin_per_lot, etc.
     """
-    mt5 = get_mt5()
+    mt5 = get_mt5(symbol=symbol)
     result = {
         "lots": 0.01, "risk_usd": 0.0, "balance": 0.0,
         "pip_size": get_pip_size(symbol), "sl_pips": 0.0,
@@ -761,24 +754,25 @@ def submit_manual_order(
         result["error"] = reason
         return result
 
-    mt5 = get_mt5()
+    symbol         = order_spec["symbol"]
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         result["error"] = "MT5 not connected."
         return result
 
-    # Verify connected account against designated Master Account in database
+    # Verify connected account against designated Master Account in database (symbol-aware)
     from core.user_accounts import get_master_account
-    master_rec = get_master_account()
+    master_rec = get_master_account(symbol=symbol)
     if master_rec:
         expected_login = str(master_rec.get("mt5_login", "")).strip()
         acc_info = mt5.account_info()
         if acc_info:
             connected_login = str(getattr(acc_info, "login", "")).strip()
             if expected_login and connected_login != expected_login:
-                logger.warning(f"⚠️ Connected MT5 account #{connected_login} does not match active Master Account #{expected_login}. Reconnecting...")
+                logger.warning(f"⚠️ Connected MT5 account #{connected_login} does not match active Master Account #{expected_login} for {symbol}. Reconnecting...")
                 from core.mt5_connector import MT5Connector
                 MT5Connector().shutdown()
-                mt5 = get_mt5()
+                mt5 = get_mt5(symbol=symbol)
                 acc_info = mt5.account_info()
 
             if not master_rec.get("enabled", 1):
@@ -786,9 +780,7 @@ def submit_manual_order(
                 result["error"] = f"Master Account #{expected_login} is paused/disabled. Enable it in the Copy Trading Hub to place orders."
                 return result
 
-            logger.info(f"🎯 Placing manual order on MT5 Master: #{getattr(acc_info, 'login', '?')} ({getattr(acc_info, 'server', '?')})")
-
-    symbol         = order_spec["symbol"]
+            logger.info(f"🎯 Placing order on MT5 Master: #{getattr(acc_info, 'login', '?')} ({getattr(acc_info, 'server', '?')}) for {symbol}")
     try:
         mt5.symbol_select(symbol, True)
     except Exception:
@@ -1703,7 +1695,7 @@ def process_armed_m15_orders() -> List[Dict[str, Any]]:
                 except Exception as e:
                     logger.error(f"Guardrail check failed in process_armed_m15_orders: {e}")
 
-                mt5 = get_mt5()
+                mt5 = get_mt5(symbol=symbol)
                 if not mt5:
                     task["status"] = "FAILED"
                     task["error"] = "MT5 not connected"

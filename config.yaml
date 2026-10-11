@@ -465,18 +465,23 @@ model_gatekeeper:
   manual_m15: false
 mt5:
   breakeven_recovery_target: 10000.0
+  crypto_master:
+    login: 1514884839
+    password: t5!SFg7*l8au
+    path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+    server: FTMO-Demo
   enabled: true
   host: 127.0.0.1
-  login: 1514884839
+  login: 10012808167
   max_open_trades: 20
   max_positions_per_currency: 1
   max_trade_leverage: 30
-  password: t5!SFg7*l8au
-  path: C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe
+  password: EkJ*A3Zm
+  path: C:\Program Files\MetaTrader 5\terminal64.exe
   port: 18812
   risk_type: percent
   risk_value: 0.5
-  server: FTMO-Demo
+  server: MetaQuotes-Demo
 notifications:
   telegram:
     alert_threshold: 0.61
