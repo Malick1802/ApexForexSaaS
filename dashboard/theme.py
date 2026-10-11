@@ -1354,6 +1354,197 @@ def inject_css():
         /* wide tables/charts scroll inside themselves instead of the page */
         [data-testid="stDataFrame"], [data-testid="stTable"] { overflow-x: auto; }
     }
+
+    /* ── Market Sessions Cockpit ───────────────────── */
+    .session-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .session-card {
+        background: radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.05) 0%, transparent 60%),
+                    linear-gradient(145deg, rgba(14, 22, 42, 0.75) 0%, rgba(8, 12, 25, 0.85) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease;
+    }
+    .session-card.session-open {
+        border-top: 2px solid var(--signal-buy);
+        box-shadow: 0 4px 18px rgba(0, 255, 136, 0.1);
+    }
+    .session-card.session-closed {
+        border-top: 2px solid rgba(255, 255, 255, 0.1);
+        opacity: 0.75;
+    }
+    .session-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+    .session-city {
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 3px;
+    }
+    .session-hours {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    .session-badge-open {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: var(--signal-buy);
+        background: rgba(0, 255, 136, 0.12);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+    .session-badge-closed {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* ── Opportunity Cards ─────────────────────────── */
+    .opp-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+    .opp-card {
+        background: radial-gradient(circle at 90% 10%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
+                    linear-gradient(145deg, rgba(14, 22, 44, 0.82) 0%, rgba(8, 12, 26, 0.92) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    }
+    .opp-card.opp-buy {
+        border-top: 3px solid var(--signal-buy);
+    }
+    .opp-card.opp-buy:hover {
+        border-color: rgba(0, 255, 136, 0.45);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 0 20px rgba(0, 255, 136, 0.18);
+        transform: translateY(-2px);
+    }
+    .opp-card.opp-sell {
+        border-top: 3px solid var(--signal-sell);
+    }
+    .opp-card.opp-sell:hover {
+        border-color: rgba(255, 68, 102, 0.45);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 0 20px rgba(255, 68, 102, 0.18);
+        transform: translateY(-2px);
+    }
+    .opp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .opp-symbol {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .opp-dir-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+    }
+    .opp-dir-buy {
+        background: rgba(0, 255, 136, 0.12);
+        color: var(--signal-buy);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+    .opp-dir-sell {
+        background: rgba(255, 68, 102, 0.12);
+        color: var(--signal-sell);
+        border: 1px solid rgba(255, 68, 102, 0.3);
+    }
+    .opp-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.28);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin: 10px 0;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .opp-metric-item {
+        text-align: center;
+    }
+    .opp-metric-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+    }
+    .opp-metric-val {
+        font-family: var(--font-mono);
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin-top: 2px;
+        color: #ffffff;
+    }
+
+    /* ── Market Breadth / Vitality Pill ────────────────── */
+    .vitality-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .vitality-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: rgba(14, 22, 42, 0.75);
+        border: 1px solid rgba(0, 229, 255, 0.16);
+        border-radius: var(--radius-md);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--text-primary);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    .vitality-pill b {
+        font-weight: 800;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1572,3 +1763,84 @@ def section_header(icon, text):
         <div class="section-header-text">{text}</div>
     </div>
     """, unsafe_allow_html=True)
+
+
+def render_market_sessions_cockpit():
+    """
+    Renders real-time Global Market Trading Sessions cockpit:
+    Sydney (21:00-06:00 UTC), Tokyo (00:00-09:00 UTC),
+    London (08:00-16:30 UTC), New York (13:00-21:00 UTC).
+    Highlights session overlaps and live market open/closed status with pulsing indicators.
+    """
+    from datetime import datetime, timezone
+
+    now_utc = datetime.now(timezone.utc)
+    utc_hour = now_utc.hour + now_utc.minute / 60.0
+    weekday = now_utc.weekday()  # 0=Monday, 4=Friday, 5=Saturday, 6=Sunday
+
+    # FX Market weekend status (closed Friday 22:00 UTC to Sunday 21:00 UTC)
+    is_weekend = (weekday == 4 and utc_hour >= 21.9) or (weekday == 5) or (weekday == 6 and utc_hour < 21.0)
+
+    # Session calculations in UTC
+    sydney_open = not is_weekend and (utc_hour >= 21.0 or utc_hour < 6.0)
+    tokyo_open = not is_weekend and (0.0 <= utc_hour < 9.0)
+    london_open = not is_weekend and (8.0 <= utc_hour < 16.5)
+    ny_open = not is_weekend and (13.0 <= utc_hour < 21.0)
+
+    # Overlap and vitality message
+    if is_weekend:
+        overlap_tag = '<span style="color:#FFA726;">🛡️ Weekend Market Pause · Forex Halted (Sunday Buffer Active) · Crypto 24/7 Live</span>'
+    elif london_open and ny_open:
+        overlap_tag = '<span style="color:#00FF88;">🔥 LONDON / NEW YORK OVERLAP ACTIVE · Peak Global Volume & Tight Spreads</span>'
+    elif tokyo_open and london_open:
+        overlap_tag = '<span style="color:#00E5FF;">⚡ TOKYO / LONDON OVERLAP ACTIVE · European Opening Expansion</span>'
+    elif sydney_open and tokyo_open:
+        overlap_tag = '<span style="color:#00E5FF;">🌏 ASIAN SESSION ACTIVE · Cross-Liquidity in JPY & AUD Pairs</span>'
+    elif london_open:
+        overlap_tag = '<span style="color:#00FF88;">🇬🇧 LONDON SESSION ACTIVE · Institutional Flow in EUR & GBP</span>'
+    elif ny_open:
+        overlap_tag = '<span style="color:#00FF88;">🇺🇸 NEW YORK SESSION ACTIVE · Wall Street & Dollar Liquidity</span>'
+    else:
+        overlap_tag = '<span style="color:#8e9bb0;">🌐 INTER-SESSION TRANSITION · Neural Watchdog Scanning M15 / H1</span>'
+
+    sessions = [
+        {"city": "SYDNEY", "icon": "🇦🇺", "hours": "21:00 – 06:00 UTC", "is_open": sydney_open},
+        {"city": "TOKYO", "icon": "🇯🇵", "hours": "00:00 – 09:00 UTC", "is_open": tokyo_open},
+        {"city": "LONDON", "icon": "🇬🇧", "hours": "08:00 – 16:30 UTC", "is_open": london_open},
+        {"city": "NEW YORK", "icon": "🇺🇸", "hours": "13:00 – 21:00 UTC", "is_open": ny_open},
+    ]
+
+    cards_html = ""
+    for s in sessions:
+        if s["is_open"]:
+            cls = "session-card session-open"
+            badge = '<span class="session-badge-open"><span class="moonx-pulse-dot moonx-pulse-green"></span> OPEN</span>'
+        else:
+            cls = "session-card session-closed"
+            badge = '<span class="session-badge-closed">CLOSED</span>'
+
+        cards_html += f"""
+        <div class="{cls}">
+            <div class="session-city">
+                <span>{s['icon']} {s['city']}</span>
+                {badge}
+            </div>
+            <div class="session-hours">{s['hours']}</div>
+        </div>
+        """
+
+    time_str = now_utc.strftime("%H:%M:%S UTC · %A, %b %d")
+
+    cockpit_html = f"""
+    <div style="margin-bottom: 20px;">
+        <div class="session-grid">
+            {cards_html}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:6px 14px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; font-size:0.75rem; font-family:var(--font-mono);">
+            <div>{overlap_tag}</div>
+            <div style="color:var(--text-secondary); font-weight:600;">⏱️ {time_str}</div>
+        </div>
+    </div>
+    """
+    st.markdown(cockpit_html, unsafe_allow_html=True)
+

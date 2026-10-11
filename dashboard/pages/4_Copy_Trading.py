@@ -670,10 +670,10 @@ with tab_hub:
         )
 
         st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(22, 27, 34, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 8px 14px; margin: 4px 0 18px 0;">
-            <span style="font-size: 0.82rem; color: #8b949e;">Fleet Status: <b style="color: #3fb950;">{len(enabled_accounts)} of {len(all_accounts)} accounts synchronized</b></span>
-            <span style="font-size: 0.95rem; font-family: var(--font-mono, monospace); font-weight: 700; color: #f0f6fc;">
-                Total Aggregated Capital: <span style="color: #3fb950;">${est_total_capital:,.2f}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(13, 20, 38, 0.85); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 10px; padding: 10px 18px; margin: 6px 0 20px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+            <span style="font-size: 0.85rem; color: var(--text-secondary);"><span class="moonx-pulse-dot moonx-pulse-green" style="display:inline-block; vertical-align:middle; margin-right:6px;"></span> Fleet Status: <b style="color: #00FF88;">{len(enabled_accounts)} of {len(all_accounts)} accounts synchronized</b></span>
+            <span style="font-size: 0.95rem; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                Total Aggregated Capital: <span style="color: #00E5FF; font-weight: 800;">${est_total_capital:,.2f}</span>
             </span>
         </div>
         """, unsafe_allow_html=True)

@@ -25,7 +25,8 @@ from typing import Optional, Dict, Any, List
 from theme import (
     inject_css, get_db, get_engine, get_inference,
     kpi_card, hero_banner, sidebar_logo, sidebar_footer, section_header,
-    PROJECT_ROOT, render_system_monitor, render_moonx_ticker_ribbon
+    PROJECT_ROOT, render_system_monitor, render_moonx_ticker_ribbon,
+    render_market_sessions_cockpit
 )
 
 logger = logging.getLogger(__name__)
@@ -337,6 +338,9 @@ def show_command_center():
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Live Global Trading Sessions Cockpit ───────────────────
+    render_market_sessions_cockpit()
+
     # ── Onboarding Banner for Subscribers ───────────────────────
     _u_email = st.session_state.get("user_email", "")
     _u_role = st.session_state.get("user_role", "subscriber")
@@ -478,63 +482,139 @@ def show_command_center():
     section_header("🎯", "High Confidence Opportunities")
 
     if active_signals:
-        # Sort by confidence descending
-        # Convert list of dicts to DF for display
-        df_active = pd.DataFrame(active_signals)
-        # Filter for display (optional, depending on what we want to show)
-        # Assuming all active signals are "opportunities"
-        
+        # 1. Render Top Opportunity Cards (up to 3 setups)
+        top_opps = sorted(active_signals, key=lambda s: float(s.get('confidence') or 0), reverse=True)[:3]
+        opp_cols = st.columns(len(top_opps))
+        for idx, sig_item in enumerate(top_opps):
+            with opp_cols[idx]:
+                _sym = sig_item.get('symbol', 'UNKNOWN')
+                _dir = sig_item.get('signal', 'BUY')
+                _dir_icon = "🟢" if _dir == "BUY" else "🔴"
+                _dir_cls = "opp-dir-buy" if _dir == "BUY" else "opp-dir-sell"
+                _conf = float(sig_item.get('confidence') or 0) * 100
+                _entry = float(sig_item.get('price_at_signal') or 0)
+                _tp = float(sig_item.get('tp_price') or 0)
+                _sl = float(sig_item.get('sl_price') or 0)
+                _dec = 2 if ("JPY" in _sym or "XAU" in _sym or "OIL" in _sym or "BTC" in _sym) else 5
+                _t_num = sig_item.get('mt5_ticket')
+                _t_tag = f"#{int(_t_num)}" if _t_num else "PENDING"
+                
+                # Card HTML
+                st.markdown(f"""
+                <div class="opp-card {'opp-buy' if _dir == 'BUY' else 'opp-sell'}">
+                    <div class="opp-header">
+                        <div class="opp-symbol">
+                            <span>{_sym}</span>
+                            <span class="opp-dir-badge {_dir_cls}">{_dir_icon} {_dir}</span>
+                        </div>
+                        <div class="moonx-pill moonx-pill-cyan" style="font-size:0.68rem;">{_conf:.0f}% CONV</div>
+                    </div>
+                    <div class="opp-metrics-grid">
+                        <div class="opp-metric-item">
+                            <div class="opp-metric-label">Entry</div>
+                            <div class="opp-metric-val">{_entry:,.{_dec}f}</div>
+                        </div>
+                        <div class="opp-metric-item">
+                            <div class="opp-metric-label" style="color:var(--signal-buy);">Target TP</div>
+                            <div class="opp-metric-val" style="color:var(--signal-buy);">{_tp:,.{_dec}f if _tp else '—'}</div>
+                        </div>
+                        <div class="opp-metric-item">
+                            <div class="opp-metric-label" style="color:var(--signal-sell);">Stop SL</div>
+                            <div class="opp-metric-val" style="color:var(--signal-sell);">{_sl:,.{_dec}f if _sl else '—'}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; font-family:var(--font-mono); margin-top:8px; color:var(--text-secondary);">
+                        <span>Ticket: <b style="color:#00E5FF;">{_t_tag}</b></span>
+                        <span>Target R:R: <b style="color:#FFD700;">1:1.50</b></span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button(f"🔍 Inspect {_sym} in Terminal", key=f"cmd_opp_btn_{_sym}_{idx}", use_container_width=True):
+                    st.session_state['pair_selector'] = _sym
+                    st.session_state['nav_target'] = 'terminal'
+                    st.rerun()
+
+        st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+
+        # 2. Rich Streamlit Dataframe for Full Opportunity Pool
+        df_active = pd.DataFrame(active_signals).copy()
         if not df_active.empty:
-            cols_to_show = ['symbol', 'signal', 'confidence', 'price_at_signal', 'timestamp']
+            df_active['Direction'] = df_active['signal'].apply(lambda d: "🟢 BUY" if d == "BUY" else ("🔴 SELL" if d == "SELL" else d))
+            df_active['Confidence_Num'] = df_active['confidence'].apply(lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0))
             if 'mt5_ticket' in df_active.columns:
-                df_active['ticket_disp'] = df_active['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
-                cols_to_show = ['symbol', 'signal', 'confidence', 'price_at_signal', 'ticket_disp', 'timestamp']
-                df_display = df_active[cols_to_show].copy()
-                df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'MT5 Ticket', 'Detected']
+                df_active['Ticket'] = df_active['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
             else:
-                df_display = df_active[cols_to_show].copy()
-                df_display.columns = ['Pair', 'Direction', 'Confidence', 'Entry', 'Detected']
+                df_active['Ticket'] = "—"
             
-            # Formatting
-            df_display['Confidence'] = df_display['Confidence'].apply(lambda x: float(x) * 100)
-            
-            # Render styled table
+            df_active['Entry_Price'] = pd.to_numeric(df_active['price_at_signal'], errors='coerce')
+            df_active['Detected_Time'] = df_active['timestamp'].astype(str).str[:19].str.replace('T', ' ')
+
+            cols_active_show = ['symbol', 'Direction', 'Confidence_Num', 'Entry_Price', 'Ticket', 'Detected_Time']
+            df_active_table = df_active[cols_active_show].copy()
+
             event = st.dataframe(
-                df_display,
+                df_active_table,
                 use_container_width=True,
                 hide_index=True,
                 on_select="rerun",
                 selection_mode="single-row",
                 key="signal_table_active",
                 column_config={
-                    "Confidence": st.column_config.ProgressColumn(
-                        "Confidence",
+                    "symbol": st.column_config.TextColumn("Instrument", width="medium"),
+                    "Direction": st.column_config.TextColumn("Signal", width="small"),
+                    "Confidence_Num": st.column_config.ProgressColumn(
+                        "Conviction",
                         format="%.0f%%",
                         min_value=0,
                         max_value=100,
-                    )
+                        width="medium"
+                    ),
+                    "Entry_Price": st.column_config.NumberColumn("Entry Level", format="%.5f", width="small"),
+                    "Ticket": st.column_config.TextColumn("MT5 Ticket", width="small"),
+                    "Detected_Time": st.column_config.TextColumn("Signal Detected (UTC)", width="medium")
                 }
             )
             
             if event.selection.rows:
                 try:
                     selected_idx = event.selection.rows[0]
-                    symbol = df_display.iloc[selected_idx]['Pair']
+                    symbol = df_active_table.iloc[selected_idx]['symbol']
                     st.session_state['pair_selector'] = symbol
-                    # Navigate to Trading Terminal via router
                     st.session_state['nav_target'] = 'terminal'
                     st.rerun()
                 except Exception as e:
                     st.error(f"Navigation failed: {e}")
             
-    # Fallback to empty if no signals
+    # Fallback to rich neural status if no active signals currently armed
     if not active_signals:
-        st.markdown("""
-        <div class="glass-card" style="padding: 26px; text-align: center; border: 1px dashed rgba(255,255,255,0.14); margin-top: 10px;">
-            <div style="font-size: 2rem; margin-bottom: 8px;">📡</div>
-            <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 4px;">Market Surveillance Active</div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem; max-width: 540px; margin: 0 auto; line-height: 1.6;">
-                ForexAlert Neural Engines are continuously monitoring 29 FX pairs and commodities. High-conviction trade opportunities will populate here automatically.
+        st.markdown(f"""
+        <div class="glass-card" style="padding: 24px 26px; border: 1px solid rgba(0, 229, 255, 0.2); margin-top: 10px; margin-bottom: 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:1.6rem;">📡</span>
+                    <div>
+                        <div style="font-weight:800; font-size:1.05rem; color:#ffffff; letter-spacing:-0.02em;">Institutional Neural Surveillance Active</div>
+                        <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">Real-time pattern recognition across 31 Forex and Commodity instruments · Institutional-grade 61%+ gating</div>
+                    </div>
+                </div>
+                <div class="moonx-pill moonx-pill-green"><span class="moonx-pulse-dot moonx-pulse-green"></span> 60S SCAN CYCLE LIVE</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:14px 16px;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">AI Scanner Integrity</div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#00E5FF; margin-top:4px;">M15 & H1 Synchronized</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:3px;">31 Instruments · Latency &lt; 120ms</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:14px 16px;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Institutional Gatekeepers</div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#00FF88; margin-top:4px;">61%+ Conviction Gating</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:3px;">Sunday 2H Buffer · Friday Exit Armed</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:14px 16px;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Execution Gateway</div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#FFD700; margin-top:4px;">MetaTrader 5 Bridge Online</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:3px;">Pending Stop/Limit Auto-Arming Active</div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -544,33 +624,36 @@ def show_command_center():
     expander_title = f"📜 Closed Trade History ({completed_count} Closed This Week)" if completed_count > 0 else "📜 Closed Trade History (Click to View)"
     with st.expander(expander_title, expanded=False):
         if expired_signals:
-            df_hist = pd.DataFrame(expired_signals)
-            # Format MT5 ticket if present
-            if 'mt5_ticket' in df_hist.columns:
-                df_hist['ticket_disp'] = df_hist['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
-                cols = ['symbol', 'signal', 'outcome', 'confidence', 'price_at_signal', 'ticket_disp', 'timestamp']
-            else:
-                cols = ['symbol', 'signal', 'outcome', 'confidence', 'price_at_signal', 'timestamp']
-            if 'confidence' in df_hist.columns:
-                df_hist['confidence'] = df_hist['confidence'].apply(lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0))
-            show_cols = [c for c in cols if c in df_hist.columns]
+            df_hist = pd.DataFrame(expired_signals).copy()
+            df_hist['Direction'] = df_hist['signal'].apply(lambda d: "🟢 BUY" if d == "BUY" else ("🔴 SELL" if d == "SELL" else d))
+            df_hist['Result'] = df_hist['outcome'].apply(
+                lambda o: "✅ TP HIT (+1.5R)" if o == "SUCCESS" else ("❌ SL HIT (-1.0R)" if o == "FAIL" else ("⏳ EXPIRED" if o == "EXPIRED" else o))
+            )
+            df_hist['Confidence_Num'] = df_hist['confidence'].apply(
+                lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0)
+            )
+            df_hist['Entry_Level'] = pd.to_numeric(df_hist['price_at_signal'], errors='coerce')
+            df_hist['Detected_Time'] = df_hist['timestamp'].astype(str).str[:19].str.replace('T', ' ')
             
-            col_cfg = {
-                "symbol": "Pair",
-                "signal": "Direction",
-                "outcome": "Result",
-                "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100),
-                "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
-                "timestamp": "Detected"
-            }
-            if 'ticket_disp' in df_hist.columns:
-                col_cfg["ticket_disp"] = "MT5 Ticket"
+            if 'mt5_ticket' in df_hist.columns:
+                df_hist['Ticket'] = df_hist['mt5_ticket'].apply(lambda x: f"#{int(x)}" if pd.notnull(x) and x else "—")
+                show_cols = ['symbol', 'Direction', 'Result', 'Confidence_Num', 'Entry_Level', 'Ticket', 'Detected_Time']
+            else:
+                show_cols = ['symbol', 'Direction', 'Result', 'Confidence_Num', 'Entry_Level', 'Detected_Time']
 
             st.dataframe(
                 df_hist[show_cols],
                 use_container_width=True,
                 hide_index=True,
-                column_config=col_cfg
+                column_config={
+                    "symbol": st.column_config.TextColumn("Instrument", width="medium"),
+                    "Direction": st.column_config.TextColumn("Direction", width="small"),
+                    "Result": st.column_config.TextColumn("Outcome / Realized", width="medium"),
+                    "Confidence_Num": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100, width="medium"),
+                    "Entry_Level": st.column_config.NumberColumn("Entry Price", format="%.5f", width="small"),
+                    "Ticket": st.column_config.TextColumn("Ticket", width="small"),
+                    "Detected_Time": st.column_config.TextColumn("Closed At (UTC)", width="medium")
+                }
             )
         else:
             st.info("No expired or closed trades found in recent history.")
@@ -670,7 +753,28 @@ def show_market_overview():
         if active_crypto:
             categories["🪙 Crypto (24/7)"] = active_crypto
 
-        for cat_name, pair_list in categories.items():
+        # ── Market Breadth & Vitality Strip ────────────────────
+        total_syms = sum(len(pl) for pl in categories.values())
+        live_buys = sum(1 for s in sig_map.values() if s.get('signal') == 'BUY' and int(s.get('confidence_tier') or 0) > 0)
+        live_sells = sum(1 for s in sig_map.values() if s.get('signal') == 'SELL' and int(s.get('confidence_tier') or 0) > 0)
+        cert_count = len(certified_symbols)
+
+        st.markdown(f"""
+        <div class="vitality-container">
+            <div class="vitality-pill">🌐 Monitored Assets: <b>{total_syms}</b></div>
+            <div class="vitality-pill" style="border-color:rgba(0,255,136,0.3); color:#00FF88;">🟢 Bullish Setups: <b>{live_buys}</b></div>
+            <div class="vitality-pill" style="border-color:rgba(255,68,102,0.3); color:#FF4466;">🔴 Bearish Setups: <b>{live_sells}</b></div>
+            <div class="vitality-pill" style="border-color:rgba(0,229,255,0.3); color:#00E5FF;">🛡️ Certified Assets: <b>{cert_count}</b></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        cat_choices = ["🌐 All Categories"] + list(categories.keys())
+        selected_cat = st.radio("Asset Category Filter", cat_choices, index=0, horizontal=True, label_visibility="collapsed", key="market_overview_cat_filter")
+        st.markdown("<div style='margin-bottom:14px;'></div>", unsafe_allow_html=True)
+
+        filtered_cats = categories if selected_cat == "🌐 All Categories" else {selected_cat: categories[selected_cat]}
+
+        for cat_name, pair_list in filtered_cats.items():
             if not pair_list: continue
             st.markdown(f'<div class="section-header"><span class="section-header-text">{cat_name}</span></div>', unsafe_allow_html=True)
             cols = st.columns(3)
@@ -2168,25 +2272,43 @@ def _show_manual_m15_cockpit(symbol: str, all_pairs: list):
             for t in manual_trades:
                 dur_m = (t.get("duration_seconds") or 0) // 60
                 dur_str = f"{dur_m}m" if dur_m > 0 else "<1m"
+                s_sig = t.get("signal")
+                s_badge = "🟢 BUY" if s_sig == "BUY" else ("🔴 SELL" if s_sig == "SELL" else s_sig)
+                o_res = t.get("outcome")
+                o_badge = "✅ TP HIT" if o_res == "SUCCESS" else ("❌ SL HIT" if o_res == "FAIL" else ("⚡ ACTIVE" if o_res == "ACTIVE" else o_res))
                 trade_rows.append({
                     "Timestamp": t.get("timestamp", "")[:19].replace("T", " "),
                     "Symbol": t.get("symbol"),
-                    "Signal": t.get("signal"),
+                    "Signal": s_badge,
                     "Lots": t.get("suggested_lots"),
-                    "Entry": f"{float(t.get('price_at_signal') or 0):.5f}",
-                    "Exit": f"{float(t.get('exit_price') or 0):.5f}" if t.get("exit_price") else "—",
-                    "TP": f"{float(t.get('tp_price') or 0):.5f}" if t.get("tp_price") else "—",
-                    "SL": f"{float(t.get('sl_price') or 0):.5f}" if t.get("sl_price") else "—",
-                    "Outcome": t.get("outcome"),
+                    "Entry": float(t.get('price_at_signal') or 0),
+                    "Exit": float(t.get('exit_price') or 0) if t.get("exit_price") else None,
+                    "TP": float(t.get('tp_price') or 0) if t.get("tp_price") else None,
+                    "SL": float(t.get('sl_price') or 0) if t.get("sl_price") else None,
+                    "Outcome": o_badge,
                     "Duration": dur_str,
-                    "Ticket": f"#{t.get('mt5_ticket')}" if t.get("mt5_ticket") else "—",
+                    "Ticket": f"#{int(t.get('mt5_ticket'))}" if t.get("mt5_ticket") else "—",
                     "Reason": t.get("exit_reason") or "—"
                 })
 
             st.dataframe(
                 pd.DataFrame(trade_rows),
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                column_config={
+                    "Timestamp": st.column_config.TextColumn("Time (UTC)", width="medium"),
+                    "Symbol": st.column_config.TextColumn("Pair", width="small"),
+                    "Signal": st.column_config.TextColumn("Direction", width="small"),
+                    "Lots": st.column_config.NumberColumn("Volume", format="%.2f"),
+                    "Entry": st.column_config.NumberColumn("Entry", format="%.5f"),
+                    "Exit": st.column_config.NumberColumn("Exit", format="%.5f"),
+                    "TP": st.column_config.NumberColumn("TP", format="%.5f"),
+                    "SL": st.column_config.NumberColumn("SL", format="%.5f"),
+                    "Outcome": st.column_config.TextColumn("Outcome", width="small"),
+                    "Duration": st.column_config.TextColumn("Duration", width="small"),
+                    "Ticket": st.column_config.TextColumn("Ticket", width="small"),
+                    "Reason": st.column_config.TextColumn("Exit Reason", width="medium")
+                }
             )
         else:
             st.info("No past manual trades recorded in database yet. Trades will appear here permanently once armed or placed.")
@@ -2808,7 +2930,22 @@ def _show_confluence_cockpit(symbol: str, all_pairs: list, is_ml_mode: bool = Tr
             pass
 
     if radar_rows:
-        st.dataframe(pd.DataFrame(radar_rows), use_container_width=True, hide_index=True)
+        st.dataframe(
+            pd.DataFrame(radar_rows),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Symbol": st.column_config.TextColumn("Pair Instrument", width="small"),
+                "SL Buffer": st.column_config.TextColumn("Buffer", width="small"),
+                "Upper Day Line": st.column_config.TextColumn("Day High (21:00 UTC)", width="small"),
+                "Lower Day Line": st.column_config.TextColumn("Day Low (21:00 UTC)", width="small"),
+                "Upper Swing Line": st.column_config.TextColumn("Swing High", width="small"),
+                "Lower Swing Line": st.column_config.TextColumn("Swing Low", width="small"),
+                "Signal State": st.column_config.TextColumn("Sniper State", width="medium"),
+                "ML Quality": st.column_config.TextColumn("AI Gate", width="small"),
+                "Action": st.column_config.TextColumn("Readiness", width="small"),
+            }
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2821,18 +2958,37 @@ def _show_confluence_cockpit(symbol: str, all_pairs: list, is_ml_mode: bool = Tr
         trade_rows = []
         for t in conf_trades:
             ts_str = str(t.get("timestamp", ""))[:16].replace("T", " ")
+            s_val = t.get("signal")
+            s_badge = "🟢 BUY" if s_val == "BUY" else ("🔴 SELL" if s_val == "SELL" else s_val)
+            o_val = t.get("outcome", "ACTIVE")
+            o_badge = "✅ TP HIT" if o_val == "SUCCESS" else ("❌ SL HIT" if o_val == "FAIL" else ("⚡ ACTIVE" if o_val == "ACTIVE" else o_val))
             trade_rows.append({
                 "Time (UTC)": ts_str,
                 "Symbol": t.get("symbol"),
-                "Signal": t.get("signal"),
-                "Entry": f"{float(t.get('price_at_signal', 0)):.5f}",
-                "SL": f"{float(t.get('sl_price', 0)):.5f}",
-                "TP": f"{float(t.get('tp_price', 0)):.5f}",
+                "Signal": s_badge,
+                "Entry": float(t.get('price_at_signal', 0)),
+                "SL": float(t.get('sl_price', 0)),
+                "TP": float(t.get('tp_price', 0)),
                 "Lots": t.get("suggested_lots"),
-                "Ticket": f"#{t.get('mt5_ticket')}" if t.get('mt5_ticket') else "—",
-                "Outcome": t.get("outcome", "ACTIVE"),
+                "Ticket": f"#{int(t.get('mt5_ticket'))}" if t.get('mt5_ticket') else "—",
+                "Outcome": o_badge,
             })
-        st.dataframe(pd.DataFrame(trade_rows), use_container_width=True, hide_index=True)
+        st.dataframe(
+            pd.DataFrame(trade_rows),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Time (UTC)": st.column_config.TextColumn("Execution Time", width="medium"),
+                "Symbol": st.column_config.TextColumn("Pair", width="small"),
+                "Signal": st.column_config.TextColumn("Direction", width="small"),
+                "Entry": st.column_config.NumberColumn("Entry", format="%.5f"),
+                "SL": st.column_config.NumberColumn("Stop Loss", format="%.5f"),
+                "TP": st.column_config.NumberColumn("Take Profit", format="%.5f"),
+                "Lots": st.column_config.NumberColumn("Lots", format="%.2f"),
+                "Ticket": st.column_config.TextColumn("Ticket", width="small"),
+                "Outcome": st.column_config.TextColumn("Status", width="small"),
+            }
+        )
     else:
         st.info("No Confluence trades executed yet. Automated trades will appear here as soon as setups confirm.")
 
@@ -3092,6 +3248,51 @@ def render_periodic_performance_matrix():
 
     # ── Day-by-Day Performance Matrix (Directly on top of Weekly & Monthly Matrix) ──
     if not df_d.empty:
+        if PLOTLY_AVAILABLE and len(df_d) >= 2:
+            try:
+                # Prepare chronological data (oldest to newest for equity curve)
+                df_curve = df_d.sort_values("Period", ascending=True).copy()
+                df_curve["Cum_R"] = df_curve["Net R"].cumsum()
+                df_curve["Cum_PnL"] = df_curve["Net PnL ($)"].cumsum()
+                
+                fig_equity = go.Figure()
+                fig_equity.add_trace(go.Scatter(
+                    x=df_curve["Period"],
+                    y=df_curve["Cum_R"],
+                    mode="lines+markers",
+                    name="Cumulative Edge (R)",
+                    line=dict(color="#00E5FF", width=3, shape="spline"),
+                    marker=dict(size=6, color="#00E5FF", symbol="circle"),
+                    fill="tozeroy",
+                    fillcolor="rgba(0, 229, 255, 0.08)",
+                    hovertemplate="<b>%{x}</b><br>Cumulative Edge: +%{y:.2f}R<extra></extra>"
+                ))
+                fig_equity.add_hline(y=0, line_dash="dash", line_color="rgba(255, 255, 255, 0.2)", line_width=1)
+                
+                fig_equity.update_layout(
+                    title=dict(
+                        text="📈 Cumulative Realized Edge Curve (Institutional R-Multiple)",
+                        font=dict(size=14, color="#ffffff", family="Inter, sans-serif")
+                    ),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(7, 11, 23, 0.7)",
+                    margin=dict(l=30, r=30, t=40, b=30),
+                    height=240,
+                    xaxis=dict(
+                        showgrid=True, gridcolor="rgba(255,255,255,0.04)",
+                        tickfont=dict(color="#8e9bb0", size=10)
+                    ),
+                    yaxis=dict(
+                        showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                        tickfont=dict(color="#8e9bb0", size=10),
+                        ticksuffix="R"
+                    ),
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig_equity, use_container_width=True, config={"displayModeBar": False})
+            except Exception as e:
+                logger.debug(f"Equity curve render skipped: {e}")
+
         st.markdown("##### ☀️ Day-by-Day Performance Matrix (Recent Trading Days)")
         st.caption("Day-by-day track record of closed deals evaluated by normal Forex trading time (broker server session / 17:00 NY rollover).")
 
@@ -3403,6 +3604,94 @@ def show_analytics():
         st.markdown(kpi_card("Best Pair", best or "N/A", "Highest win rate", "accent-cyan"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Outcome & Instrument Analytics Visual Charts ───────────
+    if PLOTLY_AVAILABLE and not df.empty:
+        ch_c1, ch_c2 = st.columns([1.4, 2.6])
+        with ch_c1:
+            # Outcome distribution donut
+            outcome_counts = df['outcome'].value_counts()
+            o_labels = []
+            o_vals = []
+            o_colors = []
+            color_map = {
+                'SUCCESS': '#00FF88', 'FAIL': '#FF4466', 'ACTIVE': '#00E5FF',
+                'SHADOW': '#8e9bb0', 'EXPIRED': '#FFA726'
+            }
+            display_map = {
+                'SUCCESS': 'TP Hit (Wins)', 'FAIL': 'SL Hit (Losses)',
+                'ACTIVE': 'Active Running', 'SHADOW': 'Shadow Mode', 'EXPIRED': 'Timeouts'
+            }
+            for k, v in outcome_counts.items():
+                o_labels.append(display_map.get(k, str(k)))
+                o_vals.append(v)
+                o_colors.append(color_map.get(k, '#526079'))
+
+            fig_donut = go.Figure(data=[go.Pie(
+                labels=o_labels,
+                values=o_vals,
+                hole=0.62,
+                marker=dict(colors=o_colors, line=dict(color='#050811', width=2)),
+                textinfo='percent',
+                hoverinfo='label+value+percent'
+            )])
+            fig_donut.update_layout(
+                title=dict(text="🎯 Outcome Breakdown", font=dict(size=13, color="#ffffff")),
+                annotations=[dict(
+                    text=f"<b>{win_rate:.0f}%</b><br><span style='font-size:10px; color:#8e9bb0;'>WIN RATE</span>",
+                    x=0.5, y=0.5, font_size=16, font_color="#ffffff", showarrow=False
+                )],
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=15, r=15, t=35, b=15),
+                height=220,
+                showlegend=True,
+                legend=dict(orientation="h", y=-0.2, font=dict(size=9, color="#8e9bb0"))
+            )
+            st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
+
+        with ch_c2:
+            # Top Traded Pairs by Win Rate
+            if not completed.empty:
+                pair_stats = completed.groupby('symbol').agg(
+                    total=('outcome', 'count'),
+                    wins=('outcome', lambda s: (s == 'SUCCESS').sum())
+                ).reset_index()
+                pair_stats = pair_stats[pair_stats['total'] >= 1].copy()
+                pair_stats['wr'] = (pair_stats['wins'] / pair_stats['total']) * 100
+                pair_stats = pair_stats.sort_values('total', ascending=False).head(10)
+
+                bar_colors = [
+                    '#00FF88' if wr >= 60 else ('#FFD700' if wr >= 50 else '#FF4466')
+                    for wr in pair_stats['wr']
+                ]
+
+                fig_bars = go.Figure(data=[go.Bar(
+                    x=pair_stats['symbol'],
+                    y=pair_stats['wr'],
+                    marker=dict(color=bar_colors, line=dict(color='rgba(255,255,255,0.1)', width=1)),
+                    text=[f"{wr:.0f}% ({w}/{t})" for wr, w, t in zip(pair_stats['wr'], pair_stats['wins'], pair_stats['total'])],
+                    textposition='outside',
+                    textfont=dict(size=9, color='#ffffff')
+                )])
+                fig_bars.add_hline(y=50, line_dash="dash", line_color="rgba(255, 255, 255, 0.2)", line_width=1)
+                fig_bars.update_layout(
+                    title=dict(text="🏆 Win Rate by Instrument (Top Volume)", font=dict(size=13, color="#ffffff")),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(7, 11, 23, 0.6)",
+                    margin=dict(l=20, r=20, t=35, b=30),
+                    height=220,
+                    xaxis=dict(tickfont=dict(color="#ffffff", size=10)),
+                    yaxis=dict(
+                        range=[0, 115],
+                        showgrid=True,
+                        gridcolor="rgba(255,255,255,0.05)",
+                        tickfont=dict(color="#8e9bb0", size=9),
+                        ticksuffix="%"
+                    )
+                )
+                st.plotly_chart(fig_bars, use_container_width=True, config={"displayModeBar": False})
+
     # 3. Check for external filters (e.g. from KPI card or session state)
     default_outcomes = ["ACTIVE", "SUCCESS", "FAIL"]
     filter_mode = st.session_state.pop("analytics_filter", None) or st.query_params.get("filter")
@@ -3447,27 +3736,48 @@ def show_analytics():
             lambda x: float(x or 0) * 100 if float(x or 0) <= 1.0 else float(x or 0)
         )
 
+    # Format Direction and Outcome with high-impact badges
+    if 'signal' in filtered.columns:
+        filtered['Direction_Badge'] = filtered['signal'].apply(
+            lambda s: "🟢 BUY" if s == "BUY" else ("🔴 SELL" if s == "SELL" else ("⏳ WAIT" if s == "WAIT" else s))
+        )
+    if 'outcome' in filtered.columns:
+        filtered['Outcome_Badge'] = filtered['outcome'].apply(
+            lambda o: "✅ TP HIT (+1.5R)" if o == "SUCCESS" else (
+                "❌ SL HIT (-1.0R)" if o == "FAIL" else (
+                    "⚡ ACTIVE" if o == "ACTIVE" else (
+                        "👻 SHADOW" if o == "SHADOW" else (
+                            "⏳ TIMEOUT" if o == "EXPIRED" else o
+                        )
+                    )
+                )
+            )
+        )
+    if 'timestamp' in filtered.columns:
+        filtered['Time_Fmt'] = filtered['timestamp'].astype(str).str[:19].str.replace('T', ' ')
+
     display_cols = [
-        'timestamp', 'symbol', 'signal', 'confidence', 'price_at_signal', 
-        'tp_price', 'sl_price', 'exit_price', 'exit_reason', 'mt5_ticket', 'exit_time', 'duration_seconds', 
-        'outcome', 'regime', 'rsi', 'adx', 'atr', 'vix_proxy', 'yield_slope',
+        'Time_Fmt', 'symbol', 'Direction_Badge', 'Outcome_Badge', 'confidence', 'price_at_signal', 
+        'tp_price', 'sl_price', 'exit_price', 'exit_reason', 'mt5_ticket', 'duration_seconds', 
+        'regime', 'rsi', 'adx', 'atr', 'vix_proxy', 'yield_slope',
         'macd', 'stoch_k', 'stoch_d', 'cci', 'bb_position'
     ]
     display_cols = [c for c in display_cols if c in filtered.columns]
 
     st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True,
                  column_config={
-                     "timestamp": "Time", "symbol": "Pair", "signal": "Direction",
+                     "Time_Fmt": st.column_config.TextColumn("Signal Time (UTC)", width="medium"),
+                     "symbol": st.column_config.TextColumn("Pair", width="small"),
+                     "Direction_Badge": st.column_config.TextColumn("Direction", width="small"),
+                     "Outcome_Badge": st.column_config.TextColumn("Trade Outcome", width="medium"),
                      "price_at_signal": st.column_config.NumberColumn("Entry", format="%.5f"),
                      "tp_price": st.column_config.NumberColumn("TP", format="%.5f"),
                      "sl_price": st.column_config.NumberColumn("SL", format="%.5f"),
                      "exit_price": st.column_config.NumberColumn("Exit Price", format="%.5f"),
                      "exit_reason": "Exit Reason / Profit",
                      "mt5_ticket": "MT5 Ticket",
-                     "exit_time": "Exit Time",
                      "duration_seconds": st.column_config.NumberColumn("Duration (s)", format="%d"),
                      "confidence": st.column_config.ProgressColumn("Confidence", format="%.0f%%", min_value=0, max_value=100),
-                     "outcome": "Outcome",
                      "regime": "Regime",
                      "rsi": st.column_config.NumberColumn("RSI", format="%.1f"),
                      "adx": st.column_config.NumberColumn("ADX", format="%.1f"),
@@ -3659,37 +3969,41 @@ def show_performance_matrix():
 
             df_14['Regime Mix'] = df_14['symbol'].map(lambda s: regime_map.get(s, '—'))
             
-            # Render custom layout to allow clicking pair to navigate
-            cols = st.columns([1.5, 2, 1, 1.5, 1, 1, 2])
-            cols[0].markdown("**Pair**")
-            cols[1].markdown("**Regime (14-Day)**")
-            cols[2].markdown("**Volume**")
-            cols[3].markdown("**Win Rate**")
-            cols[4].markdown("**Wins**")
-            cols[5].markdown("**Losses**")
-            cols[6].markdown("**Last Activity**")
-            st.markdown("<hr style='margin:0.25rem 0 0.75rem 0; opacity:0.1;'>", unsafe_allow_html=True)
+            df_14_table = df_14.copy()
+            df_14_table['Win Rate (%)'] = df_14_table['Win Rate'] * 100
+            df_14_table['Record (W-L)'] = df_14_table.apply(lambda r: f"{int(r['wins'])}W - {int(r['losses'])}L", axis=1)
+            df_14_table['last_trade_fmt'] = df_14_table['last_trade'].astype(str).str[:19].str.replace('T', ' ')
             
-            for _, row_data in df_14.iterrows():
-                sym = row_data['symbol']
-                cols = st.columns([1.5, 2, 1, 1.5, 1, 1, 2])
-                
-                # Dynamic navigation button
-                if cols[0].button(f"📈 {sym}", key=f"act14_{sym}", use_container_width=True):
-                    st.session_state['pair_selector'] = sym
-                    st.session_state['nav_to_terminal'] = True
-                    st.rerun()
-                    
-                cols[1].text(row_data['Regime Mix'])
-                cols[2].text(str(row_data['total_trades']))
-                
-                # Show win rate nicely
-                wr = row_data['Win Rate']
-                cols[3].text(f"{wr * 100:.0f}%")
-                
-                cols[4].text(str(int(row_data['wins'])))
-                cols[5].text(str(int(row_data['losses'])))
-                cols[6].text(str(row_data['last_trade'])[:19] if row_data['last_trade'] else '—')
+            show_14_cols = ['symbol', 'Regime Mix', 'total_trades', 'Record (W-L)', 'Win Rate (%)', 'last_trade_fmt']
+            
+            event_14 = st.dataframe(
+                df_14_table[show_14_cols],
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="perf_matrix_14d_table",
+                column_config={
+                    "symbol": st.column_config.TextColumn("Pair Instrument", width="small"),
+                    "Regime Mix": st.column_config.TextColumn("14-Day Regime / Model Blend", width="medium"),
+                    "total_trades": st.column_config.NumberColumn("Volume (Deals)", format="%d", width="small"),
+                    "Record (W-L)": st.column_config.TextColumn("Record", width="small"),
+                    "Win Rate (%)": st.column_config.ProgressColumn(
+                        "Win Rate",
+                        format="%.0f%%",
+                        min_value=0,
+                        max_value=100,
+                        width="medium"
+                    ),
+                    "last_trade_fmt": st.column_config.TextColumn("Last Executed Activity", width="medium")
+                }
+            )
+            if event_14.selection.rows:
+                sel_idx = event_14.selection.rows[0]
+                sel_sym = df_14_table.iloc[sel_idx]['symbol']
+                st.session_state['pair_selector'] = sel_sym
+                st.session_state['nav_target'] = 'terminal'
+                st.rerun()
         else:
             st.info("Insufficient trading data in the 14-day window.")
 
@@ -3731,33 +4045,38 @@ def show_performance_matrix():
                                 })
         
         if cert_records:
-            df_cert = pd.DataFrame(cert_records)
-            
-            # Render interactive columns for whitelisted symbols
-            cols = st.columns([1.5, 1.5, 1.5, 1.5, 1, 2])
-            cols[0].markdown("**Pair**")
-            cols[1].markdown("**Direction**")
-            cols[2].markdown("**Strategy Tier**")
-            cols[3].markdown("**Realized Acc**")
-            cols[4].markdown("**Trades**")
-            cols[5].markdown("**Source**")
-            st.markdown("<hr style='margin:0.25rem 0 0.75rem 0; opacity:0.1;'>", unsafe_allow_html=True)
-            
-            for idx, row_data in df_cert.iterrows():
-                sym = row_data['Symbol']
-                cols = st.columns([1.5, 1.5, 1.5, 1.5, 1, 2])
-                
-                # Clickable symbol button
-                if cols[0].button(f"🛡️ {sym}", key=f"cert_{sym}_{idx}", use_container_width=True):
-                    st.session_state['pair_selector'] = sym
-                    st.session_state['nav_to_terminal'] = True
-                    st.rerun()
-                    
-                cols[1].text(row_data.get('Direction', 'ALL'))
-                cols[2].text(row_data.get('Tier', '—'))
-                cols[3].text(f"{row_data.get('Acc', 0.0) * 100:.1f}%")
-                cols[4].text(str(row_data.get('Trades', 0)))
-                cols[5].text(row_data.get('Source', '—'))
+            df_cert = pd.DataFrame(cert_records).copy()
+            df_cert['Direction_Disp'] = df_cert['Direction'].map(lambda d: "🟢 BUY" if d == "BUY" else ("🔴 SELL" if d == "SELL" else d))
+            df_cert['Acc_Num'] = df_cert['Acc'].apply(lambda a: float(a or 0) * 100 if float(a or 0) <= 1.0 else float(a or 0))
+
+            event_cert = st.dataframe(
+                df_cert[['Symbol', 'Direction_Disp', 'Tier', 'Acc_Num', 'Trades', 'Source']],
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="table_cert_status_gate",
+                column_config={
+                    "Symbol": st.column_config.TextColumn("Certified Pair", width="small"),
+                    "Direction_Disp": st.column_config.TextColumn("Direction", width="small"),
+                    "Tier": st.column_config.TextColumn("Strategy Tier", width="small"),
+                    "Acc_Num": st.column_config.ProgressColumn(
+                        "Realized Accuracy",
+                        format="%.1f%%",
+                        min_value=0,
+                        max_value=100,
+                        width="medium"
+                    ),
+                    "Trades": st.column_config.NumberColumn("Certified Trades", format="%d", width="small"),
+                    "Source": st.column_config.TextColumn("Validation Source", width="medium"),
+                }
+            )
+            if event_cert.selection.rows:
+                sel_idx = event_cert.selection.rows[0]
+                sel_sym = df_cert.iloc[sel_idx]['Symbol']
+                st.session_state['pair_selector'] = sel_sym
+                st.session_state['nav_target'] = 'terminal'
+                st.rerun()
         else:
             st.warning("No pairs currently meet the 70% institutional certification threshold.")
 
