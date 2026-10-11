@@ -530,23 +530,52 @@ def inject_css():
 
     /* ── MoonX Pro Terminal Tokens & Dock ──────────────── */
     .moonx-ribbon-dock {
-        background: rgba(10, 15, 30, 0.78);
+        background: rgba(8, 12, 24, 0.82);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0, 229, 255, 0.16);
         border-radius: var(--radius-md);
-        padding: 8px 14px;
+        padding: 6px 0;
+        margin-top: 0;
         margin-bottom: 14px;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+        mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
         transition: border-color 0.2s ease;
     }
     .moonx-ribbon-dock:hover {
-        border-color: rgba(0, 229, 255, 0.25);
+        border-color: rgba(0, 229, 255, 0.35);
+    }
+    .moonx-ticker-track {
+        display: flex;
+        align-items: center;
+        width: max-content;
+        animation: moonxMarqueeLeft 40s linear infinite;
+        will-change: transform;
+    }
+    .moonx-ticker-track:hover,
+    .moonx-ribbon-dock:hover .moonx-ticker-track {
+        animation-play-state: paused;
+    }
+    .moonx-ticker-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-right: 10px;
+        flex-shrink: 0;
+    }
+    @keyframes moonxMarqueeLeft {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(-50%);
+        }
     }
     .moonx-brand-block {
         display: flex;
@@ -589,18 +618,20 @@ def inject_css():
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 6px;
-        padding: 5px 10px;
-        display: flex;
+        padding: 5px 11px;
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         font-family: var(--font-mono);
         font-size: 0.76rem;
         transition: all 0.2s ease;
         white-space: nowrap;
+        user-select: none;
     }
     .moonx-ticker-item:hover {
-        background: rgba(0, 229, 255, 0.06);
-        border-color: rgba(0, 229, 255, 0.25);
+        background: rgba(0, 229, 255, 0.08);
+        border-color: rgba(0, 229, 255, 0.3);
+        transform: translateY(-1px);
     }
     .moonx-ticker-sym {
         color: var(--text-secondary);
@@ -1246,83 +1277,68 @@ def hero_banner(title, subtitle, show_status=False):
 def render_moonx_ticker_ribbon():
     """
     Renders the MoonX-style top live ticker ribbon dock in Streamlit.
-    Displays:
-    - MoonX Terminal Branding & Engine badge
-    - Real-time MT5 Bid quotes for major assets (XAUUSD, EURUSD, GBPJPY, BTCUSD)
-    - Sunday 2h Buffer Safety Shield pill
-    - Friday 5m Exit Shield pill
-    - Live MT5 account equity/balance pill (if connected)
+    Displays popular asset quotes moving seamlessly to the left in an infinite loop.
+    The card contains ONLY the popular pairs quotes, nothing else.
     """
-    quotes = {
-        "XAUUSD": {"price": "4,195.20", "delta": "+1.45%", "up": True, "tag": "GOLD", "pill": "moonx-pill-gold"},
-        "EURUSD": {"price": "1.12020", "delta": "+0.18%", "up": True, "tag": "MAJOR", "pill": "moonx-pill-cyan"},
-        "GBPJPY": {"price": "209.489", "delta": "-0.12%", "up": False, "tag": "CROSS", "pill": "moonx-pill-cyan"},
-        "BTCUSD": {"price": "64,820.00", "delta": "+3.20%", "up": True, "tag": "24/7", "pill": "moonx-pill-green"},
-    }
-    
-    acc_text = "$96,272.25"
-    mt5_active = False
-    
+    popular_assets = [
+        {"display": "XAU/USD", "symbols": ["XAUUSD", "GOLD"], "tag": "GOLD", "pill": "moonx-pill-gold", "price": "4,195.09", "delta": "+1.45%", "up": True, "decimals": 2},
+        {"display": "EUR/USD", "symbols": ["EURUSD"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "1.12018", "delta": "+0.18%", "up": True, "decimals": 5},
+        {"display": "BTC/USD", "symbols": ["BTCUSD"], "tag": "CRYPTO", "pill": "moonx-pill-green", "price": "83,022.90", "delta": "+3.20%", "up": True, "decimals": 2},
+        {"display": "GBP/USD", "symbols": ["GBPUSD"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "1.32352", "delta": "+0.34%", "up": True, "decimals": 5},
+        {"display": "US30", "symbols": ["US30.cash", "US30", "DJ30"], "tag": "INDEX", "pill": "moonx-pill-cyan", "price": "51,688.50", "delta": "+0.65%", "up": True, "decimals": 2},
+        {"display": "USD/JPY", "symbols": ["USDJPY"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "158.288", "delta": "-0.22%", "up": False, "decimals": 3},
+        {"display": "ETH/USD", "symbols": ["ETHUSD"], "tag": "CRYPTO", "pill": "moonx-pill-green", "price": "2,502.26", "delta": "+2.85%", "up": True, "decimals": 2},
+        {"display": "USOIL", "symbols": ["USOIL.cash", "USOIL", "WTI"], "tag": "OIL", "pill": "moonx-pill-gold", "price": "92.58", "delta": "-0.45%", "up": False, "decimals": 2},
+        {"display": "NAS100", "symbols": ["US100.cash", "NAS100", "USTEC"], "tag": "INDEX", "pill": "moonx-pill-cyan", "price": "30,903.30", "delta": "+1.12%", "up": True, "decimals": 2},
+        {"display": "AUD/USD", "symbols": ["AUDUSD"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "0.69857", "delta": "+0.21%", "up": True, "decimals": 5},
+        {"display": "USD/CAD", "symbols": ["USDCAD"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "1.42541", "delta": "-0.15%", "up": False, "decimals": 5},
+        {"display": "GBP/JPY", "symbols": ["GBPJPY"], "tag": "CROSS", "pill": "moonx-pill-cyan", "price": "209.497", "delta": "-0.12%", "up": False, "decimals": 3},
+        {"display": "USD/CHF", "symbols": ["USDCHF"], "tag": "MAJOR", "pill": "moonx-pill-cyan", "price": "0.83015", "delta": "-0.08%", "up": False, "decimals": 5},
+        {"display": "XAG/USD", "symbols": ["XAGUSD", "SILVER"], "tag": "SILVER", "pill": "moonx-pill-gold", "price": "60.81", "delta": "+1.92%", "up": True, "decimals": 2},
+    ]
+
     try:
         import MetaTrader5 as mt5
         if mt5.initialize():
-            mt5_active = True
-            for sym in ["XAUUSD", "EURUSD", "GBPJPY", "BTCUSD"]:
-                tick = mt5.symbol_info_tick(sym)
-                if tick and getattr(tick, 'bid', 0) > 0:
-                    decimals = 2 if ("XAU" in sym or "BTC" in sym) else (3 if "JPY" in sym else 5)
-                    quotes[sym]["price"] = f"{tick.bid:,.{decimals}f}"
-            acc = mt5.account_info()
-            if acc:
-                acc_text = f"${acc.equity:,.2f}"
+            for item in popular_assets:
+                for s in item["symbols"]:
+                    try:
+                        mt5.symbol_select(s, True)
+                        tick = mt5.symbol_info_tick(s)
+                        if tick and getattr(tick, "bid", 0) > 0:
+                            item["price"] = f"{tick.bid:,.{item['decimals']}f}"
+                            rates = mt5.copy_rates_from_pos(s, mt5.TIMEFRAME_D1, 0, 1)
+                            if rates is not None and len(rates) > 0 and rates[0]["open"] > 0:
+                                d = ((tick.bid - rates[0]["open"]) / rates[0]["open"]) * 100
+                                item["delta"] = f"{d:+.2f}%"
+                                item["up"] = d >= 0
+                            break
+                    except Exception:
+                        continue
     except Exception:
         pass
 
     # Build Ticker Chips HTML
-    tickers_html = ""
-    for sym, data in quotes.items():
-        delta_class = "moonx-ticker-delta-up" if data["up"] else "moonx-ticker-delta-down"
-        tickers_html += (
+    items_html = ""
+    for item in popular_assets:
+        delta_class = "moonx-ticker-delta-up" if item["up"] else "moonx-ticker-delta-down"
+        items_html += (
             f'<div class="moonx-ticker-item">'
-            f'<span class="moonx-ticker-sym">{sym}</span>'
-            f'<span class="moonx-pill {data["pill"]}" style="padding:1px 5px; font-size:0.6rem;">{data["tag"]}</span>'
-            f'<span class="moonx-ticker-price">{data["price"]}</span>'
-            f'<span class="{delta_class}">{data["delta"]}</span>'
+            f'<span class="moonx-ticker-sym">{item["display"]}</span>'
+            f'<span class="moonx-pill {item["pill"]}" style="padding:1px 5px; font-size:0.6rem;">{item["tag"]}</span>'
+            f'<span class="moonx-ticker-price">{item["price"]}</span>'
+            f'<span class="{delta_class}">{item["delta"]}</span>'
             f'</div>'
         )
 
-    engine_status_pill = (
-        '<div class="moonx-pill moonx-pill-green"><span class="moonx-pulse-dot moonx-pulse-green"></span> M15 LIVE</div>'
-        if mt5_active else
-        '<div class="moonx-pill moonx-pill-cyan"><span class="moonx-pulse-dot moonx-pulse-cyan"></span> STANDBY</div>'
-    )
-
     raw_html = f"""<div class="moonx-ribbon-dock">
-<div class="moonx-brand-block">
-<div class="moonx-brand-icon">&#x26A1;</div>
-<div>
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="moonx-brand-title">APEX FOREX</span>
-<span class="moonx-pill moonx-pill-cyan" style="font-size:0.62rem;">MOONX DOCK</span>
+<div class="moonx-ticker-track">
+<div class="moonx-ticker-group">
+{items_html}
 </div>
-<div class="moonx-brand-subtitle">Autonomous AI Prop Firm Terminal</div>
+<div class="moonx-ticker-group" aria-hidden="true">
+{items_html}
 </div>
-</div>
-<div class="moonx-ticker-container">
-{tickers_html}
-</div>
-<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-<div class="moonx-pill moonx-pill-gold" title="Forex halted until 19:00 NY Sunday to avoid market open spread blowouts">
-<span class="moonx-pulse-dot moonx-pulse-gold"></span> 2H SUNDAY BUFFER
-</div>
-<div class="moonx-pill moonx-pill-cyan" title="Auto-closes all open positions 5 mins before Friday market close">
-<span class="moonx-pulse-dot moonx-pulse-cyan"></span> 5M FRIDAY EXIT
-</div>
-<div class="moonx-ticker-item" style="border-color: rgba(255,255,255,0.12);">
-<span class="moonx-ticker-sym">FTMO BAL</span>
-<span class="moonx-ticker-price" style="color:#00E5FF; font-weight:800;">{acc_text}</span>
-</div>
-{engine_status_pill}
 </div>
 </div>"""
 

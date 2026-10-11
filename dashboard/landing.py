@@ -725,6 +725,13 @@ textarea:focus-visible, [role="radio"]:focus-visible, summary:focus-visible {
     .ax-time-val { display: none; }
     .ax-spacer { height: 36px; }
 }
+
+/* ── Top Ribbon Placement ── */
+.block-container,
+[data-testid="stMainBlockContainer"],
+.main .block-container {
+    padding-top: 0.5rem !important;
+}
 </style>
 """
 
@@ -822,6 +829,10 @@ def show_landing():
     st.session_state.setdefault("auth_mode", AUTH_SIGNUP)
     _run_scroll()
 
+    # ── Top Live Ticker Ribbon Dock (MoonX Popular Assets Moving Left) ────────
+    render_moonx_ticker_ribbon()
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
     # ── Nav Header ───────────────────────────────────────────────────────────
     n1, n2 = st.columns([2, 3])
     with n1:
@@ -839,11 +850,7 @@ def show_landing():
             </nav>"""),
             unsafe_allow_html=True,
         )
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-
-    # ── Top Live Ticker Ribbon Dock (MoonX Style) ────────────────────────────
-    render_moonx_ticker_ribbon()
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
     # ── Hero Split Section ───────────────────────────────────────────────────
     left, right = st.columns([1.18, 0.82], gap="large")
