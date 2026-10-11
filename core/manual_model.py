@@ -1262,15 +1262,27 @@ def get_active_manual_orders() -> List[Dict[str, Any]]:
     return orders
 
 
-def cancel_manual_order(ticket: int) -> Dict[str, Any]:
-    """Cancel a pending manual M15 order by ticket number."""
-    mt5 = get_mt5()
+def cancel_manual_order(ticket: int, symbol: Optional[str] = None) -> Dict[str, Any]:
+    """Cancel a pending manual M15 order by ticket number (symbol-aware routing)."""
+    if symbol is None:
+        try:
+            from core.database import SignalDatabase
+            db = SignalDatabase()
+            with db._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT symbol FROM signals WHERE mt5_ticket = ?", (str(ticket),))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    symbol = row[0]
+        except Exception:
+            pass
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return {"success": False, "error": "MT5 not connected"}
     try:
         res = mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": ticket})
         if res and res.retcode == mt5.TRADE_RETCODE_DONE:
-            logger.info(f"Manual M15 order #{ticket} cancelled.")
+            logger.info(f"Manual M15 order #{ticket} ({symbol or 'unknown'}) cancelled.")
             try:
                 from core.database import SignalDatabase
                 db = SignalDatabase()
@@ -1288,9 +1300,21 @@ def cancel_manual_order(ticket: int) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def close_manual_position(ticket: int) -> Dict[str, Any]:
-    """Emergency close an active open position by ticket number."""
-    mt5 = get_mt5()
+def close_manual_position(ticket: int, symbol: Optional[str] = None) -> Dict[str, Any]:
+    """Emergency close an active open position by ticket number (symbol-aware routing)."""
+    if symbol is None:
+        try:
+            from core.database import SignalDatabase
+            db = SignalDatabase()
+            with db._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT symbol FROM signals WHERE mt5_ticket = ?", (str(ticket),))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    symbol = row[0]
+        except Exception:
+            pass
+    mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return {"success": False, "error": "MT5 not connected"}
     try:
@@ -1945,10 +1969,6 @@ def reconcile_manual_orders():
         if not active_manual_signals:
             return
 
-        mt5 = get_mt5()
-        if not mt5:
-            return
-
         for sig in active_manual_signals:
             ticket_str = sig.get('mt5_ticket')
             sig_id = sig['id']
@@ -1956,6 +1976,10 @@ def reconcile_manual_orders():
             if not ticket_str or not str(ticket_str).isdigit():
                 continue
             ticket = int(ticket_str)
+
+            mt5 = get_mt5(symbol=symbol)
+            if not mt5:
+                continue
 
             # 1. Check if still pending in MT5
             pending_orders = mt5.orders_get(ticket=ticket)
@@ -1974,7 +1998,7 @@ def reconcile_manual_orders():
                         now_utc = datetime.now(timezone.utc)
                         if now_utc >= exp_dt:
                             logger.info(f"⏳ Pending order #{ticket} for {symbol} reached Candle 3 expiry ({exp_dt}). Removing order from MT5.")
-                            cancel_manual_order(ticket)
+                            cancel_manual_order(ticket, symbol=symbol)
                             db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Candle 3 Expired (Untouched)')
                             continue
                     except Exception as _ex:
@@ -2065,7 +2089,19 @@ def reconcile_manual_orders():
         # Safety net: scan all open MT5 positions on Master with APEX magics
         if get_copy_trading_mode() == "position_mirror":
             try:
-                all_pos = mt5.positions_get() or []
+                masters_to_check = [get_mt5()]
+                crypto_m = get_mt5(symbol="BTCUSD")
+                if crypto_m and crypto_m is not masters_to_check[0]:
+                    masters_to_check.append(crypto_m)
+
+                all_pos = []
+                for m in masters_to_check:
+                    if m:
+                        try:
+                            pos_list = m.positions_get() or []
+                            all_pos.extend(pos_list)
+                        except Exception:
+                            pass
                 apex_magics = (202425, 202404, 202460, 202415, 202401)
                 for p in all_pos:
                     p_ticket = getattr(p, 'ticket', 0)

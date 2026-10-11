@@ -635,13 +635,12 @@ def evaluate_confluence_setup(
     if c_break["is_bearish"] and c_magic["is_bullish"]:
         for name, line_val in low_lines:
             if include_wicks:
-                # Candle 1 sweeps line: either body crossed below, or lower wick pierced below line
+                # Candle 1 sweeps line: must originate from at/above line and close below line
                 c1_sweep = (
                     (c_break["open"] >= line_val and c_break["close"] < line_val) or
-                    (c_break["low"] <= line_val and max(c_break["open"], c_break["high"]) >= line_val) or
-                    (c_break["close"] < line_val)
+                    (max(c_break["open"], c_break["high"]) >= line_val and c_break["close"] < line_val and c_break["low"] <= line_val)
                 )
-                # Candle 2 reclaims line: touched or came from at/below line, and closed back above line
+                # Candle 2 reclaims line: came from at/below line and closed back above line
                 c2_reclaim = (
                     (min(c_magic["low"], c_magic["open"]) <= line_val and c_magic["close"] > line_val) or
                     (c_magic["open"] <= line_val and c_magic["close"] > line_val)
@@ -687,13 +686,12 @@ def evaluate_confluence_setup(
     if not res.get("setup_detected") and c_break["is_bullish"] and c_magic["is_bearish"]:
         for name, line_val in high_lines:
             if include_wicks:
-                # Candle 1 sweeps line: either body crossed above, or upper wick pierced above line
+                # Candle 1 sweeps line: must originate from at/below line and close above line
                 c1_sweep = (
                     (c_break["open"] <= line_val and c_break["close"] > line_val) or
-                    (c_break["high"] >= line_val and min(c_break["open"], c_break["low"]) <= line_val) or
-                    (c_break["close"] > line_val)
+                    (min(c_break["open"], c_break["low"]) <= line_val and c_break["close"] > line_val and c_break["high"] >= line_val)
                 )
-                # Candle 2 reclaims line: touched or came from at/above line, and closed back below line
+                # Candle 2 reclaims line: came from at/above line and closed back below line
                 c2_reclaim = (
                     (max(c_magic["high"], c_magic["open"]) >= line_val and c_magic["close"] < line_val) or
                     (c_magic["open"] >= line_val and c_magic["close"] < line_val)
