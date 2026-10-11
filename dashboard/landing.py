@@ -183,52 +183,6 @@ def _stats_strip_html() -> str:
     """)
 
 
-def _terminal_showcase_html() -> str:
-    return _html("""
-    <div class="ax-showcase-card">
-      <div class="ax-showcase-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div class="ax-showcase-icon">⚡</div>
-          <div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:800; font-size:1rem; color:#ffffff;">EURUSD</span>
-              <span class="ax-chip-badge chip-open" style="font-size:0.65rem;">M15 Confluence Engine</span>
-              <span class="font-mono-numbers" style="color:#00FF88; font-weight:700; font-size:0.85rem;">1.12020</span>
-            </div>
-            <div style="font-size:0.7rem; color:#7d8aa3;">Autonomous AI Positioning · Auto-SL &amp; Partial Profit Scaled</div>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:6px;">
-          <span class="ax-pill-micro pill-cyan">GMM: TRENDING</span>
-          <span class="ax-pill-micro pill-green">CONVICTION: 74%</span>
-        </div>
-      </div>
-
-      <!-- Simulated Target Ladder & Visual Levels -->
-      <div class="ax-showcase-grid">
-        <div class="ax-level-badge level-entry">
-          <div class="level-lbl">ENTRY LEVEL</div>
-          <div class="level-val font-mono-numbers">1.12020</div>
-          <div class="level-sub">Verified Signal Price</div>
-        </div>
-        <div class="ax-level-badge level-tp">
-          <div class="level-lbl">TAKE PROFIT (TP)</div>
-          <div class="level-val font-mono-numbers">1.12395</div>
-          <div class="level-sub" style="color:#00FF88;">+37.5 Pips Target</div>
-        </div>
-        <div class="ax-level-badge level-sl">
-          <div class="level-lbl">STOP LOSS (SL)</div>
-          <div class="level-val font-mono-numbers">1.11770</div>
-          <div class="level-sub" style="color:#FF4466;">-25.0 Pips Shield</div>
-        </div>
-        <div class="ax-level-badge level-rr">
-          <div class="level-lbl">PARTIAL BE GUARDIAN</div>
-          <div class="level-val font-mono-numbers">+2.0 Pips</div>
-          <div class="level-sub" style="color:#FFD700;">25% Closed &amp; BE Moved</div>
-        </div>
-      </div>
-    </div>
-    """)
 
 
 def _go(auth_mode=None, scroll=None, topic=None):
@@ -709,17 +663,85 @@ textarea:focus-visible, [role="radio"]:focus-visible, summary:focus-visible {
 .ax-sec-sub { color: #8e9bb0; margin: 0 0 24px 0; max-width: 42em; line-height: 1.6; font-size: 0.95rem; }
 .ax-spacer { height: 60px; }
 
-/* ── Nav Header ── */
-.ax-nav { display: flex; justify-content: flex-end; gap: 28px; padding-top: 16px; }
-.ax-nav a { color: #8e9bb0; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: color 0.2s; }
-.ax-nav a:hover { color: var(--accent-cyan); }
+/* ── Unified Nav Header ── */
+.ax-nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 24px;
+}
+.ax-brand-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none !important;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+}
+.ax-brand-logo:hover {
+    opacity: 0.92;
+}
+.ax-brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #00E5FF 0%, #0077B6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    box-shadow: 0 2px 14px rgba(0, 229, 255, 0.35);
+    flex-shrink: 0;
+}
+.ax-brand-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+.ax-brand-name {
+    font-family: var(--font-ui);
+    font-size: 1.55rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #00E5FF 0%, #E0F7FA 45%, #FFD700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.ax-brand-tag {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7d8aa3;
+    margin-top: 2px;
+}
+.ax-nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin: 0;
+    padding: 0;
+}
+.ax-nav a {
+    color: #8e9bb0;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+.ax-nav a:hover {
+    color: var(--accent-cyan);
+}
 
 /* ── Responsive Mobile ── */
 @media (max-width: 760px) {
     .ax-nav { display: none; }
     .ax-stats-strip { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .ax-stat-box:nth-child(2) { border-right: none; }
-    .ax-showcase-grid { grid-template-columns: 1fr 1fr; }
     .ax-steps-grid { grid-template-columns: 1fr; }
     .ax-feed-row { grid-template-columns: 48px 1fr auto 86px; }
     .ax-time-val { display: none; }
@@ -833,24 +855,27 @@ def show_landing():
     render_moonx_ticker_ribbon()
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    # ── Nav Header ───────────────────────────────────────────────────────────
-    n1, n2 = st.columns([2, 3])
-    with n1:
-        st.markdown(get_logo_html("left", is_clickable=True), unsafe_allow_html=True)
-    with n2:
-        st.markdown(
-            _html("""
-            <nav class="ax-nav" aria-label="Page sections">
-              <a href="#how-it-works">How it works</a>
-              <a href="#terminal-showcase">Terminal</a>
-              <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
-              <a href="#faq">FAQ</a>
-              <a href="#contact">Contact</a>
-            </nav>"""),
-            unsafe_allow_html=True,
-        )
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    # ── Unified Nav Header ───────────────────────────────────────────────────
+    st.markdown(
+        _html("""
+        <header class="ax-nav-header">
+          <a href="/" target="_self" class="ax-brand-logo">
+            <div class="ax-brand-icon">⚡</div>
+            <div class="ax-brand-text">
+              <span class="ax-brand-name">ForexAlert</span>
+              <span class="ax-brand-tag">AI TRADING INTELLIGENCE</span>
+            </div>
+          </a>
+          <nav class="ax-nav" aria-label="Page sections">
+            <a href="#how-it-works">How it works</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#faq">FAQ</a>
+            <a href="#contact">Contact</a>
+          </nav>
+        </header>"""),
+        unsafe_allow_html=True,
+    )
 
     # ── Hero Split Section ───────────────────────────────────────────────────
     left, right = st.columns([1.18, 0.82], gap="large")
@@ -890,11 +915,6 @@ def show_landing():
     # ── Institutional Stats Strip Bar ────────────────────────────────────────
     st.markdown(_stats_strip_html(), unsafe_allow_html=True)
 
-    # ── Interactive Terminal Showcase ────────────────────────────────────────
-    st.markdown('<div class="ax-spacer" id="terminal-showcase"></div>', unsafe_allow_html=True)
-    st.markdown('<h2 class="ax-sec-title">Execution Architecture</h2>', unsafe_allow_html=True)
-    st.markdown('<p class="ax-sec-sub">Real-time level targeting with automated partial profits and prop firm risk guardrails.</p>', unsafe_allow_html=True)
-    st.markdown(_terminal_showcase_html(), unsafe_allow_html=True)
 
     # ── How It Works (Cyber Sequence) ────────────────────────────────────────
     st.markdown('<div class="ax-spacer" id="how-it-works"></div>', unsafe_allow_html=True)
@@ -1069,10 +1089,10 @@ def show_landing():
         _html("""
         <footer style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 24px; padding-bottom: 32px; color: #7d8aa3; font-size: 0.8rem; line-height: 1.7;">
           <p style="margin: 0 0 10px 0; max-width: 56em;">
-            <strong style="color:#ffffff;">Risk Warning:</strong> Trading foreign exchange and leveraged derivative products carries substantial risk of capital loss and is not suitable for all investors. Past performance does not guarantee future results. ApexForex provides institutional software tools and copy automation, not financial advisory services.
+            <strong style="color:#ffffff;">Risk Warning:</strong> Trading foreign exchange and leveraged derivative products carries substantial risk of capital loss and is not suitable for all investors. Past performance does not guarantee future results. ForexAlert provides institutional software tools and copy automation, not financial advisory services.
           </p>
           <div style="font-size: 0.72rem; color: #526079;">
-            &copy; 2026 ApexForex · AI Trading Intelligence. All rights reserved.
+            &copy; 2026 ForexAlert · AI Trading Intelligence. All rights reserved.
           </div>
         </footer>
         """),

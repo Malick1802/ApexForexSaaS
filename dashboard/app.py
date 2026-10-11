@@ -40,7 +40,7 @@ except ImportError:
 
 # ── Page Config (Main Entry) ────────────────────────────────
 st.set_page_config(
-    page_title="ApexForex · AI Trading Intelligence",
+    page_title="ForexAlert · AI Trading Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"

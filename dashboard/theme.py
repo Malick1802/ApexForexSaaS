@@ -1349,15 +1349,19 @@ def render_moonx_ticker_ribbon():
 def get_logo_html(alignment="center", is_clickable=True):
     """Generate HTML string for the premium logo."""
     padding = "0"
+    justify = "center" if alignment == "center" else "flex-start"
     html = f"""
-    <div class="logo-container" style="text-align: {alignment}; padding: {padding}; cursor: pointer;">
-        <div class="logo-text">ApexForex</div>
-        <div class="logo-sub">AI Trading Intelligence</div>
+    <div class="logo-container" style="display:inline-flex; align-items:center; justify-content:{justify}; gap:10px; padding:{padding}; cursor:pointer; text-decoration:none;">
+        <div style="width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg, #00E5FF 0%, #0077B6 100%); display:flex; align-items:center; justify-content:center; font-size:1rem; box-shadow:0 2px 10px rgba(0,229,255,0.35); flex-shrink:0;">⚡</div>
+        <div style="text-align:left;">
+            <div class="logo-text">ForexAlert</div>
+            <div class="logo-sub">AI Trading Intelligence</div>
+        </div>
     </div>
     """
     if is_clickable:
         # We link to "/" to go to landing/main app
-        html = f'<a href="/" target="_self" style="text-decoration: none; color: inherit;">{html}</a>'
+        html = f'<a href="/" target="_self" style="text-decoration:none; color:inherit; display:inline-block;">{html}</a>'
     return html
 
 
@@ -1398,7 +1402,7 @@ def sidebar_footer():
         {status_text}
     </div>
     <div class="version-badge">
-        <strong>ApexForex</strong> v2.0.2 · Real-Time Sync Active
+        <strong>ForexAlert</strong> v2.0.2 · Real-Time Sync Active
     </div>
     """, unsafe_allow_html=True)
 
