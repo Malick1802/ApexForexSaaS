@@ -18,25 +18,35 @@ blocked_symbols:
 confluence_model:
   allow_concurrent_asset: true
   asset_be_offsets:
+    ada: 10.0
+    bnb: 10.0
     btc: 30.0
     crypto: 15.0
+    doge: 10.0
     eth: 15.0
     forex: 2.0
     gold: 10.0
     indices: 15.0
+    ltc: 10.0
     oil: 8.0
     silver: 10.0
     sol: 10.0
+    xrp: 10.0
   asset_buffers:
+    ada: 20.0
+    bnb: 25.0
     btc: 60.0
     crypto: 30.0
+    doge: 20.0
     eth: 30.0
     forex: 2.5
     gold: 25.0
     indices: 25.0
+    ltc: 25.0
     oil: 15.0
     silver: 20.0
     sol: 25.0
+    xrp: 20.0
   auto_trade: true
   enable_ml_model: true
   enable_ml_p60_model: true
@@ -73,6 +83,11 @@ confluence_model:
   - BTCUSD
   - ETHUSD
   - SOLUSD
+  - XRPUSD
+  - DOGEUSD
+  - ADAUSD
+  - LTCUSD
+  - BNBUSD
   - AUDNZD
   - GBPCHF
   - CADJPY
@@ -161,6 +176,16 @@ currency_pairs:
     symbol: ETHUSD
   - pip_type: standard
     symbol: SOLUSD
+  - pip_type: standard
+    symbol: XRPUSD
+  - pip_type: standard
+    symbol: DOGEUSD
+  - pip_type: standard
+    symbol: ADAUSD
+  - pip_type: standard
+    symbol: LTCUSD
+  - pip_type: standard
+    symbol: BNBUSD
   indices:
   - correlated_assets:
     - correlation: 0.9

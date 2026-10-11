@@ -403,13 +403,13 @@ def get_last_15m_candle(symbol: str) -> Optional[Dict[str, Any]]:
 
 
 def get_pip_size(symbol: str) -> float:
-    """Return pip size for a symbol (0.01 for JPY/commodities/SOL, 1.0 for BTC, 0.1 for ETH/Gold, 0.0001 otherwise)."""
+    """Return pip size for a symbol (0.01 for JPY/commodities/SOL/BNB/LTC, 1.0 for BTC, 0.1 for ETH/Gold, 0.0001 for Forex/XRP/ADA/DOGE)."""
     s = symbol.upper().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_", "")
     if "BTC" in s:
         return 1.0
     if "ETH" in s:
         return 0.1
-    if "SOL" in s:
+    if any(x in s for x in ("SOL", "BNB", "LTC", "BCH", "AVA", "AAV")):
         return 0.01
     if any(x in s for x in ("XAU", "GOLD")):
         return 0.1
@@ -421,6 +421,8 @@ def get_pip_size(symbol: str) -> float:
         return 0.01
     if any(x in s for x in ("XPT", "XPD", "COPPER")):
         return 0.01
+    if any(x in s for x in ("XRP", "ADA", "DOGE", "DOT", "LNK", "XLM")):
+        return 0.0001
     return 0.0001
 
 

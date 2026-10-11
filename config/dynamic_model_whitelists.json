@@ -15,11 +15,14 @@
       "name": "\ud83e\udde0 Confluence ML M15 (60% TP + 2p BE)",
       "total_trades_ytd": 142,
       "winning_pairs": [
+        "ADAUSD",
         "AUDCHF",
         "AUDJPY",
         "AUDNZD",
+        "BNBUSD",
         "CADJPY",
         "CHFJPY",
+        "DOGEUSD",
         "EURCHF",
         "EURJPY",
         "EURNZD",
@@ -28,13 +31,15 @@
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "LTCUSD",
         "NZDCAD",
         "NZDCHF",
         "NZDUSD",
         "SOLUSD",
         "USDCAD",
         "USDJPY",
-        "XAUUSD"
+        "XAUUSD",
+        "XRPUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
@@ -381,6 +386,56 @@
           "pnl_usd": 65.0,
           "win_rate": 66.7,
           "status": "APPROVED"
+        },
+        "XRPUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "DOGEUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "ADAUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "LTCUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "BNBUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
         }
       },
       "active_under_ytd": true
@@ -389,27 +444,32 @@
       "name": "\u26a1 Confluence Standard M15 (25% TP + 2p BE)",
       "total_trades_ytd": 173,
       "winning_pairs": [
+        "ADAUSD",
         "AUDCAD",
         "AUDCHF",
         "AUDJPY",
         "AUDNZD",
         "AUDUSD",
+        "BNBUSD",
         "CADCHF",
         "CADJPY",
         "CHFJPY",
+        "DOGEUSD",
         "EURJPY",
         "GBPAUD",
         "GBPCAD",
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "LTCUSD",
         "NZDCHF",
         "NZDUSD",
         "USDCAD",
         "USDCHF",
         "USDJPY",
         "USDSGD",
-        "XAUUSD"
+        "XAUUSD",
+        "XRPUSD"
       ],
       "benched_pairs": [
         "EURAUD",
@@ -744,6 +804,56 @@
           "pnl_usd": -7.5,
           "win_rate": 50.0,
           "status": "APPROVED"
+        },
+        "XRPUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "DOGEUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "ADAUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "LTCUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "BNBUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
         }
       },
       "active_under_ytd": true
@@ -752,12 +862,15 @@
       "name": "\ud83e\udde0 Confluence ML M15 (AI Gate Fixed 1.5R)",
       "total_trades_ytd": 131,
       "winning_pairs": [
+        "ADAUSD",
         "AUDCHF",
         "AUDJPY",
         "AUDNZD",
+        "BNBUSD",
         "CADCHF",
         "CADJPY",
         "CHFJPY",
+        "DOGEUSD",
         "EURCHF",
         "EURJPY",
         "EURNZD",
@@ -766,6 +879,7 @@
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "LTCUSD",
         "NZDCAD",
         "NZDCHF",
         "NZDUSD",
@@ -773,7 +887,8 @@
         "USDCAD",
         "USDJPY",
         "USOIL.CASH",
-        "XAUUSD"
+        "XAUUSD",
+        "XRPUSD"
       ],
       "benched_pairs": [
         "AUDCAD",
@@ -1118,6 +1233,56 @@
           "pnl_usd": 100.0,
           "win_rate": 66.7,
           "status": "APPROVED"
+        },
+        "XRPUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "DOGEUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "ADAUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "LTCUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "BNBUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
         }
       },
       "active_under_ytd": true
@@ -1126,20 +1291,24 @@
       "name": "\u26a1 Confluence Standard M15 (Rule-Based Fixed 1.5R)",
       "total_trades_ytd": 124,
       "winning_pairs": [
+        "ADAUSD",
         "AUDCAD",
         "AUDCHF",
         "AUDJPY",
         "AUDNZD",
         "AUDUSD",
+        "BNBUSD",
         "CADCHF",
         "CADJPY",
         "CHFJPY",
+        "DOGEUSD",
         "EURJPY",
         "GBPAUD",
         "GBPCAD",
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "LTCUSD",
         "NZDCAD",
         "NZDCHF",
         "NZDJPY",
@@ -1149,7 +1318,8 @@
         "USDJPY",
         "USDSGD",
         "USOIL.CASH",
-        "XAUUSD"
+        "XAUUSD",
+        "XRPUSD"
       ],
       "benched_pairs": [
         "EURAUD",
@@ -1480,6 +1650,56 @@
           "net_r": 0.42,
           "pnl_usd": 21.0,
           "win_rate": 50.0,
+          "status": "APPROVED"
+        },
+        "XRPUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "DOGEUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "ADAUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "LTCUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "BNBUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
           "status": "APPROVED"
         }
       },
@@ -1885,12 +2105,15 @@
       "name": "\ud83c\udfaf Manual M15 Wick Sniper",
       "total_trades_ytd": 158,
       "winning_pairs": [
+        "ADAUSD",
         "AUDCAD",
         "AUDCHF",
         "AUDJPY",
         "AUDUSD",
+        "BNBUSD",
         "CADJPY",
         "CHFJPY",
+        "DOGEUSD",
         "EURGBP",
         "EURJPY",
         "GBPAUD",
@@ -1899,13 +2122,15 @@
         "GBPJPY",
         "GBPNZD",
         "GBPUSD",
+        "LTCUSD",
         "NZDUSD",
         "USDCAD",
         "USDCHF",
         "USDJPY",
         "USDSGD",
         "USOIL.CASH",
-        "XAUUSD"
+        "XAUUSD",
+        "XRPUSD"
       ],
       "benched_pairs": [
         "CADCHF",
@@ -2228,6 +2453,56 @@
           "net_r": 0.5,
           "pnl_usd": 25.0,
           "win_rate": 50.0,
+          "status": "APPROVED"
+        },
+        "XRPUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "DOGEUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "ADAUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "LTCUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
+          "status": "APPROVED"
+        },
+        "BNBUSD": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "be": 0,
+          "net_r": 0.0,
+          "pnl_usd": 0.0,
+          "win_rate": 0.0,
           "status": "APPROVED"
         }
       },

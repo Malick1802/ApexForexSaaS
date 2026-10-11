@@ -64,6 +64,7 @@ from core.manual_model import (
     calculate_lot_size,
     submit_manual_order,
 )
+from core.market_hours import is_crypto
 
 logger = logging.getLogger("ConfluenceModel")
 
@@ -96,7 +97,12 @@ DEFAULT_ASSET_BUFFERS: Dict[str, float] = {
     "btc": 60.0,         # BTCUSD (60.0 pips = $60.00 in 1.0 pip size)
     "eth": 30.0,         # ETHUSD (30.0 pips = $3.00 in 0.1 pip size)
     "sol": 25.0,         # SOLUSD (25.0 pips = $0.25 in 0.01 pip size)
-    "crypto": 30.0,      # General crypto fallback
+    "bnb": 25.0,         # BNBUSD (25.0 pips = $0.25 in 0.01 pip size)
+    "ltc": 25.0,         # LTCUSD (25.0 pips = $0.25 in 0.01 pip size)
+    "xrp": 20.0,         # XRPUSD (20.0 pips = $0.0020 in 0.0001 pip size)
+    "doge": 20.0,        # DOGEUSD (20.0 pips = $0.0020 in 0.0001 pip size)
+    "ada": 20.0,         # ADAUSD (20.0 pips = $0.0020 in 0.0001 pip size)
+    "crypto": 25.0,      # General crypto fallback
     "indices": 25.0,     # US30, NAS100, SPX500, GER40
 }
 
@@ -110,7 +116,12 @@ DEFAULT_ASSET_BE_OFFSETS: Dict[str, float] = {
     "btc": 30.0,         # BTCUSD (30.0 pips = $30.00)
     "eth": 15.0,         # ETHUSD (15.0 pips = $1.50)
     "sol": 10.0,         # SOLUSD (10.0 pips = $0.10)
-    "crypto": 15.0,      # General crypto fallback
+    "bnb": 10.0,         # BNBUSD (10.0 pips = $0.10)
+    "ltc": 10.0,         # LTCUSD (10.0 pips = $0.10)
+    "xrp": 10.0,         # XRPUSD (10.0 pips = $0.0010)
+    "doge": 10.0,        # DOGEUSD (10.0 pips = $0.0010)
+    "ada": 10.0,         # ADAUSD (10.0 pips = $0.0010)
+    "crypto": 12.0,      # General crypto fallback
     "indices": 15.0,     # Indices
 }
 
@@ -187,8 +198,20 @@ def get_symbol_sl_buffer(
             base_buffer = float(asset_bufs.get("eth", 30.0))
         elif "SOL" in s:
             base_buffer = float(asset_bufs.get("sol", 25.0))
+        elif "BNB" in s:
+            base_buffer = float(asset_bufs.get("bnb", 25.0))
+        elif "LTC" in s:
+            base_buffer = float(asset_bufs.get("ltc", 25.0))
+        elif "XRP" in s:
+            base_buffer = float(asset_bufs.get("xrp", 20.0))
+        elif "DOGE" in s:
+            base_buffer = float(asset_bufs.get("doge", 20.0))
+        elif "ADA" in s:
+            base_buffer = float(asset_bufs.get("ada", 20.0))
         elif any(x in s for x in ("US30", "NAS100", "SPX", "GER", "DAX")):
             base_buffer = float(asset_bufs.get("indices", 25.0))
+        elif is_crypto(s):
+            base_buffer = float(asset_bufs.get("crypto", 25.0))
         else:
             base_buffer = float(cfg.get("sl_buffer_pips", asset_bufs.get("forex", 2.5)))
 
@@ -237,8 +260,20 @@ def get_symbol_be_offset(symbol: str, cfg: Optional[Dict[str, Any]] = None) -> f
             be_offset = float(asset_be.get("eth", 15.0))
         elif "SOL" in s:
             be_offset = float(asset_be.get("sol", 10.0))
+        elif "BNB" in s:
+            be_offset = float(asset_be.get("bnb", 10.0))
+        elif "LTC" in s:
+            be_offset = float(asset_be.get("ltc", 10.0))
+        elif "XRP" in s:
+            be_offset = float(asset_be.get("xrp", 10.0))
+        elif "DOGE" in s:
+            be_offset = float(asset_be.get("doge", 10.0))
+        elif "ADA" in s:
+            be_offset = float(asset_be.get("ada", 10.0))
         elif any(x in s for x in ("US30", "NAS100", "SPX", "GER", "DAX")):
             be_offset = float(asset_be.get("indices", 15.0))
+        elif is_crypto(s):
+            be_offset = float(asset_be.get("crypto", 12.0))
         else:
             be_offset = float(asset_be.get("forex", 2.0))
 

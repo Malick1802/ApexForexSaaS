@@ -26,9 +26,17 @@ def is_crypto(symbol: str) -> bool:
     if not symbol:
         return False
     clean = str(symbol).upper().strip().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_", "")
-    if clean in ("BTCUSD", "BTCUSDT", "ETHUSD", "ETHUSDT", "SOLUSD", "SOLUSDT", "XRPUSD", "XRPUSDT", "LTCUSD", "LTCUSDT", "BTC", "ETH", "SOL", "XRP", "LTC"):
+    known_crypto = (
+        "BTCUSD", "BTCUSDT", "ETHUSD", "ETHUSDT", "SOLUSD", "SOLUSDT",
+        "XRPUSD", "XRPUSDT", "LTCUSD", "LTCUSDT", "DOGEUSD", "DOGEUSDT",
+        "ADAUSD", "ADAUSDT", "BNBUSD", "BNBUSDT", "AVAUSD", "AVAXUSD",
+        "LNKUSD", "LINKUSD", "DOTUSD", "BCHUSD", "XLMUSD", "UNIUSD", "AAVUSD",
+        "BTC", "ETH", "SOL", "XRP", "LTC", "DOGE", "ADA", "BNB"
+    )
+    if clean in known_crypto:
         return True
-    return any(clean.startswith(p) for p in ("BTC", "ETH", "SOL", "XRP", "LTC", "ADA", "DOT"))
+    prefixes = ("BTC", "ETH", "SOL", "XRP", "LTC", "ADA", "DOT", "DOGE", "BNB", "AVA", "LNK", "BCH", "XLM", "UNI", "AAV")
+    return any(clean.startswith(p) for p in prefixes)
 
 def is_metal(symbol: str) -> bool:
     """
