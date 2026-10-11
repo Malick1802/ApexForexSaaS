@@ -491,7 +491,8 @@ safety:
     min_win_rate: 0.4
     rolling_window: 5
   enabled: true
-  friday_auto_exit_ny_time: '16:30'
+  friday_auto_exit_ny_time: '16:55'
+  friday_auto_exit_metals_ny_time: '15:55'
   friday_entry_cutoff_ny_hour: 10
   friday_entry_cutoff_utc_hour: 14
   max_daily_drawdown_pct: 4.5

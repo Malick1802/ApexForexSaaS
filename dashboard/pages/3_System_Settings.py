@@ -610,9 +610,9 @@ with st.container(border=True):
         st.markdown("""
 | Symbol | Asset Name | Trading Hours | Pip / Point Scale | Engine Status | Weekend Auto-Exit |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **XAUUSD** | Spot Gold / USD | Mon–Fri (Market Hours) | 0.10 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 4:55 PM EST |
-| **XAGUSD** | Spot Silver / USD | Mon–Fri (Market Hours) | 0.01 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 4:55 PM EST |
-| **USOIL.cash** | WTI Crude Oil Spot | Mon–Fri (Market Hours) | 0.01 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 4:55 PM EST |
+| **XAUUSD** | Spot Gold / USD | Mon–Fri (Market Hours) | 0.10 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 3:55 PM EST |
+| **XAGUSD** | Spot Silver / USD | Mon–Fri (Market Hours) | 0.01 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 3:55 PM EST |
+| **USOIL.cash** | WTI Crude Oil Spot | Mon–Fri (Market Hours) | 0.01 USD / pip | 🟢 ACTIVE | 🔒 Closes Friday 3:55 PM EST |
 """)
 
     with tab_fx:

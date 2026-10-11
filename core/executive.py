@@ -801,18 +801,28 @@ class ExecutiveEngine:
 
                     # 2b. Broadcast to copy trading accounts via isolated subprocess workers
                     try:
-                        import importlib, scripts.multi_executor
-                        importlib.reload(scripts.multi_executor)
-                        from scripts.multi_executor import execute_signal_for_all_users
-                        if hasattr(self, 'mt5') and self.mt5:
-                            m_acc = self.mt5.account_info()
-                            if m_acc:
-                                result['master_balance'] = m_acc.balance
+                        from core.manual_model import get_copy_trading_mode, _mirror_master_position_to_followers
+                        copy_mode = get_copy_trading_mode()
+                        if copy_mode == "position_mirror":
                             if ticket and str(ticket).isdigit():
-                                m_pos = self.mt5.positions_get(ticket=int(ticket))
+                                m_pos = self.mt5.positions_get(ticket=int(ticket)) if (hasattr(self, 'mt5') and self.mt5) else None
                                 if m_pos:
-                                    result['master_volume'] = m_pos[0].volume
-                        execute_signal_for_all_users(result)
+                                    _mirror_master_position_to_followers(result, m_pos[0])
+                                else:
+                                    logger.info(f"🪞 [Position Mirror] Master ticket #{ticket} confirmed; watcher will mirror once position fills.")
+                        elif copy_mode == "signal_broadcast":
+                            import importlib, scripts.multi_executor
+                            importlib.reload(scripts.multi_executor)
+                            from scripts.multi_executor import execute_signal_for_all_users
+                            if hasattr(self, 'mt5') and self.mt5:
+                                m_acc = self.mt5.account_info()
+                                if m_acc:
+                                    result['master_balance'] = m_acc.balance
+                                if ticket and str(ticket).isdigit():
+                                    m_pos = self.mt5.positions_get(ticket=int(ticket))
+                                    if m_pos:
+                                        result['master_volume'] = m_pos[0].volume
+                            execute_signal_for_all_users(result)
                     except Exception as _me:
                         logger.error(f"Multi-user copy execution error: {_me}")
 
@@ -894,31 +904,31 @@ class ExecutiveEngine:
     def check_and_execute_friday_exit(self, mt5_conn, broker_offset: int = 3) -> bool:
         """
         Friday Auto-Exit: Closes all open positions and resolves all active signals (live & shadow)
-        30 minutes before market close on Friday (16:30 New York time, accounting for seasonal DST).
+        5 minutes before weekend market close (accounting for seasonal DST):
+        - Metals (XAUUSD, XAGUSD, etc.) close at 16:00 NY -> Exits at 15:55 NY.
+        - Forex pairs close at 17:00 NY -> Exits at 16:55 NY.
+        - Crypto trades 24/7/365 -> Exempt from Friday liquidation.
         """
         try:
-            from core.market_hours import is_friday_auto_exit_time, get_ny_time
+            from core.market_hours import is_friday_auto_exit_time, is_friday_auto_exit_window, is_crypto, get_ny_time
             
-            if is_friday_auto_exit_time():
+            if is_friday_auto_exit_window():
                 ny_now = get_ny_time()
-                logger.warning(f"🕒 Friday Exit Triggered: New York time is {ny_now.strftime('%Y-%m-%d %H:%M:%S %Z')} (30 min before market close). Closing all active signals.")
+                logger.info(f"🕒 Friday Auto-Exit Active: New York time is {ny_now.strftime('%Y-%m-%d %H:%M:%S %Z')} (5 min before weekend close). Checking open positions and signals.")
                 
-                # Fetch all ACTIVE signals from database
-                active_signals = self.db.get_active_signals(include_hidden=True)
-                if not active_signals:
-                    logger.debug("Friday Exit: No active signals to resolve in DB.")
-                    return False
-                
-                # Close live MT5 positions if connected
+                # 1. Close live MT5 master positions if connected
                 if mt5_conn:
                     positions = mt5_conn.positions_get()
                     if positions:
-                        logger.info(f"Friday Exit: Found {len(positions)} open MT5 positions to close.")
+                        logger.info(f"Friday Exit: Found {len(positions)} open MT5 positions to evaluate.")
                         for p in positions:
-                            from core.market_hours import is_crypto
                             if is_crypto(p.symbol):
                                 logger.info(f"Friday Exit: Skipping crypto position {p.symbol} (trades 24/7 through weekend)")
                                 continue
+                            if not is_friday_auto_exit_time(symbol=p.symbol):
+                                logger.debug(f"Friday Exit: Skipping {p.symbol} (5-min exit cutoff not yet reached)")
+                                continue
+
                             logger.info(f"Friday Exit: Closing position {p.symbol} (Ticket: {p.ticket})")
                             tick_sym = mt5_conn.symbol_info_tick(p.symbol)
                             if not tick_sym:
@@ -959,54 +969,73 @@ class ExecutiveEngine:
                                 comment = res.comment if res else "No response"
                                 logger.error(f"❌ Friday Exit: Failed to close ticket {p.ticket}: {comment}")
                     else:
-                        logger.info("Friday Exit: No open MT5 positions found.")
+                        logger.debug("Friday Exit: No open MT5 master positions found.")
 
-                # Liquidate all open positions across all copy-trading secondary accounts
+                    # Cancel pending orders that have reached their exit cutoff
+                    try:
+                        orders = mt5_conn.orders_get()
+                        if orders:
+                            for o in orders:
+                                if is_crypto(o.symbol):
+                                    continue
+                                if not is_friday_auto_exit_time(symbol=o.symbol):
+                                    continue
+                                c_res = mt5_conn.order_send({"action": mt5_conn.TRADE_ACTION_REMOVE, "order": o.ticket})
+                                if c_res and c_res.retcode == mt5_conn.TRADE_RETCODE_DONE:
+                                    logger.info(f"✅ Friday Exit: Cancelled pending master order {o.ticket} ({o.symbol})")
+                                else:
+                                    o_err = c_res.comment if c_res else "No response"
+                                    logger.warning(f"❌ Friday Exit: Failed to cancel master order {o.ticket}: {o_err}")
+                    except Exception as _pe:
+                        logger.warning(f"Friday Exit: Master pending orders cancel check: {_pe}")
+
+                # 2. Liquidate matching positions across all copy-trading secondary accounts
                 try:
                     from scripts.multi_executor import close_all_positions_for_all_users
                     close_all_positions_for_all_users(reason="Friday Auto-Exit")
                 except Exception as _fe:
                     logger.error(f"Failed to close secondary accounts on Friday exit: {_fe}")
 
-                # Resolve all active signals (both live and shadow) in DB
-                for sig in active_signals:
-                    symbol = sig['symbol']
-                    from core.market_hours import is_crypto
-                    if is_crypto(symbol):
-                        logger.debug(f"Friday Exit: Skipping active crypto signal {symbol} (trades 24/7 through weekend)")
-                        continue
-                    sig_id = sig['id']
-                    direction = sig['signal']
-                    price_at_sig = sig.get('price_at_signal')
+                # 3. Resolve active signals (both live and shadow) in DB for symbols reaching exit
+                active_signals = self.db.get_active_signals(include_hidden=True)
+                if active_signals:
+                    for sig in active_signals:
+                        symbol = sig['symbol']
+                        if is_crypto(symbol):
+                            logger.debug(f"Friday Exit: Skipping active crypto signal {symbol} (trades 24/7 through weekend)")
+                            continue
+                        if not is_friday_auto_exit_time(symbol=symbol):
+                            continue
 
-                    # Skip heartbeats / non-trade signals
-                    if direction not in ('BUY', 'SELL') or not price_at_sig:
-                        self.db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason="Friday Auto-Exit (Non-trade)")
-                        continue
+                        sig_id = sig['id']
+                        direction = sig['signal']
+                        price_at_sig = sig.get('price_at_signal')
 
-                    # Fetch current price estimate
-                    current_price = None
-                    if mt5_conn:
-                        tick = mt5_conn.symbol_info_tick(symbol)
-                        if tick:
-                            current_price = tick.bid if direction == 'BUY' else tick.ask
+                        # Skip heartbeats / non-trade signals
+                        if direction not in ('BUY', 'SELL') or not price_at_sig:
+                            self.db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason="Friday Auto-Exit (Non-trade)")
+                            continue
 
-                    # Grade outcome:
-                    # - If we got a live tick and price moved meaningfully → SUCCESS/FAIL
-                    # - If no tick or price == entry (market closed, no data) → EXPIRED
-                    min_pip = 0.0001
-                    if current_price is not None and abs(current_price - price_at_sig) > min_pip:
-                        profit = (current_price - price_at_sig) if direction == 'BUY' else (price_at_sig - current_price)
-                        outcome = 'SUCCESS' if profit > 0 else 'FAIL'
-                        reason = "Friday Auto-Exit (Terminated)"
-                    else:
-                        # Market closed or no real movement — don't penalise as FAIL
-                        outcome = 'EXPIRED'
-                        reason = "Friday Auto-Exit (Market Closed)"
-                        current_price = current_price or price_at_sig
+                        # Fetch current price estimate
+                        current_price = None
+                        if mt5_conn:
+                            tick = mt5_conn.symbol_info_tick(symbol)
+                            if tick:
+                                current_price = tick.bid if direction == 'BUY' else tick.ask
 
-                    logger.info(f"🏁 Friday Exit Resolved: {symbol} ID {sig_id} -> {outcome} ({reason}) @ {current_price:.5f}")
-                    self.db.update_signal_outcome(sig_id, outcome, exit_price=current_price, exit_reason=reason)
+                        # Grade outcome:
+                        min_pip = 0.0001
+                        if current_price is not None and abs(current_price - price_at_sig) > min_pip:
+                            profit = (current_price - price_at_sig) if direction == 'BUY' else (price_at_sig - current_price)
+                            outcome = 'SUCCESS' if profit > 0 else 'FAIL'
+                            reason = "Friday Auto-Exit (Terminated)"
+                        else:
+                            outcome = 'EXPIRED'
+                            reason = "Friday Auto-Exit (Market Closed)"
+                            current_price = current_price or price_at_sig
+
+                        logger.info(f"🏁 Friday Exit Resolved: {symbol} ID {sig_id} -> {outcome} ({reason}) @ {current_price:.5f}")
+                        self.db.update_signal_outcome(sig_id, outcome, exit_price=current_price, exit_reason=reason)
                 return True
             return False
         except Exception as e:
@@ -1289,8 +1318,25 @@ class ExecutiveEngine:
 
                 # Mirror exit to all copy-trading secondary accounts
                 try:
-                    from scripts.multi_executor import close_signal_for_all_users
-                    close_signal_for_all_users(symbol)
+                    import yaml
+                    with open('config.yaml', 'r') as _cf:
+                        _cfg = yaml.safe_load(_cf) or {}
+                    copy_mode = _cfg.get('copy_trading', {}).get('copy_mode', 'signal_broadcast')
+                    
+                    # In position_mirror mode, exits are handled strictly by ManualModel when the
+                    # master MT5 position closes. Executive paper signal resolutions must NEVER close follower positions.
+                    if copy_mode != 'position_mirror':
+                        if ticket and str(ticket).isdigit() and int(ticket) > 0:
+                            from scripts.multi_executor import close_signal_for_all_users
+                            open_on_master = [p for p in (self.mt5.positions_get(symbol=symbol) or []) if getattr(p, 'ticket', 0) != ticket] if (hasattr(self, 'mt5') and self.mt5) else []
+                            if open_on_master:
+                                from core.manual_model import _load_mirrored_positions
+                                m_data = _load_mirrored_positions().get("mirrored_tickets", {}).get(str(ticket), {})
+                                follower_map = m_data.get("results", {})
+                                if follower_map:
+                                    close_signal_for_all_users(symbol, target_tickets=follower_map)
+                            else:
+                                close_signal_for_all_users(symbol)
                 except Exception as _ce:
                     logger.error(f"Failed to mirror close for {symbol} on secondary accounts: {_ce}")
 

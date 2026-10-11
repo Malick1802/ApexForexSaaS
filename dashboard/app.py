@@ -25,7 +25,7 @@ from typing import Optional, Dict, Any, List
 from theme import (
     inject_css, get_db, get_engine, get_inference,
     kpi_card, hero_banner, sidebar_logo, sidebar_footer, section_header,
-    PROJECT_ROOT, render_system_monitor
+    PROJECT_ROOT, render_system_monitor, render_moonx_ticker_ribbon
 )
 
 logger = logging.getLogger(__name__)
@@ -298,6 +298,9 @@ def render_chart(df, symbol, key=None, levels=None):
 def show_command_center():
     engine = load_engine()
     db = get_db()
+
+    # MoonX-style Top Live Ticker & Safety Ribbon Dock
+    render_moonx_ticker_ribbon()
 
     hero_banner("Command Center",
                 "Real-time AI surveillance across 31 assets (Forex & Commodities) · Institutional-level precision targeting",
@@ -582,6 +585,7 @@ def show_command_center():
 def show_market_overview():
     import yaml
 
+    render_moonx_ticker_ribbon()
     hero_banner("Market Overview", "Real-time AI signal grid across 31 global currency pairs")
 
     # RANGING-approved whitelist (must match core/inference.py)
@@ -878,6 +882,9 @@ def show_trading_terminal():
 
         st.slider("Confidence Filter", 50, 95, key='confidence_thresh')
         confidence_thresh = st.session_state['confidence_thresh']
+
+    # MoonX-style Top Live Ticker & Safety Ribbon Dock
+    render_moonx_ticker_ribbon()
 
     # ── Trading Engine Selector ───────────────────────────────────────────────
     if "terminal_active_strategy" not in st.session_state:

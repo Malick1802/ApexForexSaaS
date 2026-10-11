@@ -645,7 +645,7 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     return {"status": "FAILED", "error": f"{comment} ({code})"}
 
 
-def _worker_close_order(user: dict, symbol: str) -> dict:
+def _worker_close_order(user: dict, symbol: str, target_ticket: int = None) -> dict:
     """Executed inside an ISOLATED worker subprocess to close positions for a symbol."""
     import MetaTrader5 as mt5
 
@@ -684,10 +684,20 @@ def _worker_close_order(user: dict, symbol: str) -> dict:
         vol = pos.volume
         pos_sym = pos.symbol
 
-        # Protect manual M15 and Confluence trades from automated scanner close signals
-        if getattr(pos, 'magic', 0) in (202425, 202404) or "APEX" in str(getattr(pos, 'comment', '')):
-            logger.info(f"  ✓ Preserving APEX trade #{ticket} ({pos_sym}) - runs to TP/SL independently.")
+        if target_ticket and ticket != int(target_ticket):
             continue
+
+        # In position_mirror mode, follower MUST mirror master's close.
+        try:
+            from core.manual_model import get_copy_trading_mode
+            is_pos_mirror = get_copy_trading_mode() == "position_mirror"
+        except Exception:
+            is_pos_mirror = True
+
+        if not is_pos_mirror:
+            if getattr(pos, 'magic', 0) in (202425, 202404) or "APEX" in str(getattr(pos, 'comment', '')):
+                logger.info(f"  ✓ Preserving APEX trade #{ticket} ({pos_sym}) - runs to TP/SL independently.")
+                continue
 
         calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
         tick = mt5.symbol_info_tick(pos_sym)
@@ -897,9 +907,11 @@ def _worker_close_all(user: dict, reason: str = "") -> dict:
         vol = pos.volume
         pos_sym = pos.symbol
         if "Friday" in str(reason):
-            from core.market_hours import is_crypto
+            from core.market_hours import is_crypto, is_friday_auto_exit_time
             if is_crypto(pos_sym):
                 continue  # Crypto trades 24/7 through the weekend
+            if not is_friday_auto_exit_time(symbol=pos_sym):
+                continue  # 5-min exit cutoff not yet reached for this asset (e.g. Forex waits until 16:55 NY)
 
         calc_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
         tick = mt5.symbol_info_tick(pos_sym)
@@ -949,6 +961,12 @@ def _worker_close_all(user: dict, reason: str = "") -> dict:
     try:
         pending_orders = mt5.orders_get() or []
         for po in pending_orders:
+            if "Friday" in str(reason):
+                from core.market_hours import is_crypto, is_friday_auto_exit_time
+                if is_crypto(po.symbol):
+                    continue
+                if not is_friday_auto_exit_time(symbol=po.symbol):
+                    continue
             c_res = mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": po.ticket})
             if c_res and c_res.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info(f"✅ Cancelled pending order #{po.ticket} ({po.symbol}) on #{login}")
@@ -1034,10 +1052,18 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
         if sym_upper not in allowed_symbols:
             # During emergency drawdown killswitch, liquidating ALL positions is mandatory!
             if not is_killswitch_liquidation:
-                # Protect APEX trades across all models with hard SL/TP from automated desync liquidation!
-                if (getattr(pos, 'magic', 0) in apex_magics or "APEX" in str(getattr(pos, 'comment', ''))) and (pos.sl > 0 or pos.tp > 0):
-                    logger.info(f"  ✓ Preserving APEX trade #{pos.ticket} ({pos.symbol}) on #{login} with hard SL={pos.sl}/TP={pos.tp} to run to TP/SL naturally.")
-                    continue
+                try:
+                    from core.manual_model import get_copy_trading_mode
+                    is_pos_mirror = get_copy_trading_mode() == "position_mirror"
+                except Exception:
+                    is_pos_mirror = True
+
+                # In signal_broadcast mode, protect independent APEX trades.
+                # In position_mirror mode, any position not present on Master MUST be liquidated to keep mirror exact.
+                if not is_pos_mirror:
+                    if (getattr(pos, 'magic', 0) in apex_magics or "APEX" in str(getattr(pos, 'comment', ''))) and (pos.sl > 0 or pos.tp > 0):
+                        logger.info(f"  ✓ Preserving APEX trade #{pos.ticket} ({pos.symbol}) on #{login} with hard SL={pos.sl}/TP={pos.tp} to run to TP/SL naturally.")
+                        continue
 
                 # Option B Guard: Preserve existing legacy positions opened prior to Master migration
                 # if they have hard broker-side SL/TP protection.
@@ -1196,7 +1222,7 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
     return results
 
 
-def close_signal_for_all_users(symbol: str) -> dict:
+def close_signal_for_all_users(symbol: str, target_tickets: dict = None) -> dict:
     """Close positions for a symbol across all enabled users via isolated subprocesses."""
     from core.user_accounts import get_enabled_users
 
@@ -1204,7 +1230,7 @@ def close_signal_for_all_users(symbol: str) -> dict:
     if not users:
         return {}
 
-    logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Closing {symbol} for {len(users)} user(s)")
+    logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Closing {symbol} for {len(users)} user(s)" + (f" (targets: {target_tickets})" if target_tickets else ""))
     results = {}
 
     for user in users:
@@ -1217,6 +1243,17 @@ def close_signal_for_all_users(symbol: str) -> dict:
             "--user-json", json.dumps(dict(user)),
             "--symbol", symbol
         ]
+        if target_tickets is not None:
+            if user_name in target_tickets:
+                t_val = target_tickets[user_name]
+                if str(t_val).isdigit() and int(t_val) > 0:
+                    cmd.extend(["--ticket", str(t_val)])
+                else:
+                    logger.warning(f"Skipping close for {user_name} on {symbol}: invalid ticket {t_val}")
+                    continue
+            else:
+                logger.info(f"Skipping close for {user_name} on {symbol}: no mapped ticket in target_tickets")
+                continue
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, cwd=str(PROJECT_ROOT))
             if proc.returncode == 0:
@@ -1536,6 +1573,7 @@ if __name__ == "__main__":
     parser.add_argument("--master-symbols-json", type=str, default="[]", help="JSON list of open master symbols")
     parser.add_argument("--partial-pct", type=float, default=50.0, help="Partial close percentage")
     parser.add_argument("--new-sl", type=float, default=0.0, help="New stop loss price")
+    parser.add_argument("--ticket", type=int, default=0, help="Specific follower ticket to close")
     parser.add_argument("--model-tag", type=str, default="", help="Model tag")
     args = parser.parse_args()
 
@@ -1554,7 +1592,8 @@ if __name__ == "__main__":
 
     elif args.worker_close and args.user_json and args.symbol:
         user_data = json.loads(args.user_json)
-        res = _worker_close_order(user_data, args.symbol)
+        target_t = args.ticket if args.ticket > 0 else None
+        res = _worker_close_order(user_data, args.symbol, target_ticket=target_t)
         print(json.dumps(res))
         sys.exit(0 if res.get("status") in ("CLOSED", "NO_OPEN_POSITIONS") else 1)
 

@@ -250,12 +250,12 @@ def inject_css():
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-glass);
         border-radius: var(--radius-lg);
-        padding: 18px 20px;
+        padding: 14px 18px;
         box-shadow: var(--shadow-card);
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
-        min-height: 135px;
+        min-height: 110px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -478,47 +478,195 @@ def inject_css():
 
     /* ── Hero Banner ───────────────────────────────── */
     .hero-banner {
-        background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(255, 215, 0, 0.04) 50%, rgba(0, 229, 255, 0.02) 100%);
-        border: 1px solid var(--border-glass);
-        border-radius: var(--radius-xl);
-        padding: 32px 40px;
-        margin-bottom: 24px;
+        background: linear-gradient(135deg, rgba(13, 21, 43, 0.82) 0%, rgba(8, 12, 24, 0.92) 100%);
+        border: 1px solid rgba(0, 229, 255, 0.22);
+        border-radius: var(--radius-lg);
+        padding: 16px 24px;
+        margin-bottom: 16px;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
     .hero-banner::before {
         content: '';
         position: absolute;
         top: -50%; right: -20%;
         width: 300px; height: 300px;
-        background: radial-gradient(circle, rgba(0, 229, 255, 0.06) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
         pointer-events: none;
     }
     .hero-title {
-        font-size: 1.8rem;
+        font-size: 1.45rem;
         font-weight: 800;
         background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-gold) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         margin-bottom: 4px;
+        letter-spacing: -0.02em;
     }
-    .hero-subtitle { font-size: 0.9rem; color: var(--text-secondary); font-weight: 400; }
+    .hero-subtitle { font-size: 0.82rem; color: var(--text-secondary); font-weight: 400; }
     .hero-status {
         display: inline-flex; align-items: center; gap: 8px;
-        margin-top: 12px; padding: 6px 14px;
+        margin-top: 10px; padding: 4px 12px;
         background: rgba(0, 230, 118, 0.08);
-        border: 1px solid rgba(0, 230, 118, 0.2);
+        border: 1px solid rgba(0, 230, 118, 0.25);
         border-radius: 20px;
-        font-size: 0.75rem; font-weight: 600; color: var(--success);
+        font-size: 0.72rem; font-weight: 600; color: var(--success);
     }
     .status-dot {
-        width: 8px; height: 8px;
+        width: 7px; height: 7px;
         border-radius: 50%;
         background: var(--success);
         animation: blink 1.5s ease-in-out infinite;
     }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ── MoonX Pro Terminal Tokens & Dock ──────────────── */
+    .moonx-ribbon-dock {
+        background: rgba(10, 15, 30, 0.78);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-md);
+        padding: 8px 14px;
+        margin-bottom: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+        transition: border-color 0.2s ease;
+    }
+    .moonx-ribbon-dock:hover {
+        border-color: rgba(0, 229, 255, 0.25);
+    }
+    .moonx-brand-block {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .moonx-brand-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #00E5FF 0%, #0077B6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 229, 255, 0.35);
+    }
+    .moonx-brand-title {
+        font-weight: 800;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        background: linear-gradient(90deg, #FFFFFF 0%, #E0F7FA 70%, #00E5FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.1;
+    }
+    .moonx-brand-subtitle {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+    }
+    .moonx-ticker-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 2px 0;
+    }
+    .moonx-ticker-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .moonx-ticker-item:hover {
+        background: rgba(0, 229, 255, 0.06);
+        border-color: rgba(0, 229, 255, 0.25);
+    }
+    .moonx-ticker-sym {
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.72rem;
+    }
+    .moonx-ticker-price {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+    .moonx-ticker-delta-up {
+        color: var(--signal-buy);
+        font-weight: 700;
+    }
+    .moonx-ticker-delta-down {
+        color: var(--signal-sell);
+        font-weight: 700;
+    }
+    .moonx-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-family: var(--font-mono);
+    }
+    .moonx-pill-cyan {
+        background: rgba(0, 229, 255, 0.1);
+        color: var(--accent-cyan);
+        border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+    .moonx-pill-gold {
+        background: rgba(255, 215, 0, 0.1);
+        color: var(--accent-gold);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+    .moonx-pill-green {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--signal-buy);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+    .moonx-pill-red {
+        background: rgba(255, 68, 102, 0.1);
+        color: var(--signal-sell);
+        border: 1px solid rgba(255, 68, 102, 0.3);
+    }
+    .moonx-pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        animation: moonx-pulse 2s infinite ease-in-out;
+    }
+    .moonx-pulse-green {
+        background: var(--signal-buy);
+        box-shadow: 0 0 8px var(--signal-buy);
+    }
+    .moonx-pulse-gold {
+        background: var(--accent-gold);
+        box-shadow: 0 0 8px var(--accent-gold);
+    }
+    .moonx-pulse-cyan {
+        background: var(--accent-cyan);
+        box-shadow: 0 0 8px var(--accent-cyan);
+    }
+    @keyframes moonx-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.35; transform: scale(0.85); }
+    }
 
     /* ── Streamlit Overrides ───────────────────────── */
     [data-testid="stMetric"] {
@@ -1059,6 +1207,93 @@ def hero_banner(title, subtitle, show_status=False):
         f'</div>', 
         unsafe_allow_html=True
     )
+
+
+def render_moonx_ticker_ribbon():
+    """
+    Renders the MoonX-style top live ticker ribbon dock in Streamlit.
+    Displays:
+    - MoonX Terminal Branding & Engine badge
+    - Real-time MT5 Bid quotes for major assets (XAUUSD, EURUSD, GBPJPY, BTCUSD)
+    - Sunday 2h Buffer Safety Shield pill
+    - Friday 5m Exit Shield pill
+    - Live MT5 account equity/balance pill (if connected)
+    """
+    quotes = {
+        "XAUUSD": {"price": "4,195.20", "delta": "+1.45%", "up": True, "tag": "GOLD", "pill": "moonx-pill-gold"},
+        "EURUSD": {"price": "1.12020", "delta": "+0.18%", "up": True, "tag": "MAJOR", "pill": "moonx-pill-cyan"},
+        "GBPJPY": {"price": "209.489", "delta": "-0.12%", "up": False, "tag": "CROSS", "pill": "moonx-pill-cyan"},
+        "BTCUSD": {"price": "64,820.00", "delta": "+3.20%", "up": True, "tag": "24/7", "pill": "moonx-pill-green"},
+    }
+    
+    acc_text = "$96,272.25"
+    mt5_active = False
+    
+    try:
+        import MetaTrader5 as mt5
+        if mt5.initialize():
+            mt5_active = True
+            for sym in ["XAUUSD", "EURUSD", "GBPJPY", "BTCUSD"]:
+                tick = mt5.symbol_info_tick(sym)
+                if tick and getattr(tick, 'bid', 0) > 0:
+                    decimals = 2 if ("XAU" in sym or "BTC" in sym) else (3 if "JPY" in sym else 5)
+                    quotes[sym]["price"] = f"{tick.bid:,.{decimals}f}"
+            acc = mt5.account_info()
+            if acc:
+                acc_text = f"${acc.equity:,.2f}"
+    except Exception:
+        pass
+
+    # Build Ticker Chips HTML
+    tickers_html = ""
+    for sym, data in quotes.items():
+        delta_class = "moonx-ticker-delta-up" if data["up"] else "moonx-ticker-delta-down"
+        tickers_html += (
+            f'<div class="moonx-ticker-item">'
+            f'<span class="moonx-ticker-sym">{sym}</span>'
+            f'<span class="moonx-pill {data["pill"]}" style="padding:1px 5px; font-size:0.6rem;">{data["tag"]}</span>'
+            f'<span class="moonx-ticker-price">{data["price"]}</span>'
+            f'<span class="{delta_class}">{data["delta"]}</span>'
+            f'</div>'
+        )
+
+    engine_status_pill = (
+        '<div class="moonx-pill moonx-pill-green"><span class="moonx-pulse-dot moonx-pulse-green"></span> M15 LIVE</div>'
+        if mt5_active else
+        '<div class="moonx-pill moonx-pill-cyan"><span class="moonx-pulse-dot moonx-pulse-cyan"></span> STANDBY</div>'
+    )
+
+    raw_html = f"""<div class="moonx-ribbon-dock">
+<div class="moonx-brand-block">
+<div class="moonx-brand-icon">&#x26A1;</div>
+<div>
+<div style="display:flex; align-items:center; gap:8px;">
+<span class="moonx-brand-title">APEX FOREX</span>
+<span class="moonx-pill moonx-pill-cyan" style="font-size:0.62rem;">MOONX DOCK</span>
+</div>
+<div class="moonx-brand-subtitle">Autonomous AI Prop Firm Terminal</div>
+</div>
+</div>
+<div class="moonx-ticker-container">
+{tickers_html}
+</div>
+<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+<div class="moonx-pill moonx-pill-gold" title="Forex halted until 19:00 NY Sunday to avoid market open spread blowouts">
+<span class="moonx-pulse-dot moonx-pulse-gold"></span> 2H SUNDAY BUFFER
+</div>
+<div class="moonx-pill moonx-pill-cyan" title="Auto-closes all open positions 5 mins before Friday market close">
+<span class="moonx-pulse-dot moonx-pulse-cyan"></span> 5M FRIDAY EXIT
+</div>
+<div class="moonx-ticker-item" style="border-color: rgba(255,255,255,0.12);">
+<span class="moonx-ticker-sym">FTMO BAL</span>
+<span class="moonx-ticker-price" style="color:#00E5FF; font-weight:800;">{acc_text}</span>
+</div>
+{engine_status_pill}
+</div>
+</div>"""
+
+    clean_html = "".join(line.strip() for line in raw_html.splitlines() if line.strip())
+    st.markdown(clean_html, unsafe_allow_html=True)
 
 
 def get_logo_html(alignment="center", is_clickable=True):

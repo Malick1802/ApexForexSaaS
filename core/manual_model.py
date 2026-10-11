@@ -1033,18 +1033,24 @@ def submit_manual_order(
         copy_mode = get_copy_trading_mode()
         is_pending = order_type_str in ("BUY_STOP", "SELL_STOP", "BUY_LIMIT", "SELL_LIMIT")
 
-        if copy_mode == "position_mirror" and is_pending:
-            logger.info(
-                f"🪞 [Position Mirror Mode] Pending stop order #{ticket} ({order_type_str} on {symbol}) armed on Master MT5. "
-                f"Follower copy execution postponed until Master confirms position fill."
-            )
-            broadcast_results = {"status": "POSTPONED_POSITION_MIRROR", "reason": "Awaiting master fill"}
-            result["broadcast_results"] = broadcast_results
-            if send_telegram:
-                try:
-                    _send_manual_telegram_alert(signal_row, broadcast_results)
-                except Exception as e:
-                    logger.warning(f"Telegram alert for manual M15 order failed: {e}")
+        if copy_mode == "position_mirror":
+            if is_pending:
+                logger.info(
+                    f"🪞 [Position Mirror Mode] Pending stop order #{ticket} ({order_type_str} on {symbol}) armed on Master MT5. "
+                    f"Follower copy execution postponed until Master confirms position fill."
+                )
+                broadcast_results = {"status": "POSTPONED_POSITION_MIRROR", "reason": "Awaiting master fill"}
+                result["broadcast_results"] = broadcast_results
+                if send_telegram:
+                    try:
+                        _send_manual_telegram_alert(signal_row, broadcast_results)
+                    except Exception as e:
+                        logger.warning(f"Telegram alert for manual M15 order failed: {e}")
+            else:
+                m_pos = mt5.positions_get(ticket=int(ticket)) if (mt5 and ticket and str(ticket).isdigit()) else None
+                _mirror_master_position_to_followers(signal_row, m_pos[0] if m_pos else None)
+                broadcast_results = {"status": "DISPATCHED_POSITION_MIRROR"}
+                result["broadcast_results"] = broadcast_results
         else:
             try:
                 account = mt5.account_info() if mt5 else None
@@ -2022,7 +2028,16 @@ def reconcile_manual_orders():
                 # Mirror close to follower accounts
                 try:
                     from scripts.multi_executor import close_signal_for_all_users
-                    close_signal_for_all_users(symbol)
+                    m_data = _load_mirrored_positions().get("mirrored_tickets", {}).get(str(ticket), {})
+                    follower_map = m_data.get("results", {})
+                    if follower_map:
+                        logger.info(f"🪞 [Position Mirror] Closing only specific follower ticket(s) for #{ticket} on {symbol}: {follower_map}")
+                        close_signal_for_all_users(symbol, target_tickets=follower_map)
+                    else:
+                        # Fallback only if Master has no other positions on this symbol
+                        open_on_master = [p for p in (mt5.positions_get(symbol=symbol) or []) if getattr(p, 'ticket', 0) != ticket]
+                        if not open_on_master:
+                            close_signal_for_all_users(symbol)
                 except Exception as _ce:
                     logger.warning(f"Follower close broadcast warning for {symbol}: {_ce}")
                 continue

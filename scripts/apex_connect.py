@@ -399,21 +399,20 @@ def main_loop():
                     cursor.execute("UPDATE signals SET mt5_ticket=? WHERE id=?", (status_code, sig_id))
                     conn.commit()
                 
-                # 3. Friday Auto-Exit (Prop Firm Safety: 30 minutes before market close)
-                from core.market_hours import is_friday_auto_exit_time, get_ny_time
+                # 3. Friday Auto-Exit (Prop Firm Safety: 5 minutes before weekend close)
+                from core.market_hours import is_friday_auto_exit_time, is_friday_auto_exit_window, is_crypto, get_ny_time
                 ny_now = get_ny_time()
-                # Reset guard at the start of each new day (so Monday–Thursday it stays False)
-                if ny_now.weekday() != 4:
-                    _friday_close_done = False
 
-                # Friday 30 minutes before market close (16:30 New York time)
-                if is_friday_auto_exit_time() and not _friday_close_done:
-                    _friday_close_done = True
-                    logger.info(f"🕒 Friday Auto-Exit Triggered ({ny_now.strftime('%Y-%m-%d %H:%M:%S %Z')}) — 30 min before close. Closing all open positions.")
+                # Friday 5 minutes before market close (15:55 metals, 16:55 forex)
+                if is_friday_auto_exit_window():
                     positions = _mt5.positions_get()
                     if positions:
                         for p in positions:
-                            logger.info(f"💾 Closing position: {p.symbol} (Ticket: {p.ticket})")
+                            if is_crypto(p.symbol):
+                                continue
+                            if not is_friday_auto_exit_time(symbol=p.symbol):
+                                continue
+                            logger.info(f"💾 Friday Exit Closing position: {p.symbol} (Ticket: {p.ticket})")
                             tick = _mt5.symbol_info_tick(p.symbol)
                             if not tick:
                                 logger.error(f"Cannot get tick for {p.symbol} — skipping.")
@@ -443,8 +442,6 @@ def main_loop():
                             else:
                                 comment = res.comment if res else "No response"
                                 logger.error(f"❌ Failed to close {p.ticket}: {comment}")
-                    else:
-                        logger.info("No open positions found — nothing to close.")
 
                     try:
                         from scripts.multi_executor import close_all_positions_for_all_users

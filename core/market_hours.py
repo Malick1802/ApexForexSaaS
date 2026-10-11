@@ -4,10 +4,11 @@ core/market_hours.py
 Centralized Forex Market Hours & Seasonal Timezone Management.
 
 Forex Market Standard:
-- Friday Market Close:  17:00 (5:00 PM) New York time (US Eastern).
-- Sunday Market Open:   17:00 (5:00 PM) New York time (US Eastern).
-- Friday Entry Cutoff:  10:00 (10:00 AM) New York time.
-- Friday Auto-Exit:     16:30 (4:30 PM) New York time (30 minutes before close).
+- Friday Market Close:       17:00 (5:00 PM) New York time (US Eastern).
+- Sunday Market Open:        17:00 (5:00 PM) New York time (US Eastern).
+- Friday Entry Cutoff:       10:00 (10:00 AM) New York time.
+- Friday Auto-Exit Forex:    16:55 (4:55 PM) New York time (5 minutes before close).
+- Friday Auto-Exit Metals:   15:55 (3:55 PM) New York time (5 minutes before close; metals close at 16:00 NY).
 
 Timezone Handling:
 Uses Python's zoneinfo (`America/New_York`) to automatically adapt to seasonal
@@ -28,6 +29,19 @@ def is_crypto(symbol: str) -> bool:
     if clean in ("BTCUSD", "BTCUSDT", "ETHUSD", "ETHUSDT", "SOLUSD", "SOLUSDT", "XRPUSD", "XRPUSDT", "LTCUSD", "LTCUSDT", "BTC", "ETH", "SOL", "XRP", "LTC"):
         return True
     return any(clean.startswith(p) for p in ("BTC", "ETH", "SOL", "XRP", "LTC", "ADA", "DOT"))
+
+def is_metal(symbol: str) -> bool:
+    """
+    Check if a symbol is a precious metal or commodity with early Friday close (16:00 New York time).
+    Metals (Gold, Silver, Platinum, Palladium) and energy commodities close 1 hour earlier than Forex on Friday.
+    """
+    if not symbol:
+        return False
+    clean = str(symbol).upper().strip().replace(".CASH", "").replace(".M", "").replace(".RAW", "").replace("_", "")
+    prefixes = ("XAU", "GOLD", "XAG", "SILVER", "XPT", "PLATINUM", "XPD", "PALLADIUM", "USOIL", "UKOIL", "BRENT", "WTI", "XTI", "XBR")
+    if clean in prefixes:
+        return True
+    return any(clean.startswith(p) for p in prefixes)
 
 def get_ny_time(dt_utc: datetime = None) -> datetime:
     """Convert UTC datetime to New York time with full DST support."""
@@ -59,19 +73,40 @@ def is_friday_trade_entry_allowed(dt_utc: datetime = None, symbol: str = None) -
     
     return True, "OK"
 
+def is_friday_auto_exit_window(dt_utc: datetime = None) -> bool:
+    """
+    Check if Friday Auto-Exit liquidation window is currently active for ANY instrument.
+    Starts at 15:55 NY time (5 minutes before metals close at 16:00 NY) through market close.
+    """
+    ny = get_ny_time(dt_utc)
+    if ny.weekday() == 4:
+        if ny.hour > 15 or (ny.hour == 15 and ny.minute >= 55):
+            return True
+    return False
+
 def is_friday_auto_exit_time(dt_utc: datetime = None, symbol: str = None) -> bool:
     """
-    Check if Friday Auto-Exit should trigger.
-    Triggers 30 minutes before market close (Friday 16:30 New York time).
-    Crypto trades 24/7 and is exempt from Friday liquidation.
+    Check if Friday Auto-Exit should trigger for a specific symbol or generally.
+    Triggers 5 minutes before weekend market close:
+    - Forex pairs close at 17:00 NY time -> Triggers at 16:55 NY time.
+    - Metals/Commodities close at 16:00 NY time -> Triggers at 15:55 NY time.
+    - Crypto trades 24/7 and is exempt from Friday liquidation.
+
+    If symbol is None: Defaults to general Forex close (16:55 NY time).
     """
     if symbol and is_crypto(symbol):
         return False
 
     ny = get_ny_time(dt_utc)
     if ny.weekday() == 4:
-        if ny.hour > 16 or (ny.hour == 16 and ny.minute >= 30):
-            return True
+        if symbol and is_metal(symbol):
+            # Metals close at 16:00 NY time -> Exit 5 mins before at 15:55 NY time
+            if ny.hour > 15 or (ny.hour == 15 and ny.minute >= 55):
+                return True
+        else:
+            # Forex and standard instruments close at 17:00 NY time -> Exit 5 mins before at 16:55 NY time
+            if ny.hour > 16 or (ny.hour == 16 and ny.minute >= 55):
+                return True
     return False
 
 def is_weekend_halt(dt_utc: datetime = None, symbol: str = None) -> Tuple[bool, str]:
@@ -113,6 +148,7 @@ def get_market_status(dt_utc: datetime = None) -> Dict[str, Any]:
     ny = get_ny_time(dt_utc)
     entry_allowed, entry_reason = is_friday_trade_entry_allowed(dt_utc)
     exit_triggered = is_friday_auto_exit_time(dt_utc)
+    exit_window = is_friday_auto_exit_window(dt_utc)
     weekend_halt, weekend_reason = is_weekend_halt(dt_utc)
 
     return {
@@ -121,5 +157,6 @@ def get_market_status(dt_utc: datetime = None) -> Dict[str, Any]:
         "is_weekend_halt": weekend_halt,
         "trade_entry_allowed": entry_allowed and not weekend_halt,
         "friday_auto_exit_triggered": exit_triggered,
+        "friday_auto_exit_window": exit_window,
         "reason": weekend_reason if weekend_halt else entry_reason
     }
