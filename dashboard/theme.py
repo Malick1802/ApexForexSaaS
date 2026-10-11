@@ -22,10 +22,16 @@ def init_page(title: str, icon: str = "⚡"):
 
 
 def get_db():
-    """Get properly-pathed SignalDatabase instance with forced reload."""
-    import importlib
+    """Get properly-pathed SignalDatabase instance.
+
+    The old version called importlib.reload() on every call, which is slow and
+    ran on every landing-page visit. Set APEX_DEV_RELOAD=1 to bring it back
+    while developing core/database.py.
+    """
     import core.database
-    importlib.reload(core.database)
+    if os.environ.get("APEX_DEV_RELOAD") == "1":
+        import importlib
+        importlib.reload(core.database)
     from core.database import SignalDatabase
     return SignalDatabase(db_path=DB_PATH)
 
@@ -74,7 +80,7 @@ def inject_css():
         --border-glow: rgba(0, 229, 255, 0.22);
         --text-primary: #f0f4fc;
         --text-secondary: #8e9bb0;
-        --text-muted: #526079;
+        --text-muted: #7d8aa3; /* was #526079 (~3:1); now ~5.7:1 on the page background */
         --accent-cyan: #00E5FF;
         --accent-cyan-dim: rgba(0, 229, 255, 0.12);
         --accent-cyan-hover: #33ebff;
@@ -1164,6 +1170,34 @@ def inject_css():
         border: 1px solid rgba(0, 229, 255, 0.3) !important;
         border-radius: 6px !important;
         color: #00E5FF !important;
+    }
+
+    /* ── Accessibility & responsive layer ───────────── */
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible,
+    [role="tab"]:focus-visible, [role="radio"]:focus-visible, summary:focus-visible,
+    [data-testid="stSidebarNavLink"]:focus-visible {
+        outline: 2px solid var(--accent-cyan) !important;
+        outline-offset: 2px !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+    @media (max-width: 760px) {
+        .block-container, [data-testid="stMainBlockContainer"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        h1 { font-size: 1.7rem !important; }
+        h2 { font-size: 1.3rem !important; }
+        .kpi-card { min-height: 0 !important; padding: 12px 14px !important; }
+        .glass-card { padding: 16px !important; }
+        /* wide tables/charts scroll inside themselves instead of the page */
+        [data-testid="stDataFrame"], [data-testid="stTable"] { overflow-x: auto; }
     }
 </style>
 """, unsafe_allow_html=True)
