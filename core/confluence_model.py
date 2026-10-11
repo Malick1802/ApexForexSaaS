@@ -589,15 +589,28 @@ def evaluate_confluence_setup(
     def _parse_bar(r):
         raw_dt = datetime.fromtimestamp(int(r["time"]), tz=timezone.utc)
         open_utc = raw_dt - timedelta(hours=offset_h)
+        o_val = round(float(r["open"]), 5)
+        h_val = round(float(r["high"]), 5)
+        l_val = round(float(r["low"]), 5)
+        c_val = round(float(r["close"]), 5)
+        rng = max(h_val - l_val, 1e-6)
+        body = abs(c_val - o_val)
+        body_ratio = body / rng
+        # A candle with body < 15% of total high-to-low range is a doji (indecision bar)
+        is_doji = (body_ratio < 0.15)
         return {
             "time": open_utc,
             "close_time": open_utc + timedelta(minutes=15),
-            "open": round(float(r["open"]), 5),
-            "high": round(float(r["high"]), 5),
-            "low": round(float(r["low"]), 5),
-            "close": round(float(r["close"]), 5),
-            "is_bullish": float(r["close"]) > float(r["open"]),
-            "is_bearish": float(r["close"]) < float(r["open"]),
+            "open": o_val,
+            "high": h_val,
+            "low": l_val,
+            "close": c_val,
+            "range": rng,
+            "body": body,
+            "body_ratio": round(body_ratio, 4),
+            "is_doji": is_doji,
+            "is_bullish": (c_val > o_val) and not is_doji,
+            "is_bearish": (c_val < o_val) and not is_doji,
         }
 
     c_entry = _parse_bar(rates[-1]) # Candle 3 (Current forming bar)
@@ -635,15 +648,13 @@ def evaluate_confluence_setup(
     if c_break["is_bearish"] and c_magic["is_bullish"]:
         for name, line_val in low_lines:
             if include_wicks:
-                # Candle 1 sweeps line: must originate from at/above line and close below line
+                # Candle 1 sweeps line: lower wick or body pierces at/below line, originated from at/above line
                 c1_sweep = (
-                    (c_break["open"] >= line_val and c_break["close"] < line_val) or
-                    (max(c_break["open"], c_break["high"]) >= line_val and c_break["close"] < line_val and c_break["low"] <= line_val)
+                    (c_break["low"] <= line_val and max(c_break["open"], c_break["high"]) >= line_val)
                 )
-                # Candle 2 reclaims line: came from at/below line and closed back above line
+                # Candle 2 reclaims line: must close back above the line
                 c2_reclaim = (
-                    (min(c_magic["low"], c_magic["open"]) <= line_val and c_magic["close"] > line_val) or
-                    (c_magic["open"] <= line_val and c_magic["close"] > line_val)
+                    (c_magic["close"] > line_val and (min(c_magic["low"], c_magic["open"]) <= line_val or c_break["low"] <= line_val))
                 )
                 valid_buy = c1_sweep and c2_reclaim
             else:
@@ -686,15 +697,13 @@ def evaluate_confluence_setup(
     if not res.get("setup_detected") and c_break["is_bullish"] and c_magic["is_bearish"]:
         for name, line_val in high_lines:
             if include_wicks:
-                # Candle 1 sweeps line: must originate from at/below line and close above line
+                # Candle 1 sweeps line: upper wick or body pierces at/above line, originated from at/below line
                 c1_sweep = (
-                    (c_break["open"] <= line_val and c_break["close"] > line_val) or
-                    (min(c_break["open"], c_break["low"]) <= line_val and c_break["close"] > line_val and c_break["high"] >= line_val)
+                    (c_break["high"] >= line_val and min(c_break["open"], c_break["low"]) <= line_val)
                 )
-                # Candle 2 reclaims line: came from at/above line and closed back below line
+                # Candle 2 reclaims line: must close back below the line
                 c2_reclaim = (
-                    (max(c_magic["high"], c_magic["open"]) >= line_val and c_magic["close"] < line_val) or
-                    (c_magic["open"] >= line_val and c_magic["close"] < line_val)
+                    (c_magic["close"] < line_val and (max(c_magic["high"], c_magic["open"]) >= line_val or c_break["high"] >= line_val))
                 )
                 valid_sell = c1_sweep and c2_reclaim
             else:
