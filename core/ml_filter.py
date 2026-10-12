@@ -85,11 +85,11 @@ class ConfluenceMLFilter:
 
         try:
             from core.manual_model import get_mt5, get_broker_offset_hours, get_pip_size
-            mt5 = mt5_inst or get_mt5()
+            symbol = setup["symbol"]
+            mt5 = mt5_inst or get_mt5(symbol=symbol)
             if not mt5:
                 return {"evaluated": False, "passed": True, "probability": 0.50, "recommendation": "BYPASS"}
 
-            symbol = setup["symbol"]
             direction = setup["direction"]
             is_buy = (direction == "BUY")
             pip_sz = get_pip_size(symbol)

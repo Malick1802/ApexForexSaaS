@@ -952,21 +952,15 @@ def submit_manual_order(
     if direction == "BUY":
         mt5_order_type = mt5.ORDER_TYPE_BUY_STOP
         order_type_str = "BUY_STOP"
+        # Ensure entry price is strictly above tick.ask so MT5 accepts BUY_STOP
         if tick and entry <= tick.ask:
-            drift_pips = (tick.ask - entry) / pip_sz
-            if drift_pips > 2.0:
-                logger.warning(f"🛑 [Entry Drift] Market already moved {drift_pips:.1f}p past BUY entry wick ({entry:.5f} vs ask {tick.ask:.5f}). Aborting late entry.")
-                return {"success": False, "error": f"Price drifted {drift_pips:.1f}p past entry wick"}
-            entry = round(tick.ask + 0.5 * pip_sz, 5)
+            entry = round(tick.ask + 1 * pip_sz, 5)
     else:
         mt5_order_type = mt5.ORDER_TYPE_SELL_STOP
         order_type_str = "SELL_STOP"
+        # Ensure entry price is strictly below tick.bid so MT5 accepts SELL_STOP
         if tick and entry >= tick.bid:
-            drift_pips = (entry - tick.bid) / pip_sz
-            if drift_pips > 2.0:
-                logger.warning(f"🛑 [Entry Drift] Market already dropped {drift_pips:.1f}p past SELL entry wick ({entry:.5f} vs bid {tick.bid:.5f}). Aborting late entry.")
-                return {"success": False, "error": f"Price drifted {drift_pips:.1f}p past entry wick"}
-            entry = round(tick.bid - 0.5 * pip_sz, 5)
+            entry = round(tick.bid - 1 * pip_sz, 5)
 
     filling_type = mt5.ORDER_FILLING_RETURN
     try:
@@ -992,20 +986,10 @@ def submit_manual_order(
         if hasattr(expiry_utc, "tzinfo") and expiry_utc.tzinfo is None:
             expiry_utc = expiry_utc.replace(tzinfo=timezone.utc)
 
-        rem_seconds = int((expiry_utc - now_utc).total_seconds())
-        if rem_seconds <= 10:
-            logger.warning(f"⏳ Candle 3 has expired or has < 10s remaining ({rem_seconds}s). Aborting order submission.")
-            return {"success": False, "error": "Candle 3 has expired (insufficient time remaining)"}
-
-        # In MT5, tick.time is the broker's current server epoch timestamp.
-        # Adding rem_seconds gives the exact broker server timestamp when Candle 3 closes!
-        if tick and getattr(tick, 'time', 0) > 0:
-            expiration = int(tick.time + rem_seconds)
-        else:
-            offset_h = get_broker_offset_hours(symbol)
-            server_expiry = expiry_utc + timedelta(hours=offset_h)
-            server_expiry_utc = server_expiry.replace(tzinfo=timezone.utc)
-            expiration = int(server_expiry_utc.timestamp())
+        offset_h = get_broker_offset_hours(symbol)
+        server_expiry = expiry_utc + timedelta(hours=offset_h)
+        server_expiry_utc = server_expiry.replace(tzinfo=timezone.utc)
+        expiration = int(server_expiry_utc.timestamp())
     else:
         type_time = mt5.ORDER_TIME_DAY
         expiration = 0

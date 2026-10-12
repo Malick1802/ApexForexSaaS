@@ -54,6 +54,10 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 import yaml
+try:
+    import MetaTrader5 as mt5
+except ImportError:
+    mt5 = None
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -1491,7 +1495,7 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
 
             be_offset_pips = rec.get("be_offset_pips") or get_symbol_be_offset(pos.symbol)
             pip_sz = get_pip_size(pos.symbol)
-            is_buy = (pos.type == mt5.POSITION_TYPE_BUY)
+            is_buy = (pos.type == 0 or (mt5 is not None and pos.type == mt5.POSITION_TYPE_BUY))
             direction_str = "BUY" if is_buy else "SELL"
             entry_price = float(pos.price_open)
             tp_price = float(pos.tp) if pos.tp > 0 else float(rec.get("tp", 0.0))
@@ -1518,9 +1522,9 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
             be_sl_moved = rec.get("be_sl_moved", False)
 
             # Broker-level audit: verify if a partial exit deal already executed for this position
-            if not partial_taken:
+            if not partial_taken and pos_mt5:
                 try:
-                    deals = mt5.history_deals_get(position=pos.ticket) or []
+                    deals = pos_mt5.history_deals_get(position=pos.ticket) or []
                     for d in deals:
                         if getattr(d, "entry", None) in (1, 3) and getattr(d, "profit", 0) != 0:
                             logger.info(f"🛡️ Partial close deal #{d.ticket} already found in MT5 for #{pos.ticket}. Marking partial_taken=True.")
@@ -1532,13 +1536,13 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                     pass
 
             # Step 1: Execute partial close if target hit and not already taken
-            if target_hit and not partial_taken:
+            if target_hit and not partial_taken and pos_mt5:
                 logger.info(
                     f"🎯 CONFLUENCE PARTIAL TARGET REACHED: {pos.symbol} {direction_str} "
                     f"Current: {curr_price:.5f} >= Target: {partial_target:.5f} ({int(partial_ratio*100)}% of TP for {model_key}). Executing 50% partial close..."
                 )
                 close_vol = round(pos.volume * 0.5, 2)
-                s_info = mt5.symbol_info(pos.symbol)
+                s_info = pos_mt5.symbol_info(pos.symbol)
                 vol_min = s_info.volume_min if s_info else 0.01
                 vol_step = s_info.volume_step if s_info else 0.01
 
@@ -1550,11 +1554,13 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                     partial_ok = True
                 else:
                     close_vol = round(round(close_vol / vol_step) * vol_step, 2)
-                    close_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
-                    tick = mt5.symbol_info_tick(pos.symbol)
-                    exec_price = tick.bid if close_type == mt5.ORDER_TYPE_SELL else tick.ask
+                    close_type = 1 if is_buy else 0  # 1 = SELL, 0 = BUY
+                    if mt5 is not None:
+                        close_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
+                    tick = pos_mt5.symbol_info_tick(pos.symbol)
+                    exec_price = tick.bid if is_buy else tick.ask
                     deal_req = {
-                        "action": mt5.TRADE_ACTION_DEAL,
+                        "action": mt5.TRADE_ACTION_DEAL if mt5 else 1,
                         "position": pos.ticket,
                         "symbol": pos.symbol,
                         "volume": close_vol,
@@ -1565,7 +1571,8 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                         "comment": f"APEX Partial {int(partial_ratio*100)}%",
                     }
                     deal_res = pos_mt5.order_send(deal_req)
-                    if deal_res and deal_res.retcode == mt5.TRADE_RETCODE_DONE:
+                    retcode_done = mt5.TRADE_RETCODE_DONE if mt5 else 10009
+                    if deal_res and deal_res.retcode == retcode_done:
                         partial_ok = True
                         closed_lots = close_vol
                         logger.info(f"✅ Master partial deal succeeded: Closed {close_vol} lots on #{pos.ticket} ({pos.symbol})")
@@ -1577,14 +1584,15 @@ def manage_confluence_open_positions() -> Dict[str, Any]:
                 sl_moved_ok = False
                 if partial_ok:
                     sltp_req = {
-                        "action": mt5.TRADE_ACTION_SLTP,
+                        "action": mt5.TRADE_ACTION_SLTP if mt5 else 6,
                         "position": pos.ticket,
                         "symbol": pos.symbol,
                         "sl": be_sl,
                         "tp": pos.tp,
                     }
                     sltp_res = pos_mt5.order_send(sltp_req)
-                    if sltp_res and sltp_res.retcode == mt5.TRADE_RETCODE_DONE:
+                    retcode_done = mt5.TRADE_RETCODE_DONE if mt5 else 10009
+                    if sltp_res and sltp_res.retcode == retcode_done:
                         sl_moved_ok = True
                         logger.info(f"🛡️ Master SL successfully moved to BE+2p ({be_sl}) for #{pos.ticket} ({pos.symbol})")
                     else:
@@ -1878,24 +1886,15 @@ def start_confluence_scanner_watcher():
                 logger.error(f"Error managing confluence positions: {pe}")
 
             try:
-                # 2. Scanner on M15 candle close (:00, :15, :30, :45)
+                # 2. Scanner on candle close / every minute
                 now_utc = datetime.now(timezone.utc)
-                m15_slot = (now_utc.year, now_utc.month, now_utc.day, now_utc.hour, now_utc.minute // 15)
-                is_m15_close = (now_utc.minute % 15 == 0) and (now_utc.second >= 1)
-
-                # Trigger immediately at :00, :15, :30, :45 (1-2s after candle close)
-                if is_m15_close and m15_slot != last_m15_slot:
-                    last_m15_slot = m15_slot
-                    last_scanned_minute = now_utc.minute
-                    logger.info(f"⚡ [M15 Candle Close] New M15 candle opened ({now_utc.strftime('%H:%M:%S')} UTC). Running immediate confluence scan across all pairs...")
-                    scan_and_execute_all_pairs()
-                elif now_utc.minute != last_scanned_minute and not is_m15_close:
+                if now_utc.minute != last_scanned_minute:
                     last_scanned_minute = now_utc.minute
                     scan_and_execute_all_pairs()
             except Exception as e:
                 logger.error(f"Error in Confluence Watcher loop: {e}")
 
-            time.sleep(1)
+            time.sleep(3)
 
     _confluence_watcher_thread = threading.Thread(target=_loop, daemon=True, name="ConfluenceWatcherThread")
     _confluence_watcher_thread.start()
