@@ -516,15 +516,26 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
                     expiry_dt = _dt.fromisoformat(str(expiry_utc))
                 else:
                     expiry_dt = expiry_utc
-                sub_offset = 0
-                if tick and tick.time > 0:
-                    from datetime import datetime as _dt, timezone as _tz
-                    sub_now = _dt.now(_tz.utc)
-                    sub_tick_dt = _dt.fromtimestamp(tick.time, tz=_tz.utc)
-                    sub_offset = round((sub_tick_dt - sub_now).total_seconds() / 3600)
-                from datetime import timedelta as _td
-                sub_server_expiry = expiry_dt + _td(hours=sub_offset)
-                expiration = int(sub_server_expiry.timestamp())
+                if getattr(expiry_dt, "tzinfo", None) is None:
+                    from datetime import timezone as _tz
+                    expiry_dt = expiry_dt.replace(tzinfo=_tz.utc)
+
+                from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+                sub_now = _dt.now(_tz.utc)
+                min_sub_expiry = sub_now + _td(minutes=15)
+                if expiry_dt < min_sub_expiry:
+                    expiry_dt = min_sub_expiry
+
+                rem_seconds = (expiry_dt - sub_now).total_seconds()
+                if tick and getattr(tick, "time", 0) > 0:
+                    expiration = int(tick.time + rem_seconds)
+                else:
+                    sub_offset = 0
+                    if tick and getattr(tick, "time", 0) > 0:
+                        sub_tick_dt = _dt.fromtimestamp(tick.time, tz=_tz.utc)
+                        sub_offset = round((sub_tick_dt - sub_now).total_seconds() / 3600)
+                    sub_server_expiry = expiry_dt + _td(hours=sub_offset)
+                    expiration = int(sub_server_expiry.timestamp())
                 type_time = mt5.ORDER_TIME_SPECIFIED
             except Exception:
                 type_time = mt5.ORDER_TIME_DAY

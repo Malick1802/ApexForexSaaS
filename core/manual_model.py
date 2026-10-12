@@ -966,15 +966,37 @@ def submit_manual_order(
     # Set order to expire at end of Candle 3 (ORDER_TIME_SPECIFIED)
     if expiry_utc:
         type_time  = mt5.ORDER_TIME_SPECIFIED
-        offset_h   = get_broker_offset_hours(symbol)
         if isinstance(expiry_utc, str):
             from datetime import datetime as _dt
             try:
                 expiry_utc = _dt.fromisoformat(expiry_utc)
             except Exception:
                 pass
-        server_expiry = expiry_utc + timedelta(hours=offset_h)
-        expiration = int(server_expiry.timestamp())
+        if hasattr(expiry_utc, "tzinfo") and expiry_utc.tzinfo is None:
+            expiry_utc = expiry_utc.replace(tzinfo=timezone.utc)
+
+        # Enforce minimum lifetime safety floor of at least 15 minutes from now
+        now_utc = datetime.now(timezone.utc)
+        min_expiry = now_utc + timedelta(minutes=15)
+        if expiry_utc < min_expiry:
+            logger.info(
+                f"⏱️ Safety Expiry Floor applied for {symbol}: original expiry was < 15m away. "
+                f"Extended to {min_expiry.strftime('%H:%M:%S')} UTC."
+            )
+            expiry_utc = min_expiry
+
+        # Save enforced expiry back to order_spec
+        order_spec["expiry_utc"] = expiry_utc
+
+        # Convert to broker expiration timestamp using direct tick.time offset if available
+        tick = mt5.symbol_info_tick(symbol)
+        rem_sec = (expiry_utc - now_utc).total_seconds()
+        if tick and getattr(tick, 'time', 0) > 0:
+            expiration = int(tick.time + rem_sec)
+        else:
+            offset_h = get_broker_offset_hours(symbol)
+            server_expiry = expiry_utc + timedelta(hours=offset_h)
+            expiration = int(server_expiry.timestamp())
     else:
         type_time  = mt5.ORDER_TIME_DAY
         expiration = 0
@@ -2038,8 +2060,9 @@ def reconcile_manual_orders():
                         if exp_dt.tzinfo is None:
                             exp_dt = exp_dt.replace(tzinfo=timezone.utc)
                         now_utc = datetime.now(timezone.utc)
-                        if now_utc >= exp_dt:
-                            logger.info(f"⏳ Pending order #{ticket} for {symbol} reached Candle 3 expiry ({exp_dt}). Removing order from MT5.")
+                        # Add a 60-second grace buffer to allow the MT5 broker server's native expiration engine to trigger first
+                        if now_utc >= (exp_dt + timedelta(seconds=60)):
+                            logger.info(f"⏳ Pending order #{ticket} for {symbol} reached expiry ({exp_dt}). Removing order from MT5.")
                             cancel_manual_order(ticket, symbol=symbol)
                             db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Candle 3 Expired (Untouched)')
                             continue

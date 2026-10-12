@@ -720,7 +720,12 @@ def evaluate_confluence_setup(
                 res["lots"] = lot_calc.get("lots", 0.01)
                 res["risk_usd"] = lot_calc.get("risk_usd", 0.0)
                 res["balance"] = lot_calc.get("balance", 0.0)
-                res["expiry_utc"] = c_entry["close_time"]
+                # Expiry logic: If less than 10 minutes remain in Candle 3, extend to next candle close
+                c3_close = c_entry["close_time"]
+                if (c3_close - now_utc).total_seconds() < 600:
+                    res["expiry_utc"] = c3_close + timedelta(minutes=15)
+                else:
+                    res["expiry_utc"] = c3_close
                 break
 
     # -------------------------------------------------------------
@@ -769,7 +774,12 @@ def evaluate_confluence_setup(
                 res["lots"] = lot_calc.get("lots", 0.01)
                 res["risk_usd"] = lot_calc.get("risk_usd", 0.0)
                 res["balance"] = lot_calc.get("balance", 0.0)
-                res["expiry_utc"] = c_entry["close_time"]
+                # Expiry logic: If less than 10 minutes remain in Candle 3, extend to next candle close
+                c3_close = c_entry["close_time"]
+                if (c3_close - now_utc).total_seconds() < 600:
+                    res["expiry_utc"] = c3_close + timedelta(minutes=15)
+                else:
+                    res["expiry_utc"] = c3_close
                 break
 
     cfg = load_confluence_config()

@@ -136,7 +136,8 @@ class SignalDatabase:
                     'bb_position': 'REAL',
                     'ema_cross': 'REAL',
                     'indicator_values': 'TEXT',
-                    'is_manual': 'INTEGER DEFAULT 0'
+                    'is_manual': 'INTEGER DEFAULT 0',
+                    'expiry_utc': 'TEXT'
                 }
                 
                 cursor.execute("PRAGMA table_info(signals)")
@@ -236,8 +237,8 @@ class SignalDatabase:
                     suggested_lots, is_proven, is_hidden, adx, atr_zscore,
                     raw_confidence, expert_intent, rsi, atr, macd, macd_signal,
                     macd_hist, stoch_k, stoch_d, cci, bb_position, ema_cross, indicator_values,
-                    mt5_ticket, is_manual
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    mt5_ticket, is_manual, expiry_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     data['timestamp'], 
                     data['symbol'], 
@@ -280,7 +281,8 @@ class SignalDatabase:
                     data.get('ema_cross'),
                     data.get('indicator_values'),
                     str(data.get('mt5_ticket')) if data.get('mt5_ticket') is not None else None,
-                    data.get('is_manual', 0)
+                    data.get('is_manual', 0),
+                    str(data['expiry_utc'].isoformat() if hasattr(data['expiry_utc'], 'isoformat') else data['expiry_utc']) if data.get('expiry_utc') else None
                 ))
 
                 
