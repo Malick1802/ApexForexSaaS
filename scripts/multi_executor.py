@@ -466,8 +466,12 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         except Exception as _cleane:
             logger.warning(f"Error checking/clearing stale pending orders on #{login}: {_cleane}")
 
-        price_dist = abs(order_price - sl) if sl > 0 else default_pips
-        target_sl = (order_price - price_dist) if signal_type == "BUY" else (order_price + price_dist)
+        master_entry = float(signal_row.get("price_at_signal") or signal_row.get("entry") or order_price)
+        sl_dist = abs(master_entry - sl) if sl > 0 else default_pips
+        tp_dist = abs(tp - master_entry) if tp > 0 else 0.0
+        target_sl = (order_price - sl_dist) if signal_type == "BUY" else (order_price + sl_dist)
+        target_tp = (order_price + tp_dist) if (tp_dist > 0 and signal_type == "BUY") else ((order_price - tp_dist) if tp_dist > 0 else 0.0)
+        price_dist = sl_dist
     elif is_manual:
         order_price = float(signal_row.get("price_at_signal") or signal_row.get("entry") or (tick.ask if signal_type == "BUY" else tick.bid))
         sig_ot = str(signal_row.get("order_type", "")).upper()
@@ -600,8 +604,8 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
         "volume":       volume,
         "type":         order_type,
         "price":        round(order_price, 5),
-        "sl":           round(sl, 5) if sl > 0 else 0.0,
-        "tp":           round(tp, 5) if tp > 0 else 0.0,
+        "sl":           round(target_sl, 5) if (is_mirror and target_sl > 0) else (round(sl, 5) if sl > 0 else 0.0),
+        "tp":           round(target_tp, 5) if (is_mirror and target_tp > 0) else (round(tp, 5) if tp > 0 else 0.0),
         "deviation":    30,
         "magic":        magic,
         "comment":      comment,
@@ -1160,8 +1164,40 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
     for user in users:
         user_name = user["name"]
         user_id = user["id"]
-        logger.info(f"→ Spawning isolated worker for: {user_name} (#{user['mt5_login']})")
 
+        # ── Ultra-Low-Latency In-Memory Daemon Path (< 50ms) ──────────
+        worker_res = None
+        used_fast_daemon = False
+        try:
+            from core.follower_daemon import get_follower_daemon_pool
+            pool = get_follower_daemon_pool()
+            pool.ensure_pool(symbol=symbol)
+            client = pool.get_client(user_id)
+            if client and client.is_alive():
+                logger.info(f"⚡ [Fast Mirror] Routing order for {user_name} (#{user['mt5_login']}) to warm MT5 daemon...")
+                worker_res = client.execute_order(signal_row)
+                used_fast_daemon = True
+                lat_ms = worker_res.get("latency_ms", worker_res.get("total_roundtrip_ms", 0.0))
+                logger.info(f"⚡ [Fast Mirror] Follower execution finished in {lat_ms:.1f}ms for {user_name}: {worker_res.get('status')}")
+        except Exception as _fde:
+            logger.warning(f"Fast follower daemon route error for {user_name}: {_fde}. Falling back to isolated worker.")
+            worker_res = None
+
+        if worker_res and worker_res.get("status") in ("SUCCESS", "SKIPPED"):
+            status = worker_res.get("status", "")
+            if status == "SUCCESS":
+                ticket = worker_res.get("ticket")
+                logger.info(f"  Warm Worker SUCCESS for {user_name}: Ticket #{ticket}")
+                results[user_name] = str(ticket) if ticket else "SUCCESS"
+                mark_last_trade(user_id)
+            elif status == "SKIPPED":
+                reason = worker_res.get("reason", "SKIPPED")
+                logger.warning(f"  Warm Worker SKIPPED for {user_name}: {reason}")
+                results[user_name] = f"SKIPPED: {reason}"
+            continue
+
+        # ── Fallback Path: Isolated Subprocess Worker ──────────────────
+        logger.info(f"→ Spawning isolated subprocess worker for: {user_name} (#{user['mt5_login']})")
         cmd = [
             sys.executable,
             "-X", "utf8",
@@ -1222,18 +1258,46 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
 
 
 def close_signal_for_all_users(symbol: str, target_tickets: dict = None) -> dict:
-    """Close positions for a symbol across all enabled users via isolated subprocesses."""
+    """Close positions for a symbol across all enabled users via warm daemon or isolated subprocesses."""
     from core.user_accounts import get_enabled_users
 
     users = get_enabled_users(symbol=symbol)
     if not users:
         return {}
 
-    logger.info(f"🌐 Multi-Executor (Subprocess Isolated): Closing {symbol} for {len(users)} user(s)" + (f" (targets: {target_tickets})" if target_tickets else ""))
+    logger.info(f"🌐 Multi-Executor: Closing {symbol} for {len(users)} user(s)" + (f" (targets: {target_tickets})" if target_tickets else ""))
     results = {}
 
     for user in users:
         user_name = user["name"]
+        user_id = user["id"]
+
+        t_val = None
+        if target_tickets is not None:
+            if user_name in target_tickets:
+                t_val = target_tickets[user_name]
+                if not (str(t_val).isdigit() and int(t_val) > 0):
+                    logger.warning(f"Skipping close for {user_name} on {symbol}: invalid ticket {t_val}")
+                    continue
+            else:
+                logger.info(f"Skipping close for {user_name} on {symbol}: no mapped ticket in target_tickets")
+                continue
+
+        # ── Ultra-Low-Latency In-Memory Daemon Path (< 50ms) ──────────
+        try:
+            from core.follower_daemon import get_follower_daemon_pool
+            client = get_follower_daemon_pool().get_client(user_id)
+            if client and client.is_alive():
+                c_res = client.close_order(symbol, ticket=int(t_val) if t_val else None)
+                if c_res.get("status") in ("CLOSED", "NO_OPEN_POSITIONS"):
+                    lat = c_res.get("latency_ms", c_res.get("total_roundtrip_ms", 0.0))
+                    logger.info(f"⚡ [Fast Mirror] Follower close finished in {lat:.1f}ms for {user_name}: {c_res.get('tickets')}")
+                    results[user_name] = "CLOSED"
+                    continue
+        except Exception as _cde:
+            logger.warning(f"Fast close route error for {user_name}: {_cde}")
+
+        # Fallback to subprocess
         cmd = [
             sys.executable,
             "-X", "utf8",
@@ -1242,17 +1306,8 @@ def close_signal_for_all_users(symbol: str, target_tickets: dict = None) -> dict
             "--user-json", json.dumps(dict(user)),
             "--symbol", symbol
         ]
-        if target_tickets is not None:
-            if user_name in target_tickets:
-                t_val = target_tickets[user_name]
-                if str(t_val).isdigit() and int(t_val) > 0:
-                    cmd.extend(["--ticket", str(t_val)])
-                else:
-                    logger.warning(f"Skipping close for {user_name} on {symbol}: invalid ticket {t_val}")
-                    continue
-            else:
-                logger.info(f"Skipping close for {user_name} on {symbol}: no mapped ticket in target_tickets")
-                continue
+        if t_val:
+            cmd.extend(["--ticket", str(t_val)])
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, cwd=str(PROJECT_ROOT))
             if proc.returncode == 0:
@@ -1267,7 +1322,8 @@ def close_signal_for_all_users(symbol: str, target_tickets: dict = None) -> dict
 
 def partial_close_and_modify_sl_for_all_users(symbol: str, partial_pct: float = 50.0, new_sl: float = 0.0, model_tag: str = "") -> dict:
     """
-    Broadcast a partial close and SL modification across all enabled follower accounts using ISOLATED worker subprocesses.
+    Broadcast a partial close and SL modification across all enabled follower accounts.
+    Uses warm daemon if available, falling back to isolated subprocess.
     """
     from core.user_accounts import get_enabled_users
 
@@ -1280,6 +1336,23 @@ def partial_close_and_modify_sl_for_all_users(symbol: str, partial_pct: float = 
 
     for user in users:
         user_name = user["name"]
+        user_id = user["id"]
+
+        # Fast daemon route
+        try:
+            from core.follower_daemon import get_follower_daemon_pool
+            client = get_follower_daemon_pool().get_client(user_id)
+            if client and client.is_alive():
+                p_res = client.partial_close(symbol, partial_pct=partial_pct, new_sl=new_sl, model_tag=model_tag)
+                if p_res.get("status") in ("PROCESSED", "NO_OPEN_POSITIONS"):
+                    lat = p_res.get("latency_ms", p_res.get("total_roundtrip_ms", 0.0))
+                    logger.info(f"⚡ [Fast Mirror] Follower partial close finished in {lat:.1f}ms for {user_name}")
+                    results[user_name] = "PROCESSED"
+                    continue
+        except Exception as _pde:
+            logger.warning(f"Fast partial close route error for {user_name}: {_pde}")
+
+        # Fallback to subprocess
         cmd = [
             sys.executable,
             "-X", "utf8",

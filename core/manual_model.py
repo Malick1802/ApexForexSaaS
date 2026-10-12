@@ -255,7 +255,8 @@ def _mirror_master_position_to_followers(sig: dict, pos) -> dict:
                     "mirrored_at": datetime.now(timezone.utc).isoformat()
                 })
                 try:
-                    _send_position_mirror_telegram_alert(m_row, b_res)
+                    # Fire telegram alert in detached thread so HTTP network latency never blocks execution
+                    threading.Thread(target=_send_position_mirror_telegram_alert, args=(m_row, b_res), daemon=True).start()
                 except Exception as _te:
                     logger.warning(f"Telegram notice for position mirror failed: {_te}")
             except Exception as _bge:
@@ -2209,14 +2210,114 @@ def reconcile_manual_orders():
         logger.error(f"Error reconciling manual orders: {e}")
 
 
+_fast_detector_stop = threading.Event()
+_fast_detector_thread = None
+_last_known_master_positions = {}  # ticket -> {symbol, magic, comment}
+
+
+def _fast_fill_detector_loop():
+    """
+    Ultra-Low-Latency (< 50ms) Master Fill & Close Detector.
+    Runs in a dedicated high-frequency thread at 50ms intervals.
+    1. Detects newly opened Master positions in < 50ms and dispatches to the warm follower daemon.
+    2. Detects Master closed positions in < 50ms and immediately synchronizes follower position closes.
+    """
+    global _last_known_master_positions
+    logger.info("⚡ Ultra-Low-Latency (< 50ms) Master Fill & Close Detector started.")
+    apex_magics = (202425, 202404, 202460, 202415, 202401)
+
+    # Pre-warm follower daemon pool on startup
+    try:
+        from core.follower_daemon import get_follower_daemon_pool
+        get_follower_daemon_pool().ensure_pool()
+    except Exception as _fe:
+        logger.debug(f"Follower daemon pre-warm notice: {_fe}")
+
+    while not _fast_detector_stop.is_set():
+        try:
+            if get_copy_trading_mode() == "position_mirror":
+                m = get_mt5()
+                if m:
+                    all_pos = m.positions_get()
+                    if all_pos is not None:
+                        current_active_tickets = set()
+                        for p in all_pos:
+                            p_ticket = getattr(p, 'ticket', 0)
+                            if not p_ticket:
+                                continue
+                            current_active_tickets.add(p_ticket)
+                            p_magic = getattr(p, 'magic', 0)
+                            p_comm = str(getattr(p, 'comment', '') or '')
+
+                            # Check for un-mirrored new position
+                            if (p_magic in apex_magics or "APEX" in p_comm) and not _is_position_mirrored(p_ticket):
+                                logger.info(f"⚡ [FastFillDetector] New Master fill detected: #{p_ticket} ({p.symbol} {p.volume} lots) at {p.price_open:.5f}!")
+                                auto_sig = {
+                                    "id": None,
+                                    "symbol": p.symbol,
+                                    "signal": "BUY" if p.type == 0 else "SELL",
+                                    "model_version": "confluence_auto",
+                                    "mt5_ticket": p_ticket,
+                                    "price_at_signal": p.price_open,
+                                    "sl_price": p.sl,
+                                    "tp_price": p.tp,
+                                    "magic": p_magic,
+                                    "comment": p_comm,
+                                }
+                                _mirror_master_position_to_followers(auto_sig, p)
+
+                            # Update tracked position info
+                            _last_known_master_positions[p_ticket] = {
+                                "symbol": p.symbol,
+                                "magic": p_magic,
+                                "comment": p_comm
+                            }
+
+                        # Check if any previously tracked mirrored master position has closed
+                        mirrored_data = _load_mirrored_positions().get("mirrored_tickets", {})
+                        for tracked_ticket in list(_last_known_master_positions.keys()):
+                            if tracked_ticket not in current_active_tickets:
+                                # Master position has closed!
+                                rec = mirrored_data.get(str(tracked_ticket))
+                                if rec and rec.get("status") == "COMPLETED":
+                                    follower_map = rec.get("results", {})
+                                    pos_sym = _last_known_master_positions[tracked_ticket]["symbol"]
+                                    if follower_map and any(str(v).isdigit() for v in follower_map.values()):
+                                        logger.info(
+                                            f"⚡ [FastFillDetector] Master #{tracked_ticket} ({pos_sym}) closed! "
+                                            f"Synchronizing follower close immediately for tickets: {follower_map}"
+                                        )
+                                        try:
+                                            from scripts.multi_executor import close_signal_for_all_users
+                                            close_signal_for_all_users(pos_sym, target_tickets=follower_map)
+                                        except Exception as _ce:
+                                            logger.warning(f"Fast close sync error for #{tracked_ticket}: {_ce}")
+                                    # Mark as closed in mirrored records so we don't repeat close
+                                    rec["status"] = "CLOSED"
+                                    _record_mirrored_position(tracked_ticket, rec)
+                                del _last_known_master_positions[tracked_ticket]
+        except Exception as _e:
+            logger.debug(f"Fast fill detector iteration error: {_e}")
+
+        # High-frequency 50ms polling loop
+        time.sleep(0.05)
+
+
 def _watcher_loop():
     """Background thread loop that checks armed orders every 2 seconds and reconciles manual trades."""
+    global _fast_detector_thread
     watcher_lock = ProcessLock(WATCHER_LOCK_PATH, timeout=0.0)
     if not watcher_lock.acquire():
         logger.info("ℹ️ Another process/thread holds the Armed Sniper Watcher lock. Watcher thread exiting cleanly.")
         return
 
     logger.info("M15 Armed Sniper background watcher thread started with exclusive OS process lock.")
+
+    # Start the ultra-low-latency 50ms fill detector thread
+    _fast_detector_stop.clear()
+    _fast_detector_thread = threading.Thread(target=_fast_fill_detector_loop, daemon=True, name="FastFillDetector")
+    _fast_detector_thread.start()
+
     try:
         while True:
             # Real-time Prop Firm Drawdown Kill Switch check (every 2s)
@@ -2236,6 +2337,7 @@ def _watcher_loop():
                 logger.error(f"Error in manual orders reconciliation: {e}")
             time.sleep(2)
     finally:
+        _fast_detector_stop.set()
         watcher_lock.release()
 
 
