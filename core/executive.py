@@ -1223,7 +1223,13 @@ class ExecutiveEngine:
                         pos = sig_mt5.positions_get(ticket=int(ticket))
                         if pos:
                             # Position is actively open and managed natively by MT5 server with hard SL/TP.
-                            # Keep ACTIVE and let MT5 natively execute the exit.
+                            # Mirror to secondary accounts if not already mirrored
+                            try:
+                                from core.manual_model import get_copy_trading_mode, _mirror_master_position_to_followers
+                                if get_copy_trading_mode() == "position_mirror":
+                                    _mirror_master_position_to_followers(sig, pos[0])
+                            except Exception as _mpe:
+                                logger.warning(f"Error mirroring active position #{ticket} in executive: {_mpe}")
                             logger.info(f"Position {ticket} ({symbol}) is actively running in MT5 (Profit: ${pos[0].profit:+.2f}). Keeping ACTIVE.")
                             continue
                         else:

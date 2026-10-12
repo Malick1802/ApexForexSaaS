@@ -1147,6 +1147,7 @@ def execute_signal_for_all_users(signal_row: dict) -> dict:
         logger.critical(f"🛑 COMMODITY SHIELD: Symbol {symbol} is blacklisted. Skipping multi-user execution!")
         return {}
 
+    from core.user_accounts import get_enabled_users, mark_last_trade
     users = get_enabled_users(symbol=symbol)
     if not users:
         logger.info(f"No enabled copy trading users registered for {symbol}.")

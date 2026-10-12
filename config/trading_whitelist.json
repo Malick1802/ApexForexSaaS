@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-10-11T21:30:24.696478+00:00",
+  "last_updated": "2026-10-12T02:50:32.235380+00:00",
   "performance_matrix": {
     "AUDCAD": {
       "BUY": {
@@ -10,7 +10,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:20.164272+00:00",
+          "last_updated": "2026-10-12T02:50:28.936208+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -20,7 +20,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.179706+00:00",
+          "last_updated": "2026-10-12T02:50:28.947452+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -30,7 +30,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:20.209403+00:00",
+          "last_updated": "2026-10-12T02:50:28.983735+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -42,7 +42,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.256885+00:00",
+          "last_updated": "2026-10-12T02:50:29.022289+00:00",
           "source": "Live Data (14d)"
         },
         "50": {
@@ -52,7 +52,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.214000+00:00",
+          "last_updated": "2026-10-12T02:50:28.990875+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -66,7 +66,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.284279+00:00",
+          "last_updated": "2026-10-12T02:50:29.042154+00:00",
           "source": "Live Data (14d)"
         },
         "50": {
@@ -76,7 +76,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.263348+00:00",
+          "last_updated": "2026-10-12T02:50:29.031065+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -88,7 +88,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.451179+00:00",
+          "last_updated": "2026-10-12T02:50:29.142722+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -102,7 +102,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.524584+00:00",
+          "last_updated": "2026-10-12T02:50:29.172598+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -112,7 +112,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.612554+00:00",
+          "last_updated": "2026-10-12T02:50:29.209360+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -124,7 +124,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.750751+00:00",
+          "last_updated": "2026-10-12T02:50:29.348216+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -134,7 +134,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.877911+00:00",
+          "last_updated": "2026-10-12T02:50:29.473761+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -148,7 +148,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.893276+00:00",
+          "last_updated": "2026-10-12T02:50:29.484698+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -158,7 +158,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.908676+00:00",
+          "last_updated": "2026-10-12T02:50:29.493599+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -170,7 +170,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:20.956549+00:00",
+          "last_updated": "2026-10-12T02:50:29.554520+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -184,7 +184,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:21.011907+00:00",
+          "last_updated": "2026-10-12T02:50:29.623980+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -196,7 +196,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.013083+00:00",
+          "last_updated": "2026-10-12T02:50:29.625562+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -206,7 +206,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.015480+00:00",
+          "last_updated": "2026-10-12T02:50:29.629298+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -221,7 +221,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.020401+00:00",
+          "last_updated": "2026-10-12T02:50:29.631327+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -235,7 +235,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.042493+00:00",
+          "last_updated": "2026-10-12T02:50:29.656033+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -247,7 +247,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.154891+00:00",
+          "last_updated": "2026-10-12T02:50:29.818712+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -261,7 +261,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.175339+00:00",
+          "last_updated": "2026-10-12T02:50:29.862754+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -271,7 +271,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.204300+00:00",
+          "last_updated": "2026-10-12T02:50:29.900554+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -283,7 +283,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.549435+00:00",
+          "last_updated": "2026-10-12T02:50:30.231506+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -297,7 +297,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.562880+00:00",
+          "last_updated": "2026-10-12T02:50:30.236860+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -307,7 +307,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:21.597247+00:00",
+          "last_updated": "2026-10-12T02:50:30.298322+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -319,7 +319,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.657146+00:00",
+          "last_updated": "2026-10-12T02:50:30.375190+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -334,7 +334,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.661395+00:00",
+          "last_updated": "2026-10-12T02:50:30.376316+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -348,7 +348,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.679869+00:00",
+          "last_updated": "2026-10-12T02:50:30.389412+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -358,7 +358,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.690470+00:00",
+          "last_updated": "2026-10-12T02:50:30.395980+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -368,7 +368,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.732704+00:00",
+          "last_updated": "2026-10-12T02:50:30.429861+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -380,7 +380,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.793314+00:00",
+          "last_updated": "2026-10-12T02:50:30.496092+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -394,7 +394,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.808872+00:00",
+          "last_updated": "2026-10-12T02:50:30.501639+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -406,7 +406,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:21.814410+00:00",
+          "last_updated": "2026-10-12T02:50:30.502000+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -416,7 +416,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.816045+00:00",
+          "last_updated": "2026-10-12T02:50:30.503608+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -430,7 +430,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.848489+00:00",
+          "last_updated": "2026-10-12T02:50:30.514943+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -440,7 +440,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:21.879836+00:00",
+          "last_updated": "2026-10-12T02:50:30.523342+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -450,7 +450,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.112383+00:00",
+          "last_updated": "2026-10-12T02:50:30.566390+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -462,7 +462,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.230025+00:00",
+          "last_updated": "2026-10-12T02:50:30.630954+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -476,7 +476,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.241813+00:00",
+          "last_updated": "2026-10-12T02:50:30.639404+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -486,7 +486,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.248010+00:00",
+          "last_updated": "2026-10-12T02:50:30.645578+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -496,7 +496,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.294278+00:00",
+          "last_updated": "2026-10-12T02:50:30.674038+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -511,7 +511,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.341450+00:00",
+          "last_updated": "2026-10-12T02:50:30.753271+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -521,7 +521,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.349183+00:00",
+          "last_updated": "2026-10-12T02:50:30.766183+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -531,7 +531,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.380926+00:00",
+          "last_updated": "2026-10-12T02:50:30.821570+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -543,7 +543,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.492632+00:00",
+          "last_updated": "2026-10-12T02:50:30.906901+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -557,7 +557,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.498481+00:00",
+          "last_updated": "2026-10-12T02:50:30.919273+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -567,7 +567,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.510873+00:00",
+          "last_updated": "2026-10-12T02:50:30.928954+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -577,7 +577,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.540192+00:00",
+          "last_updated": "2026-10-12T02:50:30.964764+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -592,7 +592,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.591603+00:00",
+          "last_updated": "2026-10-12T02:50:31.023366+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -604,7 +604,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.592306+00:00",
+          "last_updated": "2026-10-12T02:50:31.024044+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -614,7 +614,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.595624+00:00",
+          "last_updated": "2026-10-12T02:50:31.027411+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -628,7 +628,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.615024+00:00",
+          "last_updated": "2026-10-12T02:50:31.034947+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -638,7 +638,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.644273+00:00",
+          "last_updated": "2026-10-12T02:50:31.045732+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -648,7 +648,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.730461+00:00",
+          "last_updated": "2026-10-12T02:50:31.085365+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -663,7 +663,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.860513+00:00",
+          "last_updated": "2026-10-12T02:50:31.141326+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -673,7 +673,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.875036+00:00",
+          "last_updated": "2026-10-12T02:50:31.146131+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -685,7 +685,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.894377+00:00",
+          "last_updated": "2026-10-12T02:50:31.147575+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -699,7 +699,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.980062+00:00",
+          "last_updated": "2026-10-12T02:50:31.158489+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -709,7 +709,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:22.995614+00:00",
+          "last_updated": "2026-10-12T02:50:31.167825+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -719,7 +719,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.046278+00:00",
+          "last_updated": "2026-10-12T02:50:31.205597+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -731,7 +731,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.057039+00:00",
+          "last_updated": "2026-10-12T02:50:31.215611+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -741,7 +741,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.124669+00:00",
+          "last_updated": "2026-10-12T02:50:31.275437+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -755,7 +755,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.137268+00:00",
+          "last_updated": "2026-10-12T02:50:31.283451+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -765,7 +765,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.144085+00:00",
+          "last_updated": "2026-10-12T02:50:31.294548+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -775,7 +775,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.197862+00:00",
+          "last_updated": "2026-10-12T02:50:31.334762+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -787,7 +787,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:23.393933+00:00",
+          "last_updated": "2026-10-12T02:50:31.391751+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -801,7 +801,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.455317+00:00",
+          "last_updated": "2026-10-12T02:50:31.400185+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -811,7 +811,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.493262+00:00",
+          "last_updated": "2026-10-12T02:50:31.406964+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -821,7 +821,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:23.563191+00:00",
+          "last_updated": "2026-10-12T02:50:31.436975+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -833,7 +833,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.624896+00:00",
+          "last_updated": "2026-10-12T02:50:31.489240+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -847,7 +847,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:23.634793+00:00",
+          "last_updated": "2026-10-12T02:50:31.495377+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -857,7 +857,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.680801+00:00",
+          "last_updated": "2026-10-12T02:50:31.524703+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -869,7 +869,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.688271+00:00",
+          "last_updated": "2026-10-12T02:50:31.529776+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -879,7 +879,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:23.737178+00:00",
+          "last_updated": "2026-10-12T02:50:31.558700+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -893,7 +893,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.755781+00:00",
+          "last_updated": "2026-10-12T02:50:31.576885+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -903,7 +903,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.786518+00:00",
+          "last_updated": "2026-10-12T02:50:31.604201+00:00",
           "source": "Live Data (14d)"
         },
         "50": {
@@ -913,7 +913,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.745296+00:00",
+          "last_updated": "2026-10-12T02:50:31.566931+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -925,7 +925,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.791382+00:00",
+          "last_updated": "2026-10-12T02:50:31.612748+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -939,7 +939,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.843336+00:00",
+          "last_updated": "2026-10-12T02:50:31.663109+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -949,7 +949,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.878191+00:00",
+          "last_updated": "2026-10-12T02:50:31.699972+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -961,7 +961,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.934993+00:00",
+          "last_updated": "2026-10-12T02:50:31.747694+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -975,7 +975,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.943491+00:00",
+          "last_updated": "2026-10-12T02:50:31.757708+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -985,7 +985,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.955089+00:00",
+          "last_updated": "2026-10-12T02:50:31.766138+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -995,7 +995,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.005669+00:00",
+          "last_updated": "2026-10-12T02:50:31.798474+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1007,7 +1007,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.018843+00:00",
+          "last_updated": "2026-10-12T02:50:31.806171+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1017,7 +1017,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.059045+00:00",
+          "last_updated": "2026-10-12T02:50:31.846475+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1031,7 +1031,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.067942+00:00",
+          "last_updated": "2026-10-12T02:50:31.851839+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1041,7 +1041,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:24.103234+00:00",
+          "last_updated": "2026-10-12T02:50:31.885878+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1053,7 +1053,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.110501+00:00",
+          "last_updated": "2026-10-12T02:50:31.891068+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1063,7 +1063,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.143659+00:00",
+          "last_updated": "2026-10-12T02:50:31.919722+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1077,7 +1077,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.145574+00:00",
+          "last_updated": "2026-10-12T02:50:31.920034+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1089,7 +1089,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.146152+00:00",
+          "last_updated": "2026-10-12T02:50:31.921007+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1099,7 +1099,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.146988+00:00",
+          "last_updated": "2026-10-12T02:50:31.921568+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1113,7 +1113,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.154860+00:00",
+          "last_updated": "2026-10-12T02:50:31.925849+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -1123,7 +1123,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.155948+00:00",
+          "last_updated": "2026-10-12T02:50:31.926884+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1133,7 +1133,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:24.159316+00:00",
+          "last_updated": "2026-10-12T02:50:31.932055+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1145,7 +1145,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.159990+00:00",
+          "last_updated": "2026-10-12T02:50:31.932830+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1155,7 +1155,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.161578+00:00",
+          "last_updated": "2026-10-12T02:50:31.935147+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1169,7 +1169,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.186629+00:00",
+          "last_updated": "2026-10-12T02:50:31.957281+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1179,7 +1179,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.229441+00:00",
+          "last_updated": "2026-10-12T02:50:32.003649+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1191,7 +1191,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:24.344397+00:00",
+          "last_updated": "2026-10-12T02:50:32.060167+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1205,7 +1205,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.357899+00:00",
+          "last_updated": "2026-10-12T02:50:32.066984+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -1215,7 +1215,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.376274+00:00",
+          "last_updated": "2026-10-12T02:50:32.074275+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1225,7 +1225,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.427170+00:00",
+          "last_updated": "2026-10-12T02:50:32.101778+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1237,7 +1237,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.507373+00:00",
+          "last_updated": "2026-10-12T02:50:32.140117+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1251,7 +1251,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.536978+00:00",
+          "last_updated": "2026-10-12T02:50:32.146660+00:00",
           "source": "Live Data (14d)"
         },
         "60": {
@@ -1261,7 +1261,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.561781+00:00",
+          "last_updated": "2026-10-12T02:50:32.151530+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1271,7 +1271,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "APPROVED",
-          "last_updated": "2026-10-11T21:30:24.606429+00:00",
+          "last_updated": "2026-10-12T02:50:32.174322+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1283,7 +1283,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.662707+00:00",
+          "last_updated": "2026-10-12T02:50:32.208044+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1298,7 +1298,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.672930+00:00",
+          "last_updated": "2026-10-12T02:50:32.216167+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1312,7 +1312,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.675336+00:00",
+          "last_updated": "2026-10-12T02:50:32.221453+00:00",
           "source": "Live Data (14d)"
         },
         "50": {
@@ -1322,7 +1322,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.673936+00:00",
+          "last_updated": "2026-10-12T02:50:32.220099+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1337,7 +1337,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.680458+00:00",
+          "last_updated": "2026-10-12T02:50:32.224990+00:00",
           "source": "Live Data (14d)"
         }
       },
@@ -1349,7 +1349,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.688877+00:00",
+          "last_updated": "2026-10-12T02:50:32.226974+00:00",
           "source": "Live Data (14d)"
         },
         "100": {
@@ -1359,7 +1359,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:24.690878+00:00",
+          "last_updated": "2026-10-12T02:50:32.228571+00:00",
           "source": "Live Data (14d)"
         }
       }
@@ -1374,7 +1374,7 @@
           "oos_trades": 0,
           "oos_accuracy": 0.0,
           "status": "BENCHED",
-          "last_updated": "2026-10-11T21:30:23.739177+00:00",
+          "last_updated": "2026-10-12T02:50:31.559668+00:00",
           "source": "Live Data (14d)"
         }
       }

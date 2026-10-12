@@ -527,55 +527,51 @@ def get_copy_target_accounts() -> list[dict]:
 
 
 def get_enabled_users(symbol: str = None) -> list[dict]:
-    """Return only non-master accounts eligible to receive copied trades."""
+    """
+    Return all enabled follower/secondary accounts eligible to receive copied trades.
+    Excludes only the active Master account that placed the primary order for this symbol.
+    """
     conn = get_connection()
     rows = conn.execute(
         "SELECT * FROM user_accounts WHERE enabled = 1 ORDER BY id"
     ).fetchall()
     conn.close()
 
-    # Get master logins (both forex and crypto) to protect against accidental duplicate execution
-    m_logins = set()
+    from core.market_hours import is_crypto
+    is_c = is_crypto(symbol) if symbol else False
+
+    # Identify the active master login for this specific trade type
+    active_master_login = None
     try:
         import yaml
         cfg_path = PROJECT_ROOT / "config.yaml"
         if cfg_path.exists():
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
-            m1 = str(cfg.get("mt5", {}).get("login", "")).strip()
-            if m1:
-                m_logins.add(m1)
-            m2 = str(cfg.get("mt5", {}).get("crypto_master", {}).get("login", "")).strip()
-            if m2:
-                m_logins.add(m2)
+            mt5_cfg = cfg.get("mt5", {})
+            if is_c:
+                active_master_login = str(mt5_cfg.get("crypto_master", {}).get("login", "")).strip()
+            else:
+                active_master_login = str(mt5_cfg.get("login", "")).strip()
     except Exception:
         pass
-
-    from core.market_hours import is_crypto
-    is_c = is_crypto(symbol) if symbol else False
 
     res = []
     for r in rows:
         d = dict(r)
         acc_login = str(d.get("mt5_login", "")).strip()
         is_primary_m = bool(d.get("is_master", 0))
-        is_crypto_m = bool(d.get("is_crypto_master", 0))
 
-        # FTMO is dedicated crypto master: NEVER copy Forex or Commodity trades!
-        if is_crypto_m and not is_c:
+        # 1. Never copy back to the active master that originated this trade
+        if active_master_login and acc_login == active_master_login:
             continue
 
-        # If it's a crypto trade, primary forex master does not copy it
+        # 2. Primary Forex master (MetaQuotes) does not have crypto pairs
         if is_primary_m and is_c:
             continue
 
-        # Skip the active master for this specific symbol
-        if is_primary_m and not is_c:
-            continue
-        if is_crypto_m and is_c:
-            continue
-
-        if is_subscription_active(d) and (acc_login not in m_logins):
+        # 3. Account must have active subscription/trial
+        if is_subscription_active(d):
             res.append(d)
     return res
 

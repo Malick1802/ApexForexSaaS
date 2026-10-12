@@ -68,7 +68,12 @@ def _load_mirrored_positions() -> dict:
 def _is_position_mirrored(ticket: int) -> bool:
     """Check if a master position ticket has already been mirrored to followers."""
     data = _load_mirrored_positions()
-    return str(ticket) in data.get("mirrored_tickets", {})
+    rec = data.get("mirrored_tickets", {}).get(str(ticket))
+    if not rec:
+        return False
+    if isinstance(rec, dict) and rec.get("status") in ("FAILED", "ERROR"):
+        return False
+    return True
 
 
 def _record_mirrored_position(ticket: int, details: dict):
@@ -100,9 +105,11 @@ def _seed_initial_master_positions():
         current_pos = mt5.positions_get()
         if not current_pos:
             return
+        data = _load_mirrored_positions()
+        mirrored_tickets = data.get("mirrored_tickets", {})
         for p in current_pos:
             ticket = getattr(p, "ticket", None)
-            if ticket and not _is_position_mirrored(ticket):
+            if ticket and str(ticket) not in mirrored_tickets:
                 _record_mirrored_position(ticket, {
                     "status": "INITIAL_STATE",
                     "symbol": p.symbol,
@@ -169,7 +176,8 @@ def _mirror_master_position_to_followers(sig: dict, pos) -> dict:
     Executes instant market orders across all enabled follower accounts
     when the Master MT5 account confirms an active position fill.
     """
-    mt5 = get_mt5()
+    symbol = sig.get("symbol") or getattr(pos, "symbol", "")
+    mt5 = get_mt5(symbol=symbol)
     pos_ticket = getattr(pos, "ticket", None) or sig.get("mt5_ticket")
     if not pos_ticket:
         return {"status": "SKIPPED", "reason": "NO_TICKET"}
