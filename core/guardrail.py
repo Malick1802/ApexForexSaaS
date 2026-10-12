@@ -70,6 +70,15 @@ class PropGuardrail:
         account_login = result.get("account_login")
         max_dd_pct = float(conf.get('max_daily_drawdown_pct', 4.5))
 
+        # If MT5 connection is temporarily unavailable, pause safely without false-triggering the emergency kill switch
+        if result.get("error") or not account_login:
+            err = result.get("error", "MT5_CONNECTION_UNAVAILABLE")
+            return {
+                'safe': False,
+                'reason': f"CONNECTION_PAUSE: {err}. Temporary MT5 connection hiccup; holding new orders until reconnected.",
+                'drawdown': 0.0
+            }
+
         state = self._load_state(account_login=account_login)
         if state.get("halted_for_day", False):
             halt_dd = state.get("halt_drawdown", dollar_drawdown)
@@ -79,8 +88,8 @@ class PropGuardrail:
                 'drawdown': 100.0
             }
 
-        # Trigger Kill Switch if dollar loss or percentage floor breached
-        if dollar_drawdown >= max_loss_amount or drawdown >= max_dd_pct:
+        # Trigger Kill Switch ONLY if actual dollar loss has occurred and breached the limit
+        if dollar_drawdown > 0 and (dollar_drawdown >= max_loss_amount or drawdown >= max_dd_pct):
             self.execute_drawdown_killswitch(dollar_drawdown, max_loss_amount, exec_engine)
             return {
                 'safe': False,
@@ -289,12 +298,12 @@ class PropGuardrail:
 
             if not mt5:
                 logger.error("MT5 disconnected. Failsafe activated.")
-                return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
+                return {"drawdown_pct": 0.0, "dollar_drawdown": 0.0, "error": "MT5_DISCONNECTED", "equity": 0, "floor": 0, "midnight_balance": 0}
 
             account = mt5.account_info()
             if not account:
                 logger.error("MT5 account info unavailable. Failsafe activated.")
-                return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
+                return {"drawdown_pct": 0.0, "dollar_drawdown": 0.0, "error": "ACCOUNT_INFO_UNAVAILABLE", "equity": 0, "floor": 0, "midnight_balance": 0}
 
             current_equity = float(account.equity)   # includes open floating P&L
             current_balance = float(account.balance) # closed trades only
@@ -378,7 +387,7 @@ class PropGuardrail:
 
         except Exception as e:
             logger.error(f"Drawdown calculation failed: {e}. Failsafe activated.")
-            return {"drawdown_pct": 999.0, "equity": 0, "floor": 0, "midnight_balance": 0}
+            return {"drawdown_pct": 0.0, "dollar_drawdown": 0.0, "error": f"EXCEPTION: {e}", "equity": 0, "floor": 0, "midnight_balance": 0}
 
 # Singleton
 _guard = None
