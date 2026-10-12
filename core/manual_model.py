@@ -71,8 +71,27 @@ def _is_position_mirrored(ticket: int) -> bool:
     rec = data.get("mirrored_tickets", {}).get(str(ticket))
     if not rec:
         return False
-    if isinstance(rec, dict) and rec.get("status") in ("FAILED", "ERROR"):
-        return False
+    if isinstance(rec, dict):
+        status = rec.get("status")
+        if status in ("FAILED", "ERROR"):
+            return False
+        if status == "DISPATCHING":
+            disp_at = rec.get("dispatched_at")
+            if disp_at:
+                try:
+                    from datetime import datetime as _dt, timezone as _tz
+                    disp_dt = _dt.fromisoformat(str(disp_at))
+                    if (_dt.now(_tz.utc) - disp_dt).total_seconds() > 120:
+                        return False
+                except Exception:
+                    return False
+        # If recorded results exist, ensure it wasn't a total failure across all accounts
+        results = rec.get("results")
+        if results and isinstance(results, dict):
+            # If all results failed (e.g. broker rejected due to margin 10019), allow retry
+            has_success = any(str(v).isdigit() for v in results.values())
+            if not has_success:
+                return False
     return True
 
 
