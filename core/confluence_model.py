@@ -44,6 +44,7 @@ Automated Trading Strategy Rules:
 
 import os
 import sys
+import copy
 import logging
 import threading
 import json
@@ -338,7 +339,12 @@ def save_confluence_config(cfg: Dict[str, Any]) -> bool:
         return False
 
 
-def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
+# In-memory Day Lines & Swing Lines cache (keyed by symbol and day boundary)
+_day_lines_cache: Dict[str, Tuple[Dict[str, Any], float]] = {}
+_swing_lines_cache: Dict[str, Tuple[Dict[str, Any], float]] = {}
+
+
+def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None, force_refresh: bool = False) -> Optional[Dict[str, Any]]:
     """
     Compute Day Lines for a symbol as of a given UTC timestamp.
     Trading day closes at 21:00 UTC (9pm UTC).
@@ -353,20 +359,26 @@ def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional
         'bar_count': int
       }
     """
-    mt5 = get_mt5(symbol=symbol)
-    if not mt5:
-        return None
-
     if as_of_utc is None:
         as_of_utc = datetime.now(timezone.utc)
-
-    offset_h = get_broker_offset_hours(symbol)
 
     # Determine the target closed 24-hour day boundary ending at 21:00 UTC
     if as_of_utc.hour < 21:
         day_end = datetime(as_of_utc.year, as_of_utc.month, as_of_utc.day, 21, 0, tzinfo=timezone.utc) - timedelta(days=1)
     else:
         day_end = datetime(as_of_utc.year, as_of_utc.month, as_of_utc.day, 21, 0, tzinfo=timezone.utc)
+
+    cache_key = f"{symbol}_{day_end.strftime('%Y%m%d%H')}"
+    if not force_refresh and cache_key in _day_lines_cache:
+        cached_res, cached_time = _day_lines_cache[cache_key]
+        if (time.time() - cached_time) < 3600:
+            return cached_res
+
+    mt5 = get_mt5(symbol=symbol)
+    if not mt5:
+        return None
+
+    offset_h = get_broker_offset_hours(symbol)
 
     # Look back up to 5 days to find the most recent trading session with bars (handles weekends)
     day_bars = []
@@ -416,7 +428,7 @@ def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional
     day_high_bar = next(b for b in day_bars if b["high"] == upper_day_line)
     day_low_bar = next(b for b in day_bars if b["low"] == lower_day_line)
 
-    return {
+    res_dict = {
         "upper_day_line": round(upper_day_line, 5),
         "lower_day_line": round(lower_day_line, 5),
         "day_start_utc": day_start,
@@ -425,6 +437,8 @@ def get_day_lines(symbol: str, as_of_utc: Optional[datetime] = None) -> Optional
         "day_low_time": day_low_bar["time"],
         "bar_count": len(day_bars),
     }
+    _day_lines_cache[cache_key] = (res_dict, time.time())
+    return res_dict
 
 
 def get_swing_lines(
@@ -433,6 +447,7 @@ def get_swing_lines(
     lower_day_line: float,
     prior_to_utc: datetime,
     lookback_bars: int = 1500,
+    force_refresh: bool = False,
 ) -> Dict[str, Any]:
     """
     Search backwards on M15 candles prior to `prior_to_utc`:
@@ -440,6 +455,13 @@ def get_swing_lines(
     - lower_swing_line: The first M15 swing low going backwards that is LOWER than lower_day_line.
     Filters out 21:00 UTC rollover gap / spread spike bars to ensure clean price action swings.
     """
+    prior_str = prior_to_utc.strftime('%Y%m%d%H') if hasattr(prior_to_utc, 'strftime') else str(prior_to_utc)[:13]
+    cache_key = f"{symbol}_{round(upper_day_line, 5)}_{round(lower_day_line, 5)}_{prior_str}"
+    if not force_refresh and cache_key in _swing_lines_cache:
+        cached_res, cached_time = _swing_lines_cache[cache_key]
+        if (time.time() - cached_time) < 3600:
+            return cached_res
+
     mt5 = get_mt5(symbol=symbol)
     result = {
         "upper_swing_line": None,
@@ -530,6 +552,7 @@ def get_swing_lines(
         result["lower_swing_line"] = fallback_lower
         result["lower_swing_time"] = fallback_lower_time
 
+    _swing_lines_cache[cache_key] = (result, time.time())
     return result
 
 
@@ -720,12 +743,8 @@ def evaluate_confluence_setup(
                 res["lots"] = lot_calc.get("lots", 0.01)
                 res["risk_usd"] = lot_calc.get("risk_usd", 0.0)
                 res["balance"] = lot_calc.get("balance", 0.0)
-                # Expiry logic: If less than 10 minutes remain in Candle 3, extend to next candle close
-                c3_close = c_entry["close_time"]
-                if (c3_close - now_utc).total_seconds() < 600:
-                    res["expiry_utc"] = c3_close + timedelta(minutes=15)
-                else:
-                    res["expiry_utc"] = c3_close
+                # Expiry logic: Pending order is valid strictly for Candle 3 (Entry Candle)
+                res["expiry_utc"] = c_entry["close_time"]
                 break
 
     # -------------------------------------------------------------
@@ -774,12 +793,8 @@ def evaluate_confluence_setup(
                 res["lots"] = lot_calc.get("lots", 0.01)
                 res["risk_usd"] = lot_calc.get("risk_usd", 0.0)
                 res["balance"] = lot_calc.get("balance", 0.0)
-                # Expiry logic: If less than 10 minutes remain in Candle 3, extend to next candle close
-                c3_close = c_entry["close_time"]
-                if (c3_close - now_utc).total_seconds() < 600:
-                    res["expiry_utc"] = c3_close + timedelta(minutes=15)
-                else:
-                    res["expiry_utc"] = c3_close
+                # Expiry logic: Pending order is valid strictly for Candle 3 (Entry Candle)
+                res["expiry_utc"] = c_entry["close_time"]
                 break
 
     cfg = load_confluence_config()
@@ -1709,79 +1724,131 @@ def scan_and_execute_all_pairs(
         "shadow_logged": [],
     }
 
-    for sym in symbols:
-        for target_model, is_live_active in models_to_evaluate:
-            is_ml_model = ("ml" in target_model.lower())
-            ml_enabled = cfg.get("ml_filter_enabled", True) and is_ml_model
-            try:
-                eval_res = evaluate_confluence_setup(
-                    symbol=sym,
-                    rrr=cfg.get("rrr", 1.5),
-                    sl_buffer_pips=None,  # Automatically adapts per asset class (Gold=25p, Forex=2.5p, etc.)
-                    risk_type=cfg.get("risk_type", "percent"),
-                    risk_value=cfg.get("risk_value", 0.5),
-                    active_model=target_model,
-                )
-                if eval_res.get("setup_detected"):
-                    results["setups"].append(eval_res)
-                    ml_info = eval_res.get("ml_filter", {})
-                    p_score = ml_info.get("confidence_score_pct", 50.0) if ml_info.get("evaluated") else None
-                    score_str = f" [ML: {p_score}%]" if p_score is not None else ""
-                    mode_tag = "LIVE" if is_live_active else "SHADOW"
-                    logger.info(f"✨ Confluence setup detected for {sym}: {eval_res['direction']} @ {eval_res['entry']}{score_str} ({target_model} · {mode_tag})")
+    # Group symbols by broker to eliminate terminal switching latency:
+    # Scan all Forex/Commodities on MetaQuotes first, then Crypto on FTMO
+    forex_syms = [s for s in symbols if not is_crypto(s)]
+    crypto_syms = [s for s in symbols if is_crypto(s)]
+    ordered_symbols = forex_syms + crypto_syms
 
-                    # ML Quality Gate Enforcement (Only for ML-based models)
-                    if ml_enabled and not ml_info.get("passed", True):
-                        th_score = ml_info.get("threshold", 0.48) * 100
-                        logger.warning(
-                            f"🛡️ ML FILTER BLOCKED TRADE: {sym} {eval_res['direction']} "
-                            f"(P(Win) = {p_score}% < {th_score:.0f}% threshold). Logging suppressed shadow trade."
-                        )
-                        # Always record suppressed trade as shadow trade for later comparison
-                        sh_id = record_confluence_shadow_trade(
-                            setup=eval_res,
-                            model_version=target_model,
-                            is_suppressed=True,
-                            ml_score=p_score,
-                        )
-                        if sh_id:
-                            results["shadow_logged"].append({"symbol": sym, "id": sh_id, "model": target_model, "suppressed": True})
-                        continue
+    for sym in ordered_symbols:
+        try:
+            # 1. Base Confluence evaluation (geometry, Day Lines, Swing Lines evaluated ONCE per symbol)
+            base_eval = evaluate_confluence_setup(
+                symbol=sym,
+                rrr=cfg.get("rrr", 1.5),
+                sl_buffer_pips=None,  # Automatically adapts per asset class (Gold=25p, Forex=2.5p, etc.)
+                risk_type=cfg.get("risk_type", "percent"),
+                risk_value=cfg.get("risk_value", 0.5),
+                active_model="confluence_ml_p60",
+            )
+            if not base_eval.get("setup_detected"):
+                continue
 
-                    # Dynamic Model Whitelist Gate (Winning Assets Only)
-                    from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
-                    is_pair_winning = is_pair_whitelisted_for_model(target_model, sym)
-                    if is_live_active and not is_pair_winning:
-                        logger.info(
-                            f"🛡️ DYNAMIC YTD GATE: {sym} is not a winning asset for {target_model} (YTD Net R < 0.0). "
-                            f"Demoting to background shadow trade."
-                        )
-                        is_live_active = False
+            results["setups"].append(base_eval)
+            base_ml_info = base_eval.get("ml_filter", {})
+            pip_sz = get_pip_size(sym)
 
-                    # If setup passed (or standard rule-based model):
-                    if is_live_active:
-                        exec_res = execute_confluence_setup(eval_res)
-                        if exec_res.get("success"):
-                            results["executed"].append({
-                                "symbol": sym,
-                                "ticket": exec_res.get("ticket"),
-                                "direction": eval_res["direction"],
-                                "entry": eval_res["entry"],
-                                "model_version": target_model,
-                                "ml_score": p_score,
-                            })
+            for target_model, is_live_active in models_to_evaluate:
+                is_ml_model = ("ml" in target_model.lower())
+                ml_enabled = cfg.get("ml_filter_enabled", True) and is_ml_model
+
+                eval_res = copy.deepcopy(base_eval)
+                eval_res["model_version"] = target_model
+
+                if target_model == "confluence_ml_p60":
+                    partial_ratio = 0.60
+                    be_offset_pips = get_symbol_be_offset(sym, cfg)
+                elif target_model == "confluence_std_p25":
+                    partial_ratio = 0.25
+                    be_offset_pips = get_symbol_be_offset(sym, cfg)
+                else:
+                    partial_ratio = None
+                    be_offset_pips = 0.0
+
+                eval_res["partial_target_ratio"] = partial_ratio
+                eval_res["be_offset_pips"] = be_offset_pips
+
+                if partial_ratio is not None and eval_res.get("entry") is not None and eval_res.get("tp") is not None:
+                    tp_dist = abs(eval_res["tp"] - eval_res["entry"])
+                    if eval_res["direction"] == "BUY":
+                        eval_res["partial_target_price"] = round(eval_res["entry"] + (partial_ratio * tp_dist), 5)
+                        eval_res["be_sl_price"] = round(eval_res["entry"] + (be_offset_pips * pip_sz), 5)
                     else:
-                        # Non-active or benched pair running in the background as SHADOW / PAPER TRADE
-                        sh_id = record_confluence_shadow_trade(
-                            setup=eval_res,
-                            model_version=target_model,
-                            is_suppressed=False,
-                            ml_score=p_score if is_ml_model else None,
-                        )
-                        if sh_id:
-                            results["shadow_logged"].append({"symbol": sym, "id": sh_id, "model": target_model, "suppressed": False})
-            except Exception as e:
-                logger.error(f"Error evaluating confluence for {sym} ({target_model}): {e}")
+                        eval_res["partial_target_price"] = round(eval_res["entry"] - (partial_ratio * tp_dist), 5)
+                        eval_res["be_sl_price"] = round(eval_res["entry"] - (be_offset_pips * pip_sz), 5)
+                else:
+                    eval_res["partial_target_price"] = None
+                    eval_res["be_sl_price"] = None
+
+                if is_ml_model:
+                    eval_res["ml_filter"] = base_ml_info
+                else:
+                    eval_res["ml_filter"] = {
+                        "evaluated": False,
+                        "passed": True,
+                        "probability": 0.50,
+                        "confidence_score_pct": 50.0,
+                        "threshold": 0.48,
+                        "recommendation": "BYPASS",
+                        "reason": "Standard Rule-Based Confluence Model (ML Gate Bypassed)"
+                    }
+
+                ml_info = eval_res.get("ml_filter", {})
+                p_score = ml_info.get("confidence_score_pct", 50.0) if ml_info.get("evaluated") else None
+                score_str = f" [ML: {p_score}%]" if p_score is not None else ""
+                mode_tag = "LIVE" if is_live_active else "SHADOW"
+                logger.info(f"✨ Confluence setup detected for {sym}: {eval_res['direction']} @ {eval_res['entry']}{score_str} ({target_model} · {mode_tag})")
+
+                # ML Quality Gate Enforcement (Only for ML-based models)
+                if ml_enabled and not ml_info.get("passed", True):
+                    th_score = ml_info.get("threshold", 0.48) * 100
+                    logger.warning(
+                        f"🛡️ ML FILTER BLOCKED TRADE: {sym} {eval_res['direction']} "
+                        f"(P(Win) = {p_score}% < {th_score:.0f}% threshold). Logging suppressed shadow trade."
+                    )
+                    sh_id = record_confluence_shadow_trade(
+                        setup=eval_res,
+                        model_version=target_model,
+                        is_suppressed=True,
+                        ml_score=p_score,
+                    )
+                    if sh_id:
+                        results["shadow_logged"].append({"symbol": sym, "id": sh_id, "model": target_model, "suppressed": True})
+                    continue
+
+                # Dynamic Model Whitelist Gate (Winning Assets Only)
+                from core.dynamic_model_whitelist import is_pair_whitelisted_for_model
+                is_pair_winning = is_pair_whitelisted_for_model(target_model, sym)
+                if is_live_active and not is_pair_winning:
+                    logger.info(
+                        f"🛡️ DYNAMIC YTD GATE: {sym} is not a winning asset for {target_model} (YTD Net R < 0.0). "
+                        f"Demoting to background shadow trade."
+                    )
+                    is_live_active = False
+
+                # If setup passed (or standard rule-based model):
+                if is_live_active:
+                    exec_res = execute_confluence_setup(eval_res)
+                    if exec_res.get("success"):
+                        results["executed"].append({
+                            "symbol": sym,
+                            "ticket": exec_res.get("ticket"),
+                            "direction": eval_res["direction"],
+                            "entry": eval_res["entry"],
+                            "model_version": target_model,
+                            "ml_score": p_score,
+                        })
+                else:
+                    sh_id = record_confluence_shadow_trade(
+                        setup=eval_res,
+                        model_version=target_model,
+                        is_suppressed=False,
+                        ml_score=p_score if is_ml_model else None,
+                    )
+                    if sh_id:
+                        results["shadow_logged"].append({"symbol": sym, "id": sh_id, "model": target_model, "suppressed": False})
+        except Exception as e:
+            logger.error(f"Error evaluating confluence for {sym}: {e}")
 
     return results
 
@@ -1792,7 +1859,7 @@ _confluence_watcher_thread = None
 
 
 def start_confluence_scanner_watcher():
-    """Start background watcher thread that scans pairs every minute and manages open positions continuously."""
+    """Start background watcher thread that scans pairs immediately upon candle close and manages open positions continuously."""
     global _confluence_watcher_running, _confluence_watcher_thread
     if _confluence_watcher_running:
         return
@@ -1802,23 +1869,33 @@ def start_confluence_scanner_watcher():
     def _loop():
         logger.info("⚡ Confluence Automated Scanner Watcher thread started.")
         last_scanned_minute = -1
+        last_m15_slot = None
         while _confluence_watcher_running:
             try:
-                # 1. High-frequency position manager: runs every 5 seconds to take partial profit & move SL to BE+2p
+                # 1. High-frequency position manager: runs every cycle to take partial profit & move SL to BE+2p
                 manage_confluence_open_positions()
             except Exception as pe:
                 logger.error(f"Error managing confluence positions: {pe}")
 
             try:
-                # 2. Scanner on candle close / every minute
+                # 2. Scanner on M15 candle close (:00, :15, :30, :45)
                 now_utc = datetime.now(timezone.utc)
-                if now_utc.minute != last_scanned_minute:
+                m15_slot = (now_utc.year, now_utc.month, now_utc.day, now_utc.hour, now_utc.minute // 15)
+                is_m15_close = (now_utc.minute % 15 == 0) and (now_utc.second >= 1)
+
+                # Trigger immediately at :00, :15, :30, :45 (1-2s after candle close)
+                if is_m15_close and m15_slot != last_m15_slot:
+                    last_m15_slot = m15_slot
+                    last_scanned_minute = now_utc.minute
+                    logger.info(f"⚡ [M15 Candle Close] New M15 candle opened ({now_utc.strftime('%H:%M:%S')} UTC). Running immediate confluence scan across all pairs...")
+                    scan_and_execute_all_pairs()
+                elif now_utc.minute != last_scanned_minute and not is_m15_close:
                     last_scanned_minute = now_utc.minute
                     scan_and_execute_all_pairs()
             except Exception as e:
                 logger.error(f"Error in Confluence Watcher loop: {e}")
 
-            time.sleep(5)
+            time.sleep(1)
 
     _confluence_watcher_thread = threading.Thread(target=_loop, daemon=True, name="ConfluenceWatcherThread")
     _confluence_watcher_thread.start()

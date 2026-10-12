@@ -19,7 +19,7 @@ import sqlite3
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 logger = logging.getLogger("ManualModel")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -291,11 +291,19 @@ def get_mt5(symbol: Optional[str] = None):
         return None
 
 
-def get_broker_offset_hours(symbol: str = "EURUSD") -> int:
+_broker_offset_cache: Dict[str, Tuple[int, float]] = {}
+
+def get_broker_offset_hours(symbol: str = "EURUSD", force_refresh: bool = False) -> int:
     """
     Determine the offset in hours between the MT5 broker clock and UTC.
     E.g., FTMO server is GMT+3 (EEST summer), so this returns 3.
     """
+    now_ts = time.time()
+    if not force_refresh and symbol in _broker_offset_cache:
+        offset, cached_ts = _broker_offset_cache[symbol]
+        if (now_ts - cached_ts) < 300:
+            return offset
+
     mt5 = get_mt5(symbol=symbol)
     if not mt5:
         return 0
@@ -308,7 +316,9 @@ def get_broker_offset_hours(symbol: str = "EURUSD") -> int:
         if tick and tick.time > 0:
             now_utc = datetime.now(timezone.utc)
             tick_dt = datetime.fromtimestamp(tick.time, tz=timezone.utc)
-            return round((tick_dt - now_utc).total_seconds() / 3600)
+            offset = round((tick_dt - now_utc).total_seconds() / 3600)
+            _broker_offset_cache[symbol] = (offset, now_ts)
+            return offset
     except Exception:
         pass
     return 0
@@ -942,15 +952,21 @@ def submit_manual_order(
     if direction == "BUY":
         mt5_order_type = mt5.ORDER_TYPE_BUY_STOP
         order_type_str = "BUY_STOP"
-        # Ensure entry price is strictly above tick.ask so MT5 accepts BUY_STOP
         if tick and entry <= tick.ask:
-            entry = round(tick.ask + 1 * pip_sz, 5)
+            drift_pips = (tick.ask - entry) / pip_sz
+            if drift_pips > 2.0:
+                logger.warning(f"🛑 [Entry Drift] Market already moved {drift_pips:.1f}p past BUY entry wick ({entry:.5f} vs ask {tick.ask:.5f}). Aborting late entry.")
+                return {"success": False, "error": f"Price drifted {drift_pips:.1f}p past entry wick"}
+            entry = round(tick.ask + 0.5 * pip_sz, 5)
     else:
         mt5_order_type = mt5.ORDER_TYPE_SELL_STOP
         order_type_str = "SELL_STOP"
-        # Ensure entry price is strictly below tick.bid so MT5 accepts SELL_STOP
         if tick and entry >= tick.bid:
-            entry = round(tick.bid - 1 * pip_sz, 5)
+            drift_pips = (entry - tick.bid) / pip_sz
+            if drift_pips > 2.0:
+                logger.warning(f"🛑 [Entry Drift] Market already dropped {drift_pips:.1f}p past SELL entry wick ({entry:.5f} vs bid {tick.bid:.5f}). Aborting late entry.")
+                return {"success": False, "error": f"Price drifted {drift_pips:.1f}p past entry wick"}
+            entry = round(tick.bid - 0.5 * pip_sz, 5)
 
     filling_type = mt5.ORDER_FILLING_RETURN
     try:
@@ -963,42 +979,35 @@ def submit_manual_order(
     except Exception:
         pass
 
-    # Set order to expire at end of Candle 3 (ORDER_TIME_SPECIFIED)
+    # Set order to expire strictly at end of Candle 3 (ORDER_TIME_SPECIFIED)
     if expiry_utc:
-        type_time  = mt5.ORDER_TIME_SPECIFIED
+        type_time = mt5.ORDER_TIME_SPECIFIED
         if isinstance(expiry_utc, str):
             from datetime import datetime as _dt
             try:
                 expiry_utc = _dt.fromisoformat(expiry_utc)
             except Exception:
                 pass
+        now_utc = datetime.now(timezone.utc)
         if hasattr(expiry_utc, "tzinfo") and expiry_utc.tzinfo is None:
             expiry_utc = expiry_utc.replace(tzinfo=timezone.utc)
 
-        # Enforce minimum lifetime safety floor of at least 15 minutes from now
-        now_utc = datetime.now(timezone.utc)
-        min_expiry = now_utc + timedelta(minutes=15)
-        if expiry_utc < min_expiry:
-            logger.info(
-                f"⏱️ Safety Expiry Floor applied for {symbol}: original expiry was < 15m away. "
-                f"Extended to {min_expiry.strftime('%H:%M:%S')} UTC."
-            )
-            expiry_utc = min_expiry
+        rem_seconds = int((expiry_utc - now_utc).total_seconds())
+        if rem_seconds <= 10:
+            logger.warning(f"⏳ Candle 3 has expired or has < 10s remaining ({rem_seconds}s). Aborting order submission.")
+            return {"success": False, "error": "Candle 3 has expired (insufficient time remaining)"}
 
-        # Save enforced expiry back to order_spec
-        order_spec["expiry_utc"] = expiry_utc
-
-        # Convert to broker expiration timestamp using direct tick.time offset if available
-        tick = mt5.symbol_info_tick(symbol)
-        rem_sec = (expiry_utc - now_utc).total_seconds()
+        # In MT5, tick.time is the broker's current server epoch timestamp.
+        # Adding rem_seconds gives the exact broker server timestamp when Candle 3 closes!
         if tick and getattr(tick, 'time', 0) > 0:
-            expiration = int(tick.time + rem_sec)
+            expiration = int(tick.time + rem_seconds)
         else:
             offset_h = get_broker_offset_hours(symbol)
             server_expiry = expiry_utc + timedelta(hours=offset_h)
-            expiration = int(server_expiry.timestamp())
+            server_expiry_utc = server_expiry.replace(tzinfo=timezone.utc)
+            expiration = int(server_expiry_utc.timestamp())
     else:
-        type_time  = mt5.ORDER_TIME_DAY
+        type_time = mt5.ORDER_TIME_DAY
         expiration = 0
 
     sym_digits = getattr(sym_info, 'digits', 2 if ('BTC' in symbol.upper() or 'ETH' in symbol.upper() or 'SOL' in symbol.upper()) else 5)
@@ -2050,6 +2059,7 @@ def reconcile_manual_orders():
             if pending_orders:
                 # Active Candle 3 Expiry Check: If Candle 3 window has ended, actively remove pending order
                 expiry_val = sig.get('expiry_utc')
+                exp_dt = None
                 if expiry_val:
                     try:
                         if isinstance(expiry_val, str):
@@ -2057,12 +2067,25 @@ def reconcile_manual_orders():
                             exp_dt = _dt.fromisoformat(expiry_val)
                         else:
                             exp_dt = expiry_val
+                    except Exception:
+                        pass
+
+                # Failsafe fallback: if expiry_utc missing, calculate from signal creation time (15 mins)
+                if not exp_dt and sig.get('timestamp'):
+                    try:
+                        from datetime import datetime as _dt
+                        st = _dt.fromisoformat(sig['timestamp'])
+                        exp_dt = st + timedelta(minutes=15)
+                    except Exception:
+                        pass
+
+                if exp_dt:
+                    try:
                         if exp_dt.tzinfo is None:
                             exp_dt = exp_dt.replace(tzinfo=timezone.utc)
                         now_utc = datetime.now(timezone.utc)
-                        # Add a 60-second grace buffer to allow the MT5 broker server's native expiration engine to trigger first
-                        if now_utc >= (exp_dt + timedelta(seconds=60)):
-                            logger.info(f"⏳ Pending order #{ticket} for {symbol} reached expiry ({exp_dt}). Removing order from MT5.")
+                        if now_utc >= exp_dt:
+                            logger.info(f"⏳ Pending order #{ticket} for {symbol} reached Candle 3 expiry ({exp_dt}). Removing order from MT5.")
                             cancel_manual_order(ticket, symbol=symbol)
                             db.update_signal_outcome(sig_id, 'EXPIRED', exit_reason='Candle 3 Expired (Untouched)')
                             continue
