@@ -1052,18 +1052,18 @@ def _worker_sync(user: dict, master_symbols: list) -> dict:
         if sym_upper not in allowed_symbols:
             # During emergency drawdown killswitch, liquidating ALL positions is mandatory!
             if not is_killswitch_liquidation:
+                # 1. Never liquidate crypto positions on the account designated as Crypto Master
                 try:
-                    from core.manual_model import get_copy_trading_mode
-                    is_pos_mirror = get_copy_trading_mode() == "position_mirror"
-                except Exception:
-                    is_pos_mirror = True
-
-                # In signal_broadcast mode, protect independent APEX trades.
-                # In position_mirror mode, any position not present on Master MUST be liquidated to keep mirror exact.
-                if not is_pos_mirror:
-                    if (getattr(pos, 'magic', 0) in apex_magics or "APEX" in str(getattr(pos, 'comment', ''))) and (pos.sl > 0 or pos.tp > 0):
-                        logger.info(f"  ✓ Preserving APEX trade #{pos.ticket} ({pos.symbol}) on #{login} with hard SL={pos.sl}/TP={pos.tp} to run to TP/SL naturally.")
+                    from core.market_hours import is_crypto
+                    if user.get("is_crypto_master") and is_crypto(pos.symbol):
                         continue
+                except Exception:
+                    pass
+
+                # 2. Never kill APEX trades with active hard SL/TP protection
+                if (getattr(pos, 'magic', 0) in apex_magics or "APEX" in str(getattr(pos, 'comment', ''))) and (pos.sl > 0 or pos.tp > 0):
+                    logger.info(f"  ✓ Preserving APEX trade #{pos.ticket} ({pos.symbol}) on #{login} with hard SL={pos.sl}/TP={pos.tp} to run to TP/SL naturally.")
+                    continue
 
                 # Option B Guard: Preserve existing legacy positions opened prior to Master migration
                 # if they have hard broker-side SL/TP protection.

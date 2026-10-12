@@ -1112,10 +1112,21 @@ class ExecutiveEngine:
                     master_pos = mt5_conn.positions_get()
                     master_orders = mt5_conn.orders_get()
                     if master_pos is not None:
-                        master_symbols = [p.symbol for p in master_pos]
+                        master_symbols_set = set(p.symbol for p in master_pos)
                         if master_orders:
-                            master_symbols.extend([o.symbol for o in master_orders])
-                        master_symbols = list(set(master_symbols))
+                            master_symbols_set.update(o.symbol for o in master_orders)
+                        try:
+                            crypto_mt5 = self.get_mt5_conn("BTCUSD")
+                            if crypto_mt5 and crypto_mt5 != mt5_conn:
+                                c_pos = crypto_mt5.positions_get()
+                                if c_pos:
+                                    master_symbols_set.update(p.symbol for p in c_pos)
+                                c_ord = crypto_mt5.orders_get()
+                                if c_ord:
+                                    master_symbols_set.update(o.symbol for o in c_ord)
+                        except Exception:
+                            pass
+                        master_symbols = list(master_symbols_set)
 
                         from core.market_hours import is_weekend_halt, is_crypto
                         halted, _ = is_weekend_halt()
