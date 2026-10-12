@@ -599,6 +599,30 @@ def _worker_execute_order(user: dict, signal_row: dict) -> dict:
     vol_max = getattr(s_info, 'volume_max', 100.0) or 100.0
     volume = max(vol_min, min(vol_max, volume))
 
+    # ── Margin-Aware Auto-Scaling Protection ──────────────────────────
+    try:
+        req_margin = mt5.order_calc_margin(order_type, actual_symbol, volume, order_price)
+        free_margin = getattr(acc, 'margin_free', 0.0) or 0.0
+        if req_margin and free_margin > 0 and req_margin > (free_margin * 0.95):
+            usable_margin = max(0.0, free_margin * 0.85)
+            margin_per_lot = req_margin / volume if volume > 0 else 0.0
+            if margin_per_lot > 0:
+                max_affordable = round((usable_margin / margin_per_lot) / step) * step
+                if max_affordable >= vol_min:
+                    logger.warning(
+                        f"⚠️ MARGIN CONSTRAINT on #{login}: {volume:.2f} lots requires ${req_margin:.2f} margin, "
+                        f"but free margin is only ${free_margin:.2f}. Auto-scaling volume to affordable {max_affordable:.2f} lots."
+                    )
+                    volume = max_affordable
+                else:
+                    logger.error(
+                        f"🛑 INSUFFICIENT MARGIN on #{login}: Free margin ${free_margin:.2f} cannot support minimum "
+                        f"{vol_min} lots (${margin_per_lot * vol_min:.2f} required). Order aborted."
+                    )
+                    return {"status": "FAILED", "error": f"Insufficient margin (Free: ${free_margin:.2f}, Required: ${req_margin:.2f})"}
+    except Exception as _me:
+        logger.warning(f"order_calc_margin check failed for {actual_symbol}: {_me}")
+
     # Supported filling mode
     filling_type = mt5.ORDER_FILLING_FOK
     if s_info:

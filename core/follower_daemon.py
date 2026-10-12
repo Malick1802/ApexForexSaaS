@@ -380,6 +380,25 @@ def _handle_daemon_execute(mt5, user: dict, signal_row: dict, sym_cache: dict) -
     vol_max = getattr(s_info, 'volume_max', 100.0) or 100.0
     volume = max(vol_min, min(vol_max, volume))
 
+    # Margin-Aware Auto-Scaling Protection
+    try:
+        req_margin = mt5.order_calc_margin(order_type, actual_symbol, volume, order_price)
+        free_margin = getattr(acc, 'margin_free', 0.0) or 0.0
+        if req_margin and free_margin > 0 and req_margin > (free_margin * 0.95):
+            usable_margin = max(0.0, free_margin * 0.85)
+            margin_per_lot = req_margin / volume if volume > 0 else 0.0
+            if margin_per_lot > 0:
+                max_affordable = round((usable_margin / margin_per_lot) / step) * step
+                if max_affordable >= vol_min:
+                    volume = max_affordable
+                else:
+                    return {
+                        "status": "FAILED",
+                        "error": f"Insufficient margin: Free ${free_margin:.2f} < Minimum lot margin ${margin_per_lot * vol_min:.2f}"
+                    }
+    except Exception:
+        pass
+
     # Supported filling mode
     filling_type = mt5.ORDER_FILLING_FOK
     if (s_info.filling_mode & 1) != 0:
